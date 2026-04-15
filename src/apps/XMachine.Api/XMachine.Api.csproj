@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XMachine.ServiceDefaults\XMachine.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\building-blocks\XMachine.Application\XMachine.Application.csproj" />
+    <ProjectReference Include="..\..\building-blocks\XMachine.Infrastructure\XMachine.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\building-blocks\XMachine.Persistence\XMachine.Persistence.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Platform\XMachine.Module.Platform.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Auth\XMachine.Module.Auth.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Commercial\XMachine.Module.Commercial.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Integration\XMachine.Module.Integration.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.MES\XMachine.Module.MES.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Quality\XMachine.Module.Quality.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Eventing\XMachine.Module.Eventing.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Workflow\XMachine.Module.Workflow.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Docs\XMachine.Module.Docs.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Plugin\XMachine.Module.Plugin.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-XMachine.Edge.Agent-1f82b329-b334-4501-8320-c90a60dcebba</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\apps\XMachine.ServiceDefaults\XMachine.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\XMachine.Edge.LocalStore\XMachine.Edge.LocalStore.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Contracts\XMachine.Connectors.Contracts.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Runtime\XMachine.Connectors.Runtime.csproj" />
+  </ItemGroup>
+</Project>

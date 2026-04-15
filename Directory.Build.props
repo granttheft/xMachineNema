@@ -1,0 +1,191 @@
+<Project>
+  <PropertyGroup>
+    <!-- Centralized build defaults for the whole repo -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <LangVersion>latest</LangVersion>
+
+    <!-- Short purpose text (kept centrally; each project inherits it as Description) -->
+    <XMachineProjectPurpose Condition="'$(XMachineProjectPurpose)'==''">xMachineNema project</XMachineProjectPurpose>
+  </PropertyGroup>
+
+  <Choose>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Web'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Blazor Web portal (admin + operator surfaces). No direct dependency on concrete connectors.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Api'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>HTTP API host for the modular monolith (modules composition + hosting). No direct dependency on concrete connectors.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.AppHost'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Aspire AppHost placeholder (will evolve into real Aspire host when templates/packages are enabled).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.ServiceDefaults'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Shared host defaults for apps/services (logging/health/config conventions).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.SharedKernel'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Cross-cutting primitives used by all layers (no domain coupling).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Domain'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Domain model building blocks (entities/value objects) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Application'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Application layer (use-cases/contracts) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Infrastructure'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Infrastructure wiring (adapters, external integrations) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Persistence'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Persistence abstractions and DB integration boundary - skeleton only (no time-series decisions).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Platform'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Platform domain module (tenant + org hierarchy) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Auth'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Auth domain module (users/roles/permissions) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Commercial'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Commercial domain module (licensing/modules entitlements) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Integration'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Integration domain module (connector metadata + mapping profiles) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.MES'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>MES domain module (orders/recipes/lots) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Quality'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Quality domain module (checks/measurements) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Eventing'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Eventing domain module (alarms/downtime/OEE/KPI) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Workflow'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Workflow domain module (approvals) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Docs'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Docs module (document metadata) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Module.Plugin'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Plugin module (extension activation/config) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Abstractions'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Connector framework abstractions (interfaces). No dependency on concrete connectors.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Contracts'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Connector contracts/canonical message envelope and DTOs.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Runtime'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Connector runtime orchestration (wiring mapping/health/sync/commands) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Mapping'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Mapping engine building blocks (source field -> canonical field) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Health'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Connector health model/reporting primitives.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Sync'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Sync pipeline primitives (edge/central sync contracts) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connectors.Commands'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Write-back command primitives (controlled pipeline) - skeleton only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connector.OPCUA'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Concrete OPC UA connector implementation (placeholder only).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connector.S7'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Concrete S7 Native connector implementation (placeholder only).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connector.ModbusTcp'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Concrete Modbus TCP connector implementation (placeholder only).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connector.SAP'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Concrete SAP ERP connector implementation (placeholder only).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Connector.REST'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Concrete REST connector implementation (placeholder only).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Edge.Agent'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Edge agent runtime (worker). Separate runtime; minimal scaffold only.</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+    <When Condition="'$(MSBuildProjectName)' == 'XMachine.Edge.LocalStore'">
+      <PropertyGroup>
+        <XMachineProjectPurpose>Edge local store primitives (buffer/sync queue placeholders).</XMachineProjectPurpose>
+      </PropertyGroup>
+    </When>
+  </Choose>
+
+  <PropertyGroup>
+    <Description>$(XMachineProjectPurpose)</Description>
+  </PropertyGroup>
+</Project>
+

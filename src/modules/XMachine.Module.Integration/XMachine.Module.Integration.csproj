@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\building-blocks\XMachine.SharedKernel\XMachine.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\building-blocks\XMachine.Application\XMachine.Application.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Abstractions\XMachine.Connectors.Abstractions.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Contracts\XMachine.Connectors.Contracts.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Runtime\XMachine.Connectors.Runtime.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Mapping\XMachine.Connectors.Mapping.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Health\XMachine.Connectors.Health.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Sync\XMachine.Connectors.Sync.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Commands\XMachine.Connectors.Commands.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\XMachine.Connectors.Abstractions\XMachine.Connectors.Abstractions.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Contracts\XMachine.Connectors.Contracts.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Mapping\XMachine.Connectors.Mapping.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Health\XMachine.Connectors.Health.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Sync\XMachine.Connectors.Sync.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Commands\XMachine.Connectors.Commands.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
