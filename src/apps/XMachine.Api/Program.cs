@@ -1,8 +1,20 @@
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+var operationalDbCs = builder.Configuration.GetConnectionString("XMachineOperationalDb");
+if (string.IsNullOrWhiteSpace(operationalDbCs))
+{
+    throw new InvalidOperationException(
+        "Missing connection string: ConnectionStrings:XMachineOperationalDb");
+}
+
+builder.Services.AddDbContext<XMachine.Persistence.Operational.XMachineDbContext>(options =>
+    options.UseNpgsql(operationalDbCs));
+
+builder.Services.AddHostedService<XMachine.Api.Development.DevSeedHostedService>();
 
 var app = builder.Build();
 
@@ -12,28 +24,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.MapGet("/health/live", () => Results.Ok(new { status = "live" }))
+    .WithName("Live");
 
-app.MapGet("/weatherforecast", () =>
+app.MapGet("/health/ready", async (XMachine.Persistence.Operational.XMachineDbContext db, CancellationToken ct) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var canConnect = await db.Database.CanConnectAsync(ct);
+    return canConnect
+        ? Results.Ok(new { status = "ready" })
+        : Results.Problem("Database is not reachable.");
+}).WithName("Ready");
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

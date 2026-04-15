@@ -4,19 +4,21 @@ public static class DevelopmentSeed
 {
     public static readonly DevelopmentSeedPlan MinimalPlan = new(
         TenantCount: 1,
+        EnterpriseCount: 1,
         SiteCount: 1,
         LineCount: 2,
         MachineCount: 4,
-        IncludesExampleConnectors: true,
-        IncludesExampleOrders: true
+        IncludesAuthSeed: true,
+        IncludesCommercialSeed: true
     );
 }
 
 public sealed record DevelopmentSeedPlan(
     int TenantCount,
+    int EnterpriseCount,
     int SiteCount,
     int LineCount,
     int MachineCount,
-    bool IncludesExampleConnectors,
-    bool IncludesExampleOrders
+    bool IncludesAuthSeed,
+    bool IncludesCommercialSeed
 );

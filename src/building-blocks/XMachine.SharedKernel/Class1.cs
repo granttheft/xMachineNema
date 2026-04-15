@@ -1,6 +1,9 @@
 ﻿namespace XMachine.SharedKernel;
 
-public class Class1
+public enum EntityStatus
 {
-
+    Active = 1,
+    Inactive = 2,
+    Archived = 3,
 }
+

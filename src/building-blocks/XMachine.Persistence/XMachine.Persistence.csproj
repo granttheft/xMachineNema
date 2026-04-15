@@ -3,6 +3,18 @@
   <ItemGroup>
     <ProjectReference Include="..\XMachine.SharedKernel\XMachine.SharedKernel.csproj" />
     <ProjectReference Include="..\XMachine.Domain\XMachine.Domain.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Platform\XMachine.Module.Platform.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Auth\XMachine.Module.Auth.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Commercial\XMachine.Module.Commercial.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.6">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -1,0 +1,37 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using XMachine.Module.Platform.Domain;
+
+namespace XMachine.Persistence.Operational.Platform.Configurations;
+
+internal sealed class SiteConfiguration : IEntityTypeConfiguration<Site>
+{
+    public void Configure(EntityTypeBuilder<Site> builder)
+    {
+        builder.ToTable("sites", "platform");
+
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id).HasColumnName("id");
+
+        builder.Property(x => x.TenantId).HasColumnName("tenant_id").IsRequired();
+        builder.Property(x => x.EnterpriseId).HasColumnName("enterprise_id").IsRequired();
+
+        builder.Property(x => x.Code).HasColumnName("code").HasMaxLength(64).IsRequired();
+        builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(256).IsRequired();
+        builder.Property(x => x.Status).HasColumnName("status").IsRequired();
+
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+        builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by");
+        builder.Property(x => x.UpdatedBy).HasColumnName("updated_by");
+
+        builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+        builder.HasIndex(x => x.EnterpriseId);
+
+        builder.HasOne<Enterprise>()
+            .WithMany()
+            .HasForeignKey(x => x.EnterpriseId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+

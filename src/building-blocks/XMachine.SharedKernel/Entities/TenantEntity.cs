@@ -1,0 +1,7 @@
+namespace XMachine.SharedKernel.Entities;
+
+public abstract class TenantEntity : Entity
+{
+    public Guid TenantId { get; set; }
+}
+

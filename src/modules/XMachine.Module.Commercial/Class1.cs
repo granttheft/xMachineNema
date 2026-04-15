@@ -1,6 +1,3 @@
 ﻿namespace XMachine.Module.Commercial;
 
-public class Class1
-{
-
-}
+// Intentionally left minimal. See Domain/* for entities.

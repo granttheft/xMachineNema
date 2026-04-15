@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\XMachine.Connectors.Runtime\XMachine.Connectors.Runtime.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Abstractions\XMachine.Connectors.Abstractions.csproj" />
+    <ProjectReference Include="..\XMachine.Connectors.Contracts\XMachine.Connectors.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
