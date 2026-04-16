@@ -1,4 +1,4 @@
-﻿using XMachine.Connectors.Contracts;
+using XMachine.Connectors.Contracts;
 
 namespace XMachine.Connectors.Abstractions;
 
@@ -10,15 +10,9 @@ public interface IConnector
     ValueTask ConnectAsync(CancellationToken cancellationToken);
     ValueTask DisconnectAsync(CancellationToken cancellationToken);
 
-    IAsyncEnumerable<CanonicalMessageEnvelope> ReadSnapshotAsync(CancellationToken cancellationToken);
-    IAsyncEnumerable<CanonicalMessageEnvelope> StartStreamingAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<ConnectorEnvelope> ReadSnapshotAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<ConnectorEnvelope> StartStreamingAsync(CancellationToken cancellationToken);
     ValueTask StopStreamingAsync(CancellationToken cancellationToken);
 
     ValueTask<ConnectorHealthStatus> GetHealthStatusAsync(CancellationToken cancellationToken);
-}
-
-public interface IConnectorFactory
-{
-    string ConnectorCode { get; }
-    IConnector Create();
 }

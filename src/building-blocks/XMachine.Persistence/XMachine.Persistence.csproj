@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\modules\XMachine.Module.Platform\XMachine.Module.Platform.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Auth\XMachine.Module.Auth.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Commercial\XMachine.Module.Commercial.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Integration\XMachine.Module.Integration.csproj" />
   </ItemGroup>
 
   <ItemGroup>

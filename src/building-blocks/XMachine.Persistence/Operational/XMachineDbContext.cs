@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
 using XMachine.Module.Commercial.Domain;
+using XMachine.Module.Integration.Domain;
 using XMachine.Module.Platform.Domain;
 
 namespace XMachine.Persistence.Operational;
@@ -34,6 +35,14 @@ public sealed class XMachineDbContext : DbContext
     public DbSet<LicensedLine> LicensedLines => Set<LicensedLine>();
     public DbSet<PackageCatalog> PackageCatalogs => Set<PackageCatalog>();
     public DbSet<PackageModule> PackageModules => Set<PackageModule>();
+
+    // integration (operational metadata)
+    public DbSet<ConnectorDefinition> ConnectorDefinitions => Set<ConnectorDefinition>();
+    public DbSet<ConnectorInstance> ConnectorInstances => Set<ConnectorInstance>();
+    public DbSet<MappingProfile> MappingProfiles => Set<MappingProfile>();
+    public DbSet<MappingRule> MappingRules => Set<MappingRule>();
+    public DbSet<AssetTagMap> AssetTagMaps => Set<AssetTagMap>();
+    public DbSet<SyncJob> SyncJobs => Set<SyncJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

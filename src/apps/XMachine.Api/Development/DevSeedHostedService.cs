@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
 using XMachine.Module.Commercial.Domain;
+using XMachine.Module.Integration.Domain;
 using XMachine.Module.Platform.Domain;
 using XMachine.Persistence.Operational;
 using XMachine.SharedKernel;
@@ -143,6 +144,168 @@ internal sealed class DevSeedHostedService : IHostedService
             new LicensedLine { TenantId = tenant.Id, LineId = line2.Id, Status = EntityStatus.Active },
         };
 
+        var defOpcua = new ConnectorDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "opcua",
+            Name = "OPC UA",
+            Category = "plc",
+            Direction = ConnectorDirection.Inbound,
+            SupportsRead = true,
+            SupportsWrite = false,
+            Status = EntityStatus.Active,
+        };
+
+        var defS7 = new ConnectorDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "s7",
+            Name = "Siemens S7",
+            Category = "plc",
+            Direction = ConnectorDirection.Inbound,
+            SupportsRead = true,
+            SupportsWrite = false,
+            Status = EntityStatus.Active,
+        };
+
+        var defModbusTcp = new ConnectorDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "modbus_tcp",
+            Name = "Modbus TCP",
+            Category = "plc",
+            Direction = ConnectorDirection.Inbound,
+            SupportsRead = true,
+            SupportsWrite = true,
+            Status = EntityStatus.Active,
+        };
+
+        var defSap = new ConnectorDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "sap",
+            Name = "SAP (placeholder)",
+            Category = "erp",
+            Direction = ConnectorDirection.Bidirectional,
+            SupportsRead = true,
+            SupportsWrite = true,
+            Status = EntityStatus.Active,
+        };
+
+        var defRest = new ConnectorDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "rest",
+            Name = "REST / HTTP",
+            Category = "http",
+            Direction = ConnectorDirection.Bidirectional,
+            SupportsRead = true,
+            SupportsWrite = true,
+            Status = EntityStatus.Active,
+        };
+
+        var instOpcLine = new ConnectorInstance
+        {
+            TenantId = tenant.Id,
+            ConnectorDefinitionId = defOpcua.Id,
+            SiteId = site.Id,
+            Code = "demo_line_opcua",
+            Name = "Demo OPC UA instance",
+            ConfigurationJson = """{"endpointUrl":"opc.tcp://localhost:4840/xmachine-dev"}""",
+            Status = EntityStatus.Active,
+        };
+
+        var instSapSite = new ConnectorInstance
+        {
+            TenantId = tenant.Id,
+            ConnectorDefinitionId = defSap.Id,
+            SiteId = site.Id,
+            Code = "demo_site_sap",
+            Name = "Demo SAP adapter",
+            ConfigurationJson = "{}",
+            Status = EntityStatus.Active,
+        };
+
+        var instRestSite = new ConnectorInstance
+        {
+            TenantId = tenant.Id,
+            ConnectorDefinitionId = defRest.Id,
+            SiteId = site.Id,
+            Code = "demo_site_rest",
+            Name = "Demo REST poller",
+            ConfigurationJson = """{"baseUrl":"https://example.invalid"}""",
+            Status = EntityStatus.Active,
+        };
+
+        var mapProfileOpc = new MappingProfile
+        {
+            TenantId = tenant.Id,
+            ConnectorInstanceId = instOpcLine.Id,
+            Name = "default",
+            Version = 1,
+            Status = EntityStatus.Active,
+        };
+
+        var mapProfileSap = new MappingProfile
+        {
+            TenantId = tenant.Id,
+            ConnectorInstanceId = instSapSite.Id,
+            Name = "default",
+            Version = 1,
+            Status = EntityStatus.Active,
+        };
+
+        var mapRules = new[]
+        {
+            new MappingRule
+            {
+                MappingProfileId = mapProfileOpc.Id,
+                SourceField = "ns=2;s=Demo/SpindleSpeed",
+                LogicalField = "spindle_rpm_raw",
+                CanonicalField = "machine.spindle_speed_rpm",
+                SortOrder = 10,
+                Status = EntityStatus.Active,
+            },
+            new MappingRule
+            {
+                MappingProfileId = mapProfileOpc.Id,
+                SourceField = "ns=2;s=Demo/PartCount",
+                LogicalField = "parts_produced_raw",
+                CanonicalField = "production.part_count",
+                SortOrder = 20,
+                Status = EntityStatus.Active,
+            },
+            new MappingRule
+            {
+                MappingProfileId = mapProfileSap.Id,
+                SourceField = "AUFNR",
+                LogicalField = "sap_order_number",
+                CanonicalField = "order.number",
+                TransformKind = "trim",
+                SortOrder = 10,
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var assetTag = new AssetTagMap
+        {
+            TenantId = tenant.Id,
+            ConnectorInstanceId = instOpcLine.Id,
+            MachineId = machines[0].Id,
+            SourceAddress = "ns=2;s=Demo/ActiveProgram",
+            CanonicalField = "machine.active_program_name",
+            Status = EntityStatus.Active,
+        };
+
+        var syncJob = new SyncJob
+        {
+            TenantId = tenant.Id,
+            ConnectorInstanceId = instOpcLine.Id,
+            JobType = "poll",
+            JobStatus = SyncJobStatus.Pending,
+            PayloadJson = """{"intervalSeconds":30}""",
+        };
+
         db.Add(tenant);
         db.Add(enterprise);
         db.Add(site);
@@ -153,6 +316,12 @@ internal sealed class DevSeedHostedService : IHostedService
         db.Add(license);
         db.AddRange(activations);
         db.AddRange(licensedLines);
+        db.AddRange(defOpcua, defS7, defModbusTcp, defSap, defRest);
+        db.AddRange(instOpcLine, instSapSite, instRestSite);
+        db.AddRange(mapProfileOpc, mapProfileSap);
+        db.AddRange(mapRules);
+        db.Add(assetTag);
+        db.Add(syncJob);
 
         await db.SaveChangesAsync(cancellationToken);
 

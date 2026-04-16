@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\modules\XMachine.Module.Workflow\XMachine.Module.Workflow.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Docs\XMachine.Module.Docs.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Plugin\XMachine.Module.Plugin.csproj" />
+    <ProjectReference Include="..\..\connectors\XMachine.Connectors.Runtime\XMachine.Connectors.Runtime.csproj" />
   </ItemGroup>
 
 </Project>

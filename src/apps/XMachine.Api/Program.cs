@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using XMachine.Api.Integration;
+using XMachine.Connectors.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,12 @@ if (string.IsNullOrWhiteSpace(operationalDbCs))
 
 builder.Services.AddDbContext<XMachine.Persistence.Operational.XMachineDbContext>(options =>
     options.UseNpgsql(operationalDbCs));
+
+builder.Services.AddConnectorRuntime(registry =>
+{
+    foreach (var code in new[] { "opcua", "s7", "modbus_tcp", "sap", "rest" })
+        registry.Register(new PlaceholderConnectorFactory(code));
+});
 
 builder.Services.AddHostedService<XMachine.Api.Development.DevSeedHostedService>();
 
@@ -34,5 +42,7 @@ app.MapGet("/health/ready", async (XMachine.Persistence.Operational.XMachineDbCo
         ? Results.Ok(new { status = "ready" })
         : Results.Problem("Database is not reachable.");
 }).WithName("Ready");
+
+app.MapIntegrationEndpoints();
 
 app.Run();

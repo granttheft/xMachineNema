@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\building-blocks\XMachine.SharedKernel\XMachine.SharedKernel.csproj" />
     <ProjectReference Include="..\XMachine.Connectors.Contracts\XMachine.Connectors.Contracts.csproj" />
   </ItemGroup>
 
