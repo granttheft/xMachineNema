@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Api.Integration;
+using XMachine.Api.Mes;
+using XMachine.Api.Quality;
+using XMachine.Api.Eventing;
 using XMachine.Connectors.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,5 +47,8 @@ app.MapGet("/health/ready", async (XMachine.Persistence.Operational.XMachineDbCo
 }).WithName("Ready");
 
 app.MapIntegrationEndpoints();
+app.MapMesEndpoints();
+app.MapQualityEndpoints();
+app.MapEventingEndpoints();
 
 app.Run();

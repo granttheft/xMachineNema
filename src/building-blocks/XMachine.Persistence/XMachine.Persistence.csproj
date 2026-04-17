@@ -7,6 +7,9 @@
     <ProjectReference Include="..\..\modules\XMachine.Module.Auth\XMachine.Module.Auth.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Commercial\XMachine.Module.Commercial.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Integration\XMachine.Module.Integration.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.MES\XMachine.Module.MES.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Quality\XMachine.Module.Quality.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Eventing\XMachine.Module.Eventing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

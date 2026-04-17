@@ -1,0 +1,59 @@
+@page "/eventing/kpis"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>KPIs</PageTitle>
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">Eventing</li>
+        <li class="breadcrumb-item active">KPIs</li>
+    </ol>
+</nav>
+<h1 class="h3 mb-3">KPI definitions &amp; results</h1>
+<ApiStateDisplay Loading="_loading" Error="_error">
+    <h2 class="h6 text-muted">Definitions</h2>
+    <div class="table-responsive border rounded bg-white mb-4">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Scope</th><th>Source</th></tr></thead>
+            <tbody>
+            @foreach (var d in _defs)
+            {
+                <tr><td class="font-monospace small">@d.Code</td><td>@d.Name</td><td>@d.ScopeType</td><td class="small">@d.DataSourceType</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <h2 class="h6 text-muted">Results</h2>
+    <div class="table-responsive border rounded bg-white">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>KPI</th><th>Scope</th><th>Scope id</th><th>Period</th><th>Value</th></tr></thead>
+            <tbody>
+            @foreach (var r in _results)
+            {
+                <tr>
+                    <td class="small">@r.KpiDefinitionId</td>
+                    <td>@r.ScopeType</td>
+                    <td class="small">@r.ScopeId</td>
+                    <td class="small">@r.PeriodStart.LocalDateTime.ToString("d")</td>
+                    <td class="fw-semibold">@r.Value</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<KpiDefinitionRowDto> _defs = [];
+    private IReadOnlyList<KpiResultRowDto> _results = [];
+    protected override async Task OnInitializedAsync()
+    {
+        var res = await Api.GetKpisAsync().ConfigureAwait(false);
+        _loading = false;
+        if (res.Error is not null) { _error = res.Error; return; }
+        _defs = res.Data?.Definitions ?? [];
+        _results = res.Data?.Results ?? [];
+    }
+}

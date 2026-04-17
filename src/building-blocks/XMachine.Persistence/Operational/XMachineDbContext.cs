@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
 using XMachine.Module.Commercial.Domain;
+using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
+using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
+using XMachine.Module.Quality.Domain;
 
 namespace XMachine.Persistence.Operational;
 
@@ -43,6 +46,33 @@ public sealed class XMachineDbContext : DbContext
     public DbSet<MappingRule> MappingRules => Set<MappingRule>();
     public DbSet<AssetTagMap> AssetTagMaps => Set<AssetTagMap>();
     public DbSet<SyncJob> SyncJobs => Set<SyncJob>();
+
+    // mes (core manufacturing)
+    public DbSet<ProductionOrder> ProductionOrders => Set<ProductionOrder>();
+    public DbSet<ProductionOperation> ProductionOperations => Set<ProductionOperation>();
+    public DbSet<Recipe> Recipes => Set<Recipe>();
+    public DbSet<RecipeParameter> RecipeParameters => Set<RecipeParameter>();
+    public DbSet<OrderRecipeAssignment> OrderRecipeAssignments => Set<OrderRecipeAssignment>();
+    public DbSet<LotBatch> LotBatches => Set<LotBatch>();
+    public DbSet<MaterialConsumption> MaterialConsumptions => Set<MaterialConsumption>();
+    public DbSet<ProductionDeclaration> ProductionDeclarations => Set<ProductionDeclaration>();
+    public DbSet<ScrapDeclaration> ScrapDeclarations => Set<ScrapDeclaration>();
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<EmployeeAssignment> EmployeeAssignments => Set<EmployeeAssignment>();
+
+    // quality
+    public DbSet<QualityCheck> QualityChecks => Set<QualityCheck>();
+    public DbSet<QualityMeasurement> QualityMeasurements => Set<QualityMeasurement>();
+    public DbSet<Nonconformance> Nonconformances => Set<Nonconformance>();
+    public DbSet<QualityDisposition> QualityDispositions => Set<QualityDisposition>();
+
+    // eventing (alarms / downtime / OEE / KPI snapshots)
+    public DbSet<AlarmEvent> AlarmEvents => Set<AlarmEvent>();
+    public DbSet<DowntimeRecord> DowntimeRecords => Set<DowntimeRecord>();
+    public DbSet<OeeSnapshot> OeeSnapshots => Set<OeeSnapshot>();
+    public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
+    public DbSet<KpiResult> KpiResults => Set<KpiResult>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

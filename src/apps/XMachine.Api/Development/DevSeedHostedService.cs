@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
 using XMachine.Module.Commercial.Domain;
+using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
+using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
+using XMachine.Module.Quality.Domain;
 using XMachine.Persistence.Operational;
 using XMachine.SharedKernel;
 
@@ -115,6 +118,24 @@ internal sealed class DevSeedHostedService : IHostedService
             TenantId = tenant.Id,
             Code = "viewer",
             Name = "Viewer",
+            Status = EntityStatus.Active,
+        };
+
+        var userOperator = new UserAccount
+        {
+            TenantId = tenant.Id,
+            Username = "operator1",
+            DisplayName = "Demo Operator",
+            Email = "operator1@demo.local",
+            Status = EntityStatus.Active,
+        };
+
+        var userSupervisor = new UserAccount
+        {
+            TenantId = tenant.Id,
+            Username = "supervisor1",
+            DisplayName = "Demo Supervisor",
+            Email = "supervisor1@demo.local",
             Status = EntityStatus.Active,
         };
 
@@ -306,12 +327,753 @@ internal sealed class DevSeedHostedService : IHostedService
             PayloadJson = """{"intervalSeconds":30}""",
         };
 
+        var recipeAsm = new Recipe
+        {
+            TenantId = tenant.Id,
+            Code = "ASM-A",
+            Name = "Assembly recipe A",
+            Version = 1,
+            Description = "Demo assembly parameters",
+            Status = EntityStatus.Active,
+        };
+
+        var recipeCoat = new Recipe
+        {
+            TenantId = tenant.Id,
+            Code = "COAT-B",
+            Name = "Coating recipe B",
+            Version = 1,
+            Description = "Demo coating parameters",
+            Status = EntityStatus.Active,
+        };
+
+        var recipeParams = new[]
+        {
+            new RecipeParameter
+            {
+                RecipeId = recipeAsm.Id,
+                Code = "SPINDLE_RPM",
+                Name = "Target spindle rpm",
+                DataType = "number",
+                Unit = "rpm",
+                DefaultValue = "2400",
+                MinValue = "0",
+                MaxValue = "8000",
+                SortOrder = 10,
+                Status = EntityStatus.Active,
+            },
+            new RecipeParameter
+            {
+                RecipeId = recipeAsm.Id,
+                Code = "CYCLE_TIME_S",
+                Name = "Nominal cycle time",
+                DataType = "number",
+                Unit = "s",
+                DefaultValue = "45",
+                MinValue = "10",
+                MaxValue = "300",
+                SortOrder = 20,
+                Status = EntityStatus.Active,
+            },
+            new RecipeParameter
+            {
+                RecipeId = recipeAsm.Id,
+                Code = "TORQUE_NM",
+                Name = "Fastening torque",
+                DataType = "number",
+                Unit = "Nm",
+                DefaultValue = "35",
+                MinValue = "5",
+                MaxValue = "120",
+                SortOrder = 30,
+                Status = EntityStatus.Active,
+            },
+            new RecipeParameter
+            {
+                RecipeId = recipeCoat.Id,
+                Code = "OVEN_TEMP_C",
+                Name = "Oven temperature",
+                DataType = "number",
+                Unit = "C",
+                DefaultValue = "180",
+                MinValue = "120",
+                MaxValue = "220",
+                SortOrder = 10,
+                Status = EntityStatus.Active,
+            },
+            new RecipeParameter
+            {
+                RecipeId = recipeCoat.Id,
+                Code = "CURE_TIME_S",
+                Name = "Cure time",
+                DataType = "number",
+                Unit = "s",
+                DefaultValue = "900",
+                MinValue = "60",
+                MaxValue = "7200",
+                SortOrder = 20,
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var order1 = new ProductionOrder
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            OrderNo = "WO-DEMO-1001",
+            ProductCode = "SKU-BRACKET-01",
+            QuantityPlanned = 500,
+            QuantityCompleted = 120,
+            OrderStatus = ProductionOrderStatus.InProgress,
+            Status = EntityStatus.Active,
+            PlannedStartAt = DateTimeOffset.UtcNow.AddDays(-2),
+            PlannedEndAt = DateTimeOffset.UtcNow.AddDays(3),
+            SourceSystem = "demo",
+            SourceReference = "ERP-WO-1001",
+        };
+
+        var order2 = new ProductionOrder
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line2.Id,
+            OrderNo = "WO-DEMO-1002",
+            ProductCode = "SKU-PANEL-02",
+            QuantityPlanned = 200,
+            QuantityCompleted = 25,
+            OrderStatus = ProductionOrderStatus.Released,
+            Status = EntityStatus.Active,
+            PlannedStartAt = DateTimeOffset.UtcNow.AddDays(-1),
+            SourceSystem = "demo",
+        };
+
+        var op1a = new ProductionOperation
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order1.Id,
+            SequenceNo = 10,
+            Code = "ASM",
+            Name = "Assemble",
+            LineId = line1.Id,
+            MachineId = machines[0].Id,
+            OperationStatus = ProductionOperationStatus.Running,
+            QuantityPlanned = 500,
+            QuantityCompleted = 120,
+            Status = EntityStatus.Active,
+        };
+
+        var op1b = new ProductionOperation
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order1.Id,
+            SequenceNo = 20,
+            Code = "PACK",
+            Name = "Pack",
+            LineId = line1.Id,
+            OperationStatus = ProductionOperationStatus.Pending,
+            QuantityPlanned = 500,
+            QuantityCompleted = 0,
+            Status = EntityStatus.Active,
+        };
+
+        var op2a = new ProductionOperation
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order2.Id,
+            SequenceNo = 10,
+            Code = "COAT",
+            Name = "Coat",
+            LineId = line2.Id,
+            MachineId = machines[2].Id,
+            OperationStatus = ProductionOperationStatus.Running,
+            QuantityPlanned = 200,
+            QuantityCompleted = 25,
+            Status = EntityStatus.Active,
+        };
+
+        var op2b = new ProductionOperation
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order2.Id,
+            SequenceNo = 20,
+            Code = "QC_VISUAL",
+            Name = "Visual check",
+            LineId = line2.Id,
+            OperationStatus = ProductionOperationStatus.Pending,
+            QuantityPlanned = 200,
+            QuantityCompleted = 0,
+            Status = EntityStatus.Active,
+        };
+
+        var assign1 = new OrderRecipeAssignment
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order1.Id,
+            RecipeId = recipeAsm.Id,
+            RecipeVersionAssigned = recipeAsm.Version,
+            AssignedAt = DateTimeOffset.UtcNow.AddDays(-2),
+            IsPrimary = true,
+            Status = EntityStatus.Active,
+        };
+
+        var assign2 = new OrderRecipeAssignment
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order2.Id,
+            RecipeId = recipeCoat.Id,
+            RecipeVersionAssigned = recipeCoat.Version,
+            AssignedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            IsPrimary = true,
+            Status = EntityStatus.Active,
+        };
+
+        var lot1 = new LotBatch
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order1.Id,
+            LineId = line1.Id,
+            MachineId = machines[0].Id,
+            LotNo = "LOT-DEMO-1001-A",
+            LotStatus = LotBatchStatus.Active,
+            TargetQuantity = 500,
+            QuantityGood = 120,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-6),
+            Status = EntityStatus.Active,
+        };
+
+        var lot2 = new LotBatch
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order2.Id,
+            LineId = line2.Id,
+            MachineId = machines[2].Id,
+            LotNo = "LOT-DEMO-1002-A",
+            LotStatus = LotBatchStatus.Active,
+            TargetQuantity = 200,
+            QuantityGood = 25,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-3),
+            Status = EntityStatus.Active,
+        };
+
+        var matCons = new[]
+        {
+            new MaterialConsumption
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot1.Id,
+                MaterialCode = "RM-STEEL-01",
+                MaterialName = "Steel blank",
+                Quantity = 130,
+                Unit = "ea",
+                ConsumedAt = DateTimeOffset.UtcNow.AddHours(-5),
+                Status = EntityStatus.Active,
+            },
+            new MaterialConsumption
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot1.Id,
+                MaterialCode = "RM-SCREW-M4",
+                MaterialName = "Screw M4",
+                Quantity = 520,
+                Unit = "ea",
+                ConsumedAt = DateTimeOffset.UtcNow.AddHours(-5),
+                Status = EntityStatus.Active,
+            },
+            new MaterialConsumption
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot2.Id,
+                MaterialCode = "RM-PAINT-WHITE",
+                MaterialName = "Paint white",
+                Quantity = 12,
+                Unit = "kg",
+                ConsumedAt = DateTimeOffset.UtcNow.AddHours(-2),
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var prodDecl = new[]
+        {
+            new ProductionDeclaration
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot1.Id,
+                GoodQuantity = 40,
+                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-4),
+                LineId = line1.Id,
+                MachineId = machines[0].Id,
+                Notes = "Demo run 1",
+                Status = EntityStatus.Active,
+            },
+            new ProductionDeclaration
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot1.Id,
+                GoodQuantity = 50,
+                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-3),
+                LineId = line1.Id,
+                MachineId = machines[0].Id,
+                Status = EntityStatus.Active,
+            },
+            new ProductionDeclaration
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot1.Id,
+                GoodQuantity = 30,
+                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-2),
+                LineId = line1.Id,
+                MachineId = machines[1].Id,
+                Status = EntityStatus.Active,
+            },
+            new ProductionDeclaration
+            {
+                TenantId = tenant.Id,
+                LotBatchId = lot2.Id,
+                GoodQuantity = 25,
+                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-1),
+                LineId = line2.Id,
+                MachineId = machines[2].Id,
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var scrap1 = new ScrapDeclaration
+        {
+            TenantId = tenant.Id,
+            LotBatchId = lot1.Id,
+            ScrapQuantity = 3,
+            ReasonCode = "DIMENSION",
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Notes = "Demo scrap sample",
+            Status = EntityStatus.Active,
+        };
+
+        var invMoves = new[]
+        {
+            new InventoryMovement
+            {
+                TenantId = tenant.Id,
+                MovementType = InventoryMovementType.Issue,
+                MaterialCode = "RM-STEEL-01",
+                Quantity = 130,
+                Unit = "ea",
+                LotBatchId = lot1.Id,
+                ProductionOrderId = order1.Id,
+                ReferenceType = "lot_batch",
+                ReferenceId = lot1.Id,
+                OccurredAt = DateTimeOffset.UtcNow.AddHours(-5),
+                Note = "Issue to lot",
+                Status = EntityStatus.Active,
+            },
+            new InventoryMovement
+            {
+                TenantId = tenant.Id,
+                MovementType = InventoryMovementType.Receipt,
+                MaterialCode = "SF-BRACKET-01",
+                Quantity = 50,
+                Unit = "ea",
+                ProductionOrderId = order1.Id,
+                ReferenceType = "production_order",
+                ReferenceId = order1.Id,
+                OccurredAt = DateTimeOffset.UtcNow.AddHours(-1),
+                Note = "Semi-finished receipt placeholder",
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var shiftDay = DateOnly.FromDateTime(DateTime.UtcNow);
+        var dayStart = DateTime.SpecifyKind(shiftDay.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
+
+        var shiftMorning = new Shift
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            Code = "DAY-A",
+            Name = "Line 1 day shift",
+            ShiftDate = shiftDay,
+            PlannedStartAt = new DateTimeOffset(dayStart.AddHours(6)),
+            PlannedEndAt = new DateTimeOffset(dayStart.AddHours(14)),
+            ActualStartAt = new DateTimeOffset(dayStart.AddHours(6).AddMinutes(5)),
+            Lifecycle = WorkShiftLifecycle.Open,
+            Status = EntityStatus.Active,
+        };
+
+        var shiftAfternoon = new Shift
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line2.Id,
+            Code = "DAY-B",
+            Name = "Line 2 day shift",
+            ShiftDate = shiftDay,
+            PlannedStartAt = new DateTimeOffset(dayStart.AddHours(14)),
+            PlannedEndAt = new DateTimeOffset(dayStart.AddHours(22)),
+            Lifecycle = WorkShiftLifecycle.Planned,
+            Status = EntityStatus.Active,
+        };
+
+        var empAssign = new[]
+        {
+            new EmployeeAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userOperator.Id,
+                ShiftId = shiftMorning.Id,
+                LineId = line1.Id,
+                AssignedFrom = shiftMorning.PlannedStartAt,
+                AssignedTo = shiftMorning.PlannedEndAt,
+                AssignmentRole = "operator",
+                Status = EntityStatus.Active,
+            },
+            new EmployeeAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userSupervisor.Id,
+                ShiftId = shiftMorning.Id,
+                AssignedFrom = shiftMorning.PlannedStartAt,
+                AssignedTo = shiftMorning.PlannedEndAt,
+                AssignmentRole = "supervisor",
+                Status = EntityStatus.Active,
+            },
+            new EmployeeAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userOperator.Id,
+                ShiftId = shiftAfternoon.Id,
+                LineId = line1.Id,
+                MachineId = machines[0].Id,
+                AssignedFrom = shiftAfternoon.PlannedStartAt,
+                AssignmentRole = "operator",
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var qcLine = new QualityCheck
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order1.Id,
+            LotBatchId = lot1.Id,
+            MachineId = machines[0].Id,
+            CheckType = "in_process",
+            CheckTime = DateTimeOffset.UtcNow.AddHours(-2),
+            CheckStatus = QualityCheckStatus.Passed,
+            ApprovedBy = userSupervisor.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var qcFinal = new QualityCheck
+        {
+            TenantId = tenant.Id,
+            ProductionOrderId = order2.Id,
+            LotBatchId = lot2.Id,
+            MachineId = machines[2].Id,
+            CheckType = "final",
+            CheckTime = DateTimeOffset.UtcNow.AddHours(-1),
+            CheckStatus = QualityCheckStatus.Pending,
+            Status = EntityStatus.Active,
+        };
+
+        var qualityMeasurements = new[]
+        {
+            new QualityMeasurement
+            {
+                TenantId = tenant.Id,
+                QualityCheckId = qcLine.Id,
+                ParameterCode = "LENGTH_MM",
+                MeasuredValue = "100.02",
+                TargetValue = "100.00",
+                MinValue = "99.90",
+                MaxValue = "100.10",
+                Result = QualityMeasurementResult.Pass,
+                Status = EntityStatus.Active,
+            },
+            new QualityMeasurement
+            {
+                TenantId = tenant.Id,
+                QualityCheckId = qcLine.Id,
+                ParameterCode = "WIDTH_MM",
+                MeasuredValue = "50.08",
+                TargetValue = "50.00",
+                MinValue = "49.85",
+                MaxValue = "50.15",
+                Result = QualityMeasurementResult.Warning,
+                Status = EntityStatus.Active,
+            },
+            new QualityMeasurement
+            {
+                TenantId = tenant.Id,
+                QualityCheckId = qcLine.Id,
+                ParameterCode = "SURFACE",
+                MeasuredValue = "OK",
+                Result = QualityMeasurementResult.Pass,
+                Status = EntityStatus.Active,
+            },
+            new QualityMeasurement
+            {
+                TenantId = tenant.Id,
+                QualityCheckId = qcFinal.Id,
+                ParameterCode = "GLOSS",
+                MeasuredValue = "82",
+                TargetValue = "80",
+                MinValue = "75",
+                MaxValue = "90",
+                Result = QualityMeasurementResult.Pass,
+                Status = EntityStatus.Active,
+            },
+            new QualityMeasurement
+            {
+                TenantId = tenant.Id,
+                QualityCheckId = qcFinal.Id,
+                ParameterCode = "COLOR_DELTA",
+                MeasuredValue = "0.6",
+                TargetValue = "1.0",
+                Result = QualityMeasurementResult.NotEvaluated,
+                Status = EntityStatus.Active,
+            },
+        };
+
+        var ncDemo = new Nonconformance
+        {
+            TenantId = tenant.Id,
+            QualityCheckId = qcLine.Id,
+            NcCode = "NC-DEMO-001",
+            Description = "Demo: measurement near upper tolerance band.",
+            Severity = NonconformanceSeverity.Major,
+            NcStatus = NonconformanceStatus.Closed,
+            Status = EntityStatus.Active,
+        };
+
+        var dispRework = new QualityDisposition
+        {
+            TenantId = tenant.Id,
+            NonconformanceId = ncDemo.Id,
+            DispositionType = QualityDispositionType.Rework,
+            DecisionTime = DateTimeOffset.UtcNow.AddMinutes(-45),
+            DecidedBy = userSupervisor.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var alarmDrive = new AlarmEvent
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            MachineId = machines[0].Id,
+            AlarmCode = "DRV-OVERLOAD",
+            AlarmText = "Demo: drive transient overload (placeholder).",
+            Severity = AlarmSeverity.Warning,
+            Category = "equipment",
+            StartTime = DateTimeOffset.UtcNow.AddHours(-8),
+            EndTime = DateTimeOffset.UtcNow.AddHours(-7).AddMinutes(12),
+            DurationMs = 4_320_000,
+            AckBy = userOperator.Id,
+            AckTime = DateTimeOffset.UtcNow.AddHours(-7).AddMinutes(5),
+            AlarmStatus = AlarmLifecycleStatus.Cleared,
+            Status = EntityStatus.Active,
+        };
+
+        var alarmSite = new AlarmEvent
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            AlarmCode = "UTIL-AIR-LOW",
+            AlarmText = "Demo: plant air pressure below nominal (placeholder).",
+            Severity = AlarmSeverity.Error,
+            Category = "utilities",
+            StartTime = DateTimeOffset.UtcNow.AddHours(-3),
+            EndTime = DateTimeOffset.UtcNow.AddHours(-2),
+            DurationMs = 3_600_000,
+            AckBy = userSupervisor.Id,
+            AckTime = DateTimeOffset.UtcNow.AddHours(-2).AddMinutes(-20),
+            AlarmStatus = AlarmLifecycleStatus.Cleared,
+            Status = EntityStatus.Active,
+        };
+
+        var alarmLine2 = new AlarmEvent
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line2.Id,
+            MachineId = machines[2].Id,
+            AlarmCode = "PROC-TEMP-HIGH",
+            AlarmText = "Demo: process temperature high (placeholder).",
+            Severity = AlarmSeverity.Critical,
+            Category = "process",
+            StartTime = DateTimeOffset.UtcNow.AddMinutes(-40),
+            AlarmStatus = AlarmLifecycleStatus.Active,
+            Status = EntityStatus.Active,
+        };
+
+        var dtChangeover = new DowntimeRecord
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[0].Id,
+            LineId = line1.Id,
+            ProductionOrderId = order1.Id,
+            DowntimeReasonCode = "CHG",
+            DowntimeReasonText = "Demo changeover",
+            PlannedFlag = true,
+            StartTime = DateTimeOffset.UtcNow.AddHours(-6),
+            EndTime = DateTimeOffset.UtcNow.AddHours(-5).AddMinutes(-10),
+            DurationMs = 3_000_000,
+            EnteredBy = userOperator.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var dtBreakdown = new DowntimeRecord
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[1].Id,
+            LineId = line1.Id,
+            ProductionOrderId = order1.Id,
+            DowntimeReasonCode = "BRK",
+            DowntimeReasonText = "Demo unplanned stop",
+            PlannedFlag = false,
+            StartTime = DateTimeOffset.UtcNow.AddHours(-4),
+            EndTime = DateTimeOffset.UtcNow.AddHours(-3).AddMinutes(-30),
+            DurationMs = 1_800_000,
+            EnteredBy = userSupervisor.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var dtLineStop = new DowntimeRecord
+        {
+            TenantId = tenant.Id,
+            LineId = line2.Id,
+            MachineId = machines[2].Id,
+            ProductionOrderId = order2.Id,
+            DowntimeReasonCode = "WAIT-MAT",
+            DowntimeReasonText = "Demo material wait",
+            PlannedFlag = false,
+            StartTime = DateTimeOffset.UtcNow.AddHours(-2),
+            DurationMs = null,
+            EnteredBy = userOperator.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var oeeMachine = new OeeSnapshot
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            MachineId = machines[0].Id,
+            PeriodType = OeePeriodType.Shift,
+            PeriodStart = DateTimeOffset.UtcNow.AddHours(-8),
+            PeriodEnd = DateTimeOffset.UtcNow,
+            Availability = 0.92m,
+            Performance = 0.88m,
+            Quality = 0.99m,
+            OeeValue = 0.80m,
+            Status = EntityStatus.Active,
+        };
+
+        var oeeLine = new OeeSnapshot
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            PeriodType = OeePeriodType.Day,
+            PeriodStart = DateTimeOffset.UtcNow.Date,
+            PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+            Availability = 0.90m,
+            Performance = 0.85m,
+            Quality = 0.98m,
+            OeeValue = 0.75m,
+            Status = EntityStatus.Active,
+        };
+
+        var oeeSite = new OeeSnapshot
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            PeriodType = OeePeriodType.Day,
+            PeriodStart = DateTimeOffset.UtcNow.Date,
+            PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+            Availability = 0.88m,
+            Performance = 0.82m,
+            Quality = 0.97m,
+            OeeValue = 0.70m,
+            Status = EntityStatus.Active,
+        };
+
+        var kpiOeeLine = new KpiDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "OEE_LINE_AGG",
+            Name = "Line OEE aggregate (placeholder)",
+            FormulaExpression = "availability * performance * quality",
+            ScopeType = "line",
+            DataSourceType = "oee_snapshot",
+            Status = EntityStatus.Active,
+        };
+
+        var kpiScrap = new KpiDefinition
+        {
+            TenantId = tenant.Id,
+            Code = "SCRAP_RATE",
+            Name = "Scrap rate (placeholder)",
+            FormulaExpression = "scrap_qty / good_qty",
+            ScopeType = "line",
+            DataSourceType = "mes_declaration",
+            Status = EntityStatus.Active,
+        };
+
+        var kpiResults = new[]
+        {
+            new KpiResult
+            {
+                TenantId = tenant.Id,
+                KpiDefinitionId = kpiOeeLine.Id,
+                ScopeType = "line",
+                ScopeId = line1.Id,
+                PeriodStart = DateTimeOffset.UtcNow.Date,
+                PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+                Value = 0.752m,
+                Status = EntityStatus.Active,
+            },
+            new KpiResult
+            {
+                TenantId = tenant.Id,
+                KpiDefinitionId = kpiOeeLine.Id,
+                ScopeType = "machine",
+                ScopeId = machines[0].Id,
+                PeriodStart = DateTimeOffset.UtcNow.Date,
+                PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+                Value = 0.801m,
+                Status = EntityStatus.Active,
+            },
+            new KpiResult
+            {
+                TenantId = tenant.Id,
+                KpiDefinitionId = kpiScrap.Id,
+                ScopeType = "line",
+                ScopeId = line1.Id,
+                PeriodStart = DateTimeOffset.UtcNow.Date,
+                PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+                Value = 0.024m,
+                Status = EntityStatus.Active,
+            },
+            new KpiResult
+            {
+                TenantId = tenant.Id,
+                KpiDefinitionId = kpiScrap.Id,
+                ScopeType = "production_order",
+                ScopeId = order1.Id,
+                PeriodStart = DateTimeOffset.UtcNow.AddDays(-2),
+                PeriodEnd = DateTimeOffset.UtcNow,
+                Value = 0.018m,
+                Status = EntityStatus.Active,
+            },
+        };
+
         db.Add(tenant);
         db.Add(enterprise);
         db.Add(site);
         db.AddRange(line1, line2);
         db.AddRange(machines);
-        db.AddRange(roleAdmin, roleViewer);
+        db.AddRange(roleAdmin, roleViewer, userOperator, userSupervisor);
         db.AddRange(modulePlatform, moduleCoreMes, moduleIntegration);
         db.Add(license);
         db.AddRange(activations);
@@ -322,6 +1084,27 @@ internal sealed class DevSeedHostedService : IHostedService
         db.AddRange(mapRules);
         db.Add(assetTag);
         db.Add(syncJob);
+        db.AddRange(recipeAsm, recipeCoat);
+        db.AddRange(recipeParams);
+        db.AddRange(order1, order2);
+        db.AddRange(op1a, op1b, op2a, op2b);
+        db.AddRange(assign1, assign2);
+        db.AddRange(lot1, lot2);
+        db.AddRange(matCons);
+        db.AddRange(prodDecl);
+        db.Add(scrap1);
+        db.AddRange(invMoves);
+        db.AddRange(shiftMorning, shiftAfternoon);
+        db.AddRange(empAssign);
+        db.AddRange(qcLine, qcFinal);
+        db.AddRange(qualityMeasurements);
+        db.Add(ncDemo);
+        db.Add(dispRework);
+        db.AddRange(alarmDrive, alarmSite, alarmLine2);
+        db.AddRange(dtChangeover, dtBreakdown, dtLineStop);
+        db.AddRange(oeeMachine, oeeLine, oeeSite);
+        db.AddRange(kpiOeeLine, kpiScrap);
+        db.AddRange(kpiResults);
 
         await db.SaveChangesAsync(cancellationToken);
 

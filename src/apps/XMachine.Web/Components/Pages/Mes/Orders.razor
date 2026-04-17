@@ -1,0 +1,55 @@
+@page "/mes/orders"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Production orders</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">MES</li>
+        <li class="breadcrumb-item active">Orders</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-3">Production orders</h1>
+
+<div class="mb-3">
+    <input class="form-control form-control-sm" style="max-width:20rem" placeholder="Filter (placeholder)" disabled />
+</div>
+
+<ApiStateDisplay Loading="_loading" Error="_error">
+    <div class="table-responsive border rounded bg-white">
+        <table class="table table-sm table-striped table-hover mb-0">
+            <thead class="table-light"><tr><th>Order</th><th>Product</th><th>Status</th><th>Qty planned</th><th>Qty done</th></tr></thead>
+            <tbody>
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td class="font-monospace small">@r.OrderNo</td>
+                    <td>@r.ProductCode</td>
+                    <td>@r.OrderStatus</td>
+                    <td>@r.QuantityPlanned</td>
+                    <td>@r.QuantityCompleted</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<ProductionOrderRowDto> _rows = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var res = await Api.GetProductionOrdersAsync().ConfigureAwait(false);
+        _loading = false;
+        if (res.Error is not null)
+            _error = res.Error;
+        else
+            _rows = res.Data ?? [];
+    }
+}

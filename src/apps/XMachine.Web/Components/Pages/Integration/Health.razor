@@ -1,0 +1,57 @@
+@page "/integration/health"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Integration health</PageTitle>
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">Integration</li>
+        <li class="breadcrumb-item active">Health</li>
+    </ol>
+</nav>
+<h1 class="h3 mb-3">Integration health summary</h1>
+<ApiStateDisplay Loading="_loading" Error="_error">
+    @if (_data is not null)
+    {
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm"><div class="card-body">
+                    <div class="text-muted small">Definitions</div>
+                    <div class="fs-4 fw-semibold">@_data.Operational.Definitions</div>
+                </div></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm"><div class="card-body">
+                    <div class="text-muted small">Instances</div>
+                    <div class="fs-4 fw-semibold">@_data.Operational.Instances</div>
+                </div></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm"><div class="card-body">
+                    <div class="text-muted small">Mapping profiles</div>
+                    <div class="fs-4 fw-semibold">@_data.Operational.Profiles</div>
+                </div></div>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-body">
+                <div class="text-muted small mb-2">Runtime registry</div>
+                <div class="mb-2">Active health rows: <strong>@_data.Runtime.ActiveHealthRows</strong></div>
+                <div class="font-monospace small">@string.Join(", ", _data.Runtime.RegistryCodes ?? [])</div>
+            </div>
+        </div>
+    }
+</ApiStateDisplay>
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IntegrationHealthSummaryDto? _data;
+    protected override async Task OnInitializedAsync()
+    {
+        var res = await Api.GetIntegrationHealthAsync().ConfigureAwait(false);
+        _loading = false;
+        _error = res.Error;
+        _data = res.Data;
+    }
+}

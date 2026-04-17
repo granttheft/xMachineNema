@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\building-blocks\XMachine.SharedKernel\XMachine.SharedKernel.csproj" />
-    <ProjectReference Include="..\..\building-blocks\XMachine.Application\XMachine.Application.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

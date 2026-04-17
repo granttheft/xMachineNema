@@ -1,10 +1,17 @@
 using XMachine.Web.Components;
+using XMachine.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddHttpClient<XMachineApiClient>((sp, client) =>
+{
+    var baseUrl = sp.GetRequiredService<IConfiguration>()["ApiBaseUrl"] ?? "http://localhost:5090";
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
+});
 
 var app = builder.Build();
 

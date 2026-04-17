@@ -1,0 +1,64 @@
+@page "/dashboard"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Dashboard</PageTitle>
+
+<h1 class="h3 mb-1">Dashboard</h1>
+<p class="text-body-secondary small mb-4">Summary cards from API · ensure XMachine.Api is running (<code>ApiBaseUrl</code> in appsettings).</p>
+
+@if (_aggregateError is not null)
+{
+    <div class="alert alert-danger">@_aggregateError</div>
+}
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-2">
+    <SummaryCard Title="Alarms" Value="@Fmt(_eventing.Data?.Alarms)" Error="@_eventing.Error" />
+    <SummaryCard Title="Downtimes" Value="@Fmt(_eventing.Data?.Downtimes)" Error="@_eventing.Error" />
+    <SummaryCard Title="OEE snapshots" Value="@Fmt(_eventing.Data?.Oee)" Error="@_eventing.Error" />
+    <SummaryCard Title="KPI results" Value="@Fmt(_eventing.Data?.KpiResults)" Error="@_eventing.Error" />
+</div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+    <SummaryCard Title="Production orders" Value="@Fmt(_mes.Data?.Orders)" Error="@_mes.Error" />
+    <SummaryCard Title="Recipes" Value="@Fmt(_mes.Data?.Recipes)" Error="@_mes.Error" />
+    <SummaryCard Title="Lots" Value="@Fmt(_mes.Data?.Lots)" Error="@_mes.Error" />
+    <SummaryCard Title="Shifts" Value="@Fmt(_mes.Data?.Shifts)" Error="@_mes.Error" />
+</div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+    <SummaryCard Title="Quality checks" Value="@Fmt(_quality.Data?.Checks)" Error="@_quality.Error" />
+    <SummaryCard Title="Measurements" Value="@Fmt(_quality.Data?.Measurements)" Error="@_quality.Error" />
+    <SummaryCard Title="Nonconformances" Value="@Fmt(_quality.Data?.Nonconformances)" Error="@_quality.Error" />
+    <SummaryCard Title="Dispositions" Value="@Fmt(_quality.Data?.Dispositions)" Error="@_quality.Error" />
+</div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+    <SummaryCard Title="Connector definitions" Value="@Fmt(_integration.Data?.Operational.Definitions)" Error="@_integration.Error" />
+    <SummaryCard Title="Connector instances" Value="@Fmt(_integration.Data?.Operational.Instances)" Error="@_integration.Error" />
+    <SummaryCard Title="Mapping profiles" Value="@Fmt(_integration.Data?.Operational.Profiles)" Error="@_integration.Error" />
+    <SummaryCard Title="Runtime health rows" Value="@Fmt(_integration.Data?.Runtime.ActiveHealthRows)" Error="@_integration.Error" />
+</div>
+
+@code {
+    private ApiFetch<MesSummaryDto> _mes = ApiFetch<MesSummaryDto>.InProgress();
+    private ApiFetch<QualitySummaryDto> _quality = ApiFetch<QualitySummaryDto>.InProgress();
+    private ApiFetch<EventingSummaryDto> _eventing = ApiFetch<EventingSummaryDto>.InProgress();
+    private ApiFetch<IntegrationHealthSummaryDto> _integration = ApiFetch<IntegrationHealthSummaryDto>.InProgress();
+    private string? _aggregateError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tMes = Api.GetMesSummaryAsync();
+        var tQuality = Api.GetQualitySummaryAsync();
+        var tEventing = Api.GetEventingSummaryAsync();
+        var tInt = Api.GetIntegrationHealthAsync();
+        await Task.WhenAll(tMes, tQuality, tEventing, tInt).ConfigureAwait(false);
+        _mes = await tMes.ConfigureAwait(false);
+        _quality = await tQuality.ConfigureAwait(false);
+        _eventing = await tEventing.ConfigureAwait(false);
+        _integration = await tInt.ConfigureAwait(false);
+
+        if (_mes.Error is not null && _quality.Error is not null && _eventing.Error is not null && _integration.Error is not null)
+            _aggregateError = "Could not reach the API. Check ApiBaseUrl and that XMachine.Api is running.";
+    }
+
+    private static string? Fmt(int? v) => v?.ToString();
+}

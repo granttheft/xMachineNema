@@ -1,0 +1,64 @@
+@page "/integration/connectors"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Connectors</PageTitle>
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">Integration</li>
+        <li class="breadcrumb-item active">Connectors</li>
+    </ol>
+</nav>
+<h1 class="h3 mb-4">Connectors</h1>
+
+<h2 class="h6 text-muted">Definitions</h2>
+<ApiStateDisplay Loading="_loadingDefs" Error="_errDefs">
+    <div class="table-responsive border rounded bg-white mb-4">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Category</th><th>Direction</th></tr></thead>
+            <tbody>
+            @foreach (var r in _defs)
+            {
+                <tr><td class="font-monospace small">@r.Code</td><td>@r.Name</td><td>@r.Category</td><td>@r.Direction</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+<h2 class="h6 text-muted">Instances</h2>
+<ApiStateDisplay Loading="_loadingInst" Error="_errInst">
+    <div class="table-responsive border rounded bg-white">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Definition id</th><th>Site</th></tr></thead>
+            <tbody>
+            @foreach (var r in _inst)
+            {
+                <tr><td class="font-monospace small">@r.Code</td><td>@r.Name</td><td class="small">@r.ConnectorDefinitionId</td><td class="small">@r.SiteId</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+@code {
+    private bool _loadingDefs = true;
+    private bool _loadingInst = true;
+    private string? _errDefs;
+    private string? _errInst;
+    private IReadOnlyList<ConnectorDefinitionRowDto> _defs = [];
+    private IReadOnlyList<ConnectorInstanceRowDto> _inst = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var d = await Api.GetConnectorDefinitionsAsync().ConfigureAwait(false);
+        var i = await Api.GetConnectorInstancesAsync().ConfigureAwait(false);
+        _loadingDefs = false;
+        _loadingInst = false;
+        _errDefs = d.Error;
+        _errInst = i.Error;
+        _defs = d.Data ?? [];
+        _inst = i.Data ?? [];
+    }
+}

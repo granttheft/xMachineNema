@@ -1,0 +1,45 @@
+@page "/eventing/oee"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>OEE</PageTitle>
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">Eventing</li>
+        <li class="breadcrumb-item active">OEE</li>
+    </ol>
+</nav>
+<h1 class="h3 mb-3">OEE snapshots</h1>
+<ApiStateDisplay Loading="_loading" Error="_error">
+    <div class="table-responsive border rounded bg-white">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>Period</th><th>Start</th><th>A</th><th>P</th><th>Q</th><th>OEE</th></tr></thead>
+            <tbody>
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td>@r.PeriodType</td>
+                    <td class="small">@r.PeriodStart.LocalDateTime.ToString("g")</td>
+                    <td>@r.Availability</td>
+                    <td>@r.Performance</td>
+                    <td>@r.Quality</td>
+                    <td class="fw-semibold">@r.OeeValue</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<OeeRowDto> _rows = [];
+    protected override async Task OnInitializedAsync()
+    {
+        var res = await Api.GetOeeSnapshotsAsync().ConfigureAwait(false);
+        _loading = false;
+        _error = res.Error;
+        _rows = res.Data ?? [];
+    }
+}

@@ -1,0 +1,21 @@
+@if (Loading)
+{
+    <p class="text-muted my-3">
+        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        Loading…
+    </p>
+}
+else if (Error is not null)
+{
+    <div class="alert alert-warning">@Error</div>
+}
+else if (ChildContent is not null)
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public bool Loading { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
