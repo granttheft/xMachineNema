@@ -1,5 +1,27 @@
+/* —— xMachine design tokens (operations shell) —— */
+:root {
+    --xm-sidebar-bg0: #0b1220;
+    --xm-sidebar-bg1: #111827;
+    --xm-sidebar-border: rgba(255, 255, 255, 0.06);
+    --xm-sidebar-text: rgba(255, 255, 255, 0.72);
+    --xm-sidebar-text-dim: rgba(255, 255, 255, 0.45);
+    --xm-sidebar-active: #38bdf8;
+    --xm-main-bg: #f1f5f9;
+    --xm-panel-bg: #ffffff;
+    --xm-panel-border: #e2e8f0;
+    --xm-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+    --xm-text: #0f172a;
+    --xm-text-muted: #64748b;
+    --xm-accent: #0ea5e9;
+    --xm-radius: 0.5rem;
+    --xm-radius-sm: 0.375rem;
+    --xm-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--xm-font);
+    color: var(--xm-text);
+    background-color: var(--xm-main-bg);
 }
 
 a, .btn-link {
@@ -57,4 +79,327 @@ h1:focus {
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
+}
+
+/* —— Layout shell —— */
+main {
+    background-color: var(--xm-main-bg);
+}
+
+article.content {
+    max-width: 100%;
+}
+
+/* —— Page header —— */
+.xm-page-header {
+    border-bottom: 1px solid var(--xm-panel-border);
+    padding-bottom: 1rem;
+}
+
+.xm-page-title {
+    font-size: 1.5rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: var(--xm-text);
+    margin: 0;
+}
+
+.xm-page-subtitle {
+    font-size: 0.875rem;
+    color: var(--xm-text-muted);
+    margin-top: 0.35rem;
+    max-width: 52rem;
+    line-height: 1.5;
+}
+
+.xm-breadcrumb-nav .breadcrumb {
+    margin-bottom: 0;
+    font-size: 0.8rem;
+}
+
+.xm-breadcrumb-nav .breadcrumb-item a {
+    color: var(--xm-text-muted);
+    text-decoration: none;
+}
+
+.xm-breadcrumb-nav .breadcrumb-item a:hover {
+    color: var(--xm-accent);
+}
+
+/* —— Panels & tables —— */
+.xm-panel {
+    background: var(--xm-panel-bg);
+    border: 1px solid var(--xm-panel-border);
+    border-radius: var(--xm-radius);
+    box-shadow: var(--xm-panel-shadow);
+    overflow: hidden;
+}
+
+.xm-panel-header {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--xm-panel-border);
+    background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
+}
+
+.xm-panel-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--xm-text-muted);
+}
+
+.xm-panel-body {
+    padding: 0;
+}
+
+.xm-panel-body--padded {
+    padding: 1rem 1.1rem;
+}
+
+.xm-table-wrap {
+    margin: 0;
+}
+
+.xm-table-wrap .table {
+    margin-bottom: 0;
+}
+
+.xm-table-wrap thead th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    color: var(--xm-text-muted);
+    border-bottom-width: 1px;
+    white-space: nowrap;
+}
+
+.xm-table-wrap tbody td {
+    vertical-align: middle;
+    font-size: 0.875rem;
+}
+
+.xm-table-wrap tbody tr:hover {
+    background-color: rgba(14, 165, 233, 0.04);
+}
+
+/* —— Summary cards (dashboard & inline metrics) —— */
+.xm-summary-card {
+    height: 100%;
+    background: var(--xm-panel-bg);
+    border: 1px solid var(--xm-panel-border);
+    border-radius: var(--xm-radius);
+    box-shadow: var(--xm-panel-shadow);
+    border-left: 3px solid var(--xm-summary-accent, var(--xm-accent));
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.xm-summary-card:hover {
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.xm-summary-card .card-body {
+    padding: 1rem 1.1rem;
+}
+
+.xm-summary-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--xm-text-muted);
+}
+
+.xm-summary-value {
+    font-size: 1.65rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--xm-text);
+}
+
+.xm-summary-card .text-danger.small {
+    font-size: 0.78rem;
+}
+
+/* —— Dashboard metric sections —— */
+.xm-section-title {
+    font-size: 0.8rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--xm-text-muted);
+}
+
+.xm-section-desc {
+    font-size: 0.8rem;
+    color: var(--xm-text-muted);
+    margin-top: 0.25rem;
+}
+
+/* —— Badges —— */
+.xm-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2em 0.55em;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
+.xm-badge--neutral {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.xm-badge--success {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.xm-badge--warning {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.xm-badge--danger {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.xm-badge--info {
+    background: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+/* —— Empty state —— */
+.xm-empty-state {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    color: var(--xm-text-muted);
+}
+
+.xm-empty-state-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: 0 auto 0.75rem;
+    border-radius: var(--xm-radius-sm);
+    border: 2px dashed #cbd5e1;
+    opacity: 0.85;
+}
+
+.xm-empty-state-text {
+    font-size: 0.9rem;
+}
+
+/* —— API state (loading / error) —— */
+.xm-api-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 1.25rem 0;
+    color: var(--xm-text-muted);
+    font-size: 0.875rem;
+}
+
+.xm-api-error {
+    border-radius: var(--xm-radius-sm);
+    border: 1px solid #fecaca;
+    background: #fff5f5;
+    color: #991b1b;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.xm-api-error-hint {
+    font-size: 0.8rem;
+    color: #b91c1c;
+    margin-top: 0.35rem;
+    opacity: 0.9;
+}
+
+/* —— Summary strip (quality cards row) —— */
+.xm-metric-strip .card {
+    border: 1px solid var(--xm-panel-border);
+    border-radius: var(--xm-radius);
+    box-shadow: var(--xm-panel-shadow);
+}
+
+.xm-metric-strip .card-body {
+    padding: 0.75rem 1rem;
+}
+
+.xm-metric-strip .text-muted.small {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.xm-metric-strip .fs-5 {
+    font-weight: 650;
+    color: var(--xm-text);
+}
+
+a.xm-inline-link {
+    color: #0369a1;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+a.xm-inline-link:hover {
+    text-decoration: underline;
+}
+
+.xm-toolbar-filter:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.xm-gate-shell {
+    max-width: 40rem;
+}
+
+/* —— Integration health tiles —— */
+.xm-health-tile {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid var(--xm-panel-border);
+    border-radius: var(--xm-radius-sm);
+    padding: 1rem 1.1rem;
+}
+
+.xm-health-tile-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--xm-text-muted);
+}
+
+.xm-health-tile-value {
+    font-size: 1.75rem;
+    font-weight: 650;
+    color: var(--xm-text);
+    line-height: 1.2;
+    margin-top: 0.25rem;
+}
+
+.xm-health-runtime {
+    border-top: 1px solid var(--xm-panel-border);
+    padding-top: 1rem;
+}
+
+.xm-health-codes {
+    color: #475569;
+    line-height: 1.5;
+    word-break: break-all;
 }

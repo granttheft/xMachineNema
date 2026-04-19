@@ -1,4 +1,5 @@
 @page "/login"
+@layout MainLayout
 @attribute [AllowAnonymous]
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.WebUtilities
@@ -6,25 +7,38 @@
 @inject NavigationManager Nav
 
 <PageTitle>Sign in</PageTitle>
-<h1 class="h3 mb-3">Sign in</h1>
-<div class="card border-0 shadow-sm" style="max-width:28rem">
-    <div class="card-body">
-        <p class="text-body-secondary small">
-            Development sign-in uses <code>XMachine:DevAuth</code> and seeded users. Passwords are not stored as hashes in this skeleton.
-        </p>
-        @if (_error is not null)
-        {
-            <div class="alert alert-danger small">@_error</div>
-        }
-        <div class="mb-3">
-            <label class="form-label small text-muted">Username</label>
-            <input class="form-control" @bind="_username" autocomplete="username" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label small text-muted">Password</label>
-            <input class="form-control" type="password" @bind="_password" autocomplete="current-password" />
-        </div>
-        <button type="button" class="btn btn-primary" @onclick="OnLoginAsync" disabled="@_busy">Sign in</button>
+
+<PageHeader Title="Sign in"
+            Subtitle="Use your assigned operator or administrator account. In development, sign-in uses the shared password from configuration.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item active">Sign in</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
+
+<div class="row justify-content-center">
+    <div class="col-12" style="max-width:28rem">
+        <DataPanel Padded="true">
+            <p class="small text-body-secondary mb-3">
+                Uses <code class="small">XMachine:DevAuth</code> when enabled. Seeded users live in the operational database.
+            </p>
+            @if (_error is not null)
+            {
+                <div class="xm-api-error mb-3" role="alert">@_error</div>
+            }
+            <div class="mb-3">
+                <label class="form-label small text-muted">Username</label>
+                <input class="form-control" @bind="_username" autocomplete="username" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-muted">Password</label>
+                <input class="form-control" type="password" @bind="_password" autocomplete="current-password" />
+            </div>
+            <button type="button" class="btn btn-primary" @onclick="OnLoginAsync" disabled="@_busy">Sign in</button>
+        </DataPanel>
     </div>
 </div>
 
@@ -46,7 +60,7 @@
             var result = await SignIn.SignInAsync(_username, _password).ConfigureAwait(false);
             if (!result.Succeeded)
             {
-                _error = result.ErrorMessage ?? "Sign-in failed.";
+                _error = result.ErrorMessage ?? "Sign-in was not successful. Check your username and password.";
                 return;
             }
 

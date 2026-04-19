@@ -1,0 +1,15 @@
+<span class="xm-badge @ToneClass">@Text</span>
+
+@code {
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+    [Parameter] public StatusBadgeTone Tone { get; set; } = StatusBadgeTone.Neutral;
+
+    private string ToneClass => Tone switch
+    {
+        StatusBadgeTone.Success => "xm-badge--success",
+        StatusBadgeTone.Warning => "xm-badge--warning",
+        StatusBadgeTone.Danger => "xm-badge--danger",
+        StatusBadgeTone.Info => "xm-badge--info",
+        _ => "xm-badge--neutral",
+    };
+}

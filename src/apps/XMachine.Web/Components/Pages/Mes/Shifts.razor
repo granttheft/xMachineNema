@@ -3,32 +3,58 @@
 @inject XMachineApiClient Api
 
 <PageTitle>Shifts</PageTitle>
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb small mb-0">
-        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item active">MES</li>
-        <li class="breadcrumb-item active">Shifts</li>
-    </ol>
-</nav>
-<h1 class="h3 mb-3">Shifts</h1>
-<div class="mb-3"><input class="form-control form-control-sm" style="max-width:20rem" placeholder="Filter (placeholder)" disabled /></div>
-<ApiStateDisplay Loading="_loading" Error="_error">
-    <div class="table-responsive border rounded bg-white">
-        <table class="table table-sm table-striped mb-0">
-            <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Date</th><th>Lifecycle</th></tr></thead>
-            <tbody>
-            @foreach (var r in _rows)
-            {
-                <tr><td>@r.Code</td><td>@r.Name</td><td>@r.ShiftDate</td><td>@r.Lifecycle</td></tr>
-            }
-            </tbody>
-        </table>
-    </div>
-</ApiStateDisplay>
+
+<PageHeader Title="Shifts"
+            Subtitle="Shift patterns and calendar · read-only from XMachine.Api.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">MES</li>
+                <li class="breadcrumb-item active">Shifts</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
+
+<div class="mb-3">
+    <input class="form-control form-control-sm xm-toolbar-filter" style="max-width:20rem" placeholder="Filter (placeholder)" disabled />
+</div>
+
+<DataPanel>
+    <ApiStateDisplay Loading="_loading" Error="_error">
+        @if (_rows.Count == 0)
+        {
+            <EmptyState Message="No shifts returned." />
+        }
+        else
+        {
+            <div class="table-responsive xm-table-wrap">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Shift date</th><th>Shift window</th><th>Record</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr>
+                            <td class="font-monospace small">@r.Code</td>
+                            <td>@r.Name</td>
+                            <td class="text-nowrap">@r.ShiftDate</td>
+                            <td><StatusBadge Text="@UiLabels.WorkShiftLifecycle(r.Lifecycle)" Tone="@UiLabels.WorkShiftLifecycleTone(r.Lifecycle)" /></td>
+                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </ApiStateDisplay>
+</DataPanel>
+
 @code {
     private bool _loading = true;
     private string? _error;
     private IReadOnlyList<ShiftRowDto> _rows = [];
+
     protected override async Task OnInitializedAsync()
     {
         var res = await Api.GetShiftsAsync().ConfigureAwait(false);

@@ -4,44 +4,63 @@
 
 <PageTitle>Dashboard</PageTitle>
 
-<h1 class="h3 mb-1">Dashboard</h1>
-<p class="text-body-secondary small mb-4">Summary cards from API · ensure XMachine.Api is running (<code>XMachine:Api:BaseUrl</code>). Workflow detail: <a href="/workflow/definitions">definitions</a> · <a href="/workflow/instances">instances</a>.</p>
+<PageHeader Title="Operations dashboard"
+            Subtitle="Cross-module snapshot from XMachine.Api. Ensure the API is running and XMachine:Api:BaseUrl points to your instance. Drill down via definitions or instances for workflow.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item active">Dashboard</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
 
 @if (_aggregateError is not null)
 {
-    <div class="alert alert-danger">@_aggregateError</div>
+    <div class="xm-api-error mb-4" role="alert">@_aggregateError</div>
 }
 
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-2">
-    <SummaryCard Title="Alarms" Value="@Fmt(_eventing.Data?.Alarms)" Error="@_eventing.Error" />
-    <SummaryCard Title="Downtimes" Value="@Fmt(_eventing.Data?.Downtimes)" Error="@_eventing.Error" />
-    <SummaryCard Title="OEE snapshots" Value="@Fmt(_eventing.Data?.Oee)" Error="@_eventing.Error" />
-    <SummaryCard Title="KPI results" Value="@Fmt(_eventing.Data?.KpiResults)" Error="@_eventing.Error" />
-</div>
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
-    <SummaryCard Title="Production orders" Value="@Fmt(_mes.Data?.Orders)" Error="@_mes.Error" />
-    <SummaryCard Title="Recipes" Value="@Fmt(_mes.Data?.Recipes)" Error="@_mes.Error" />
-    <SummaryCard Title="Lots" Value="@Fmt(_mes.Data?.Lots)" Error="@_mes.Error" />
-    <SummaryCard Title="Shifts" Value="@Fmt(_mes.Data?.Shifts)" Error="@_mes.Error" />
-</div>
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
-    <SummaryCard Title="Quality checks" Value="@Fmt(_quality.Data?.Checks)" Error="@_quality.Error" />
-    <SummaryCard Title="Measurements" Value="@Fmt(_quality.Data?.Measurements)" Error="@_quality.Error" />
-    <SummaryCard Title="Nonconformances" Value="@Fmt(_quality.Data?.Nonconformances)" Error="@_quality.Error" />
-    <SummaryCard Title="Dispositions" Value="@Fmt(_quality.Data?.Dispositions)" Error="@_quality.Error" />
-</div>
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
-    <SummaryCard Title="Connector definitions" Value="@Fmt(_integration.Data?.Operational.Definitions)" Error="@_integration.Error" />
-    <SummaryCard Title="Connector instances" Value="@Fmt(_integration.Data?.Operational.Instances)" Error="@_integration.Error" />
-    <SummaryCard Title="Mapping profiles" Value="@Fmt(_integration.Data?.Operational.Profiles)" Error="@_integration.Error" />
-    <SummaryCard Title="Runtime health rows" Value="@Fmt(_integration.Data?.Runtime.ActiveHealthRows)" Error="@_integration.Error" />
-</div>
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
-    <SummaryCard Title="Workflow definitions" Value="@Fmt(_workflow.Data?.Definitions)" Error="@_workflow.Error" />
-    <SummaryCard Title="Workflow steps" Value="@Fmt(_workflow.Data?.Steps)" Error="@_workflow.Error" />
-    <SummaryCard Title="Workflow instances" Value="@Fmt(_workflow.Data?.Instances)" Error="@_workflow.Error" />
-    <SummaryCard Title="Workflow actions" Value="@Fmt(_workflow.Data?.Actions)" Error="@_workflow.Error" />
-</div>
+<MetricSection Heading="Eventing" Description="Alarms, line stops, OEE slices, and KPI materialization.">
+    <SummaryCard Title="Alarms" Value="@Fmt(_eventing.Data?.Alarms)" Error="@_eventing.Error" Accent="rose" />
+    <SummaryCard Title="Downtimes" Value="@Fmt(_eventing.Data?.Downtimes)" Error="@_eventing.Error" Accent="amber" />
+    <SummaryCard Title="OEE snapshots" Value="@Fmt(_eventing.Data?.Oee)" Error="@_eventing.Error" Accent="violet" />
+    <SummaryCard Title="KPI results" Value="@Fmt(_eventing.Data?.KpiResults)" Error="@_eventing.Error" Accent="cyan" />
+</MetricSection>
+
+<MetricSection Heading="MES" Description="Orders, recipes, lots, and shift calendar.">
+    <SummaryCard Title="Production orders" Value="@Fmt(_mes.Data?.Orders)" Error="@_mes.Error" Accent="sky" />
+    <SummaryCard Title="Recipes" Value="@Fmt(_mes.Data?.Recipes)" Error="@_mes.Error" Accent="emerald" />
+    <SummaryCard Title="Lots" Value="@Fmt(_mes.Data?.Lots)" Error="@_mes.Error" Accent="cyan" />
+    <SummaryCard Title="Shifts" Value="@Fmt(_mes.Data?.Shifts)" Error="@_mes.Error" Accent="slate" />
+</MetricSection>
+
+<MetricSection Heading="Quality" Description="Checks, measurements, nonconformances, and dispositions.">
+    <SummaryCard Title="Quality checks" Value="@Fmt(_quality.Data?.Checks)" Error="@_quality.Error" Accent="emerald" />
+    <SummaryCard Title="Measurements" Value="@Fmt(_quality.Data?.Measurements)" Error="@_quality.Error" Accent="sky" />
+    <SummaryCard Title="Nonconformances" Value="@Fmt(_quality.Data?.Nonconformances)" Error="@_quality.Error" Accent="amber" />
+    <SummaryCard Title="Dispositions" Value="@Fmt(_quality.Data?.Dispositions)" Error="@_quality.Error" Accent="violet" />
+</MetricSection>
+
+<MetricSection Heading="Integration" Description="Connector catalog, instances, mapping profiles, and runtime health snapshot.">
+    <SummaryCard Title="Connector definitions" Value="@Fmt(_integration.Data?.Operational.Definitions)" Error="@_integration.Error" Accent="slate" />
+    <SummaryCard Title="Connector instances" Value="@Fmt(_integration.Data?.Operational.Instances)" Error="@_integration.Error" Accent="sky" />
+    <SummaryCard Title="Mapping profiles" Value="@Fmt(_integration.Data?.Operational.Profiles)" Error="@_integration.Error" Accent="emerald" />
+    <SummaryCard Title="Runtime health rows" Value="@Fmt(_integration.Data?.Runtime.ActiveHealthRows)" Error="@_integration.Error" Accent="cyan" />
+</MetricSection>
+
+<MetricSection Heading="Workflow" Description="Definitions, steps, running instances, and recorded actions.">
+    <SummaryCard Title="Workflow definitions" Value="@Fmt(_workflow.Data?.Definitions)" Error="@_workflow.Error" Accent="violet" />
+    <SummaryCard Title="Workflow steps" Value="@Fmt(_workflow.Data?.Steps)" Error="@_workflow.Error" Accent="slate" />
+    <SummaryCard Title="Workflow instances" Value="@Fmt(_workflow.Data?.Instances)" Error="@_workflow.Error" Accent="sky" />
+    <SummaryCard Title="Workflow actions" Value="@Fmt(_workflow.Data?.Actions)" Error="@_workflow.Error" Accent="emerald" />
+</MetricSection>
+
+<p class="small text-body-secondary mt-2 mb-0">
+    Workflow detail:
+    <a href="/workflow/definitions" class="xm-inline-link">Definitions</a>
+    ·
+    <a href="/workflow/instances" class="xm-inline-link">Instances</a>
+</p>
 
 @code {
     private ApiFetch<MesSummaryDto> _mes = ApiFetch<MesSummaryDto>.InProgress();

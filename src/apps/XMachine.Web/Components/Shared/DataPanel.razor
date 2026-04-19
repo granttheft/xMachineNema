@@ -1,0 +1,21 @@
+<div class="xm-panel">
+    @if (!string.IsNullOrWhiteSpace(Title))
+    {
+        <div class="xm-panel-header">
+            <span class="xm-panel-title">@Title</span>
+        </div>
+    }
+    <div class="@BodyClass">
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    /// <summary>When true, adds comfortable padding (e.g. non-table panel content).</summary>
+    [Parameter] public bool Padded { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string BodyClass =>
+        Padded ? "xm-panel-body xm-panel-body--padded" : "xm-panel-body";
+}

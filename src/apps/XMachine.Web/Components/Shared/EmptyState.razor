@@ -1,0 +1,8 @@
+<div class="xm-empty-state" role="status">
+    <div class="xm-empty-state-icon" aria-hidden="true"></div>
+    <p class="xm-empty-state-text mb-0">@Message</p>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Message { get; set; } = "No data to display.";
+}

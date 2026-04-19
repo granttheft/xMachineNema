@@ -4,58 +4,69 @@
 
 <PageTitle>Workflow instances</PageTitle>
 
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb small mb-0">
-        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item active">Workflow</li>
-        <li class="breadcrumb-item active">Instances</li>
-    </ol>
-</nav>
+<PageHeader Title="Workflow instances"
+            Subtitle="Approval and control flows tied to business objects (orders, quality, and more). Read-only from XMachine.Api.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Workflow</li>
+                <li class="breadcrumb-item active">Instances</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
 
-<h1 class="h3 mb-3">Workflow instances</h1>
-<p class="text-body-secondary small mb-3">Read-only view from <code>GET /api/workflow/instances</code> and <code>GET /api/workflow/summary</code>. · <a href="/workflow/definitions">Definitions</a></p>
+<p class="small text-body-secondary mb-3">
+    Related:
+    <a href="/workflow/definitions" class="xm-inline-link">Workflow definitions</a>
+</p>
 
 <div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
-    <SummaryCard Title="Definitions" Value="@Fmt(_summary.Data?.Definitions)" Error="@_summary.Error" />
-    <SummaryCard Title="Steps" Value="@Fmt(_summary.Data?.Steps)" Error="@_summary.Error" />
-    <SummaryCard Title="Instances" Value="@Fmt(_summary.Data?.Instances)" Error="@_summary.Error" />
-    <SummaryCard Title="Actions" Value="@Fmt(_summary.Data?.Actions)" Error="@_summary.Error" />
+    <SummaryCard Title="Definitions" Value="@Fmt(_summary.Data?.Definitions)" Error="@_summary.Error" Accent="violet" />
+    <SummaryCard Title="Steps" Value="@Fmt(_summary.Data?.Steps)" Error="@_summary.Error" Accent="slate" />
+    <SummaryCard Title="Instances" Value="@Fmt(_summary.Data?.Instances)" Error="@_summary.Error" Accent="sky" />
+    <SummaryCard Title="Actions" Value="@Fmt(_summary.Data?.Actions)" Error="@_summary.Error" Accent="emerald" />
 </div>
 
-<ApiStateDisplay Loading="_loading" Error="_error">
-    @if (_rows.Count == 0)
-    {
-        <p class="text-muted my-2">No workflow instances returned.</p>
-    }
-    else
-    {
-        <div class="table-responsive border rounded bg-white">
-            <table class="table table-sm table-striped table-hover mb-0">
-                <thead class="table-light">
-                <tr>
-                    <th>Reference</th>
-                    <th>Definition</th>
-                    <th>State</th>
-                    <th>Started</th>
-                    <th>Ended</th>
-                </tr>
-                </thead>
-                <tbody>
-                @foreach (var r in _rows)
-                {
+<DataPanel>
+    <ApiStateDisplay Loading="_loading" Error="_error">
+        @if (_rows.Count == 0)
+        {
+            <EmptyState Message="No workflow instances returned." />
+        }
+        else
+        {
+            <div class="table-responsive xm-table-wrap">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
                     <tr>
-                        <td><span class="font-monospace small">@r.ReferenceType</span> · <span class="font-monospace small">@r.ReferenceId</span></td>
-                        <td class="font-monospace small">@r.WorkflowDefinitionId</td>
-                        <td>@WorkflowUi.InstanceStateLabel(r.WorkflowState)</td>
-                        <td class="small">@(r.StartedAt is { } s ? s.UtcDateTime.ToString("yyyy-MM-dd HH:mm") + " UTC" : "—")</td>
-                        <td class="small">@(r.EndedAt is { } e ? e.UtcDateTime.ToString("yyyy-MM-dd HH:mm") + " UTC" : "—")</td>
+                        <th>Object type</th>
+                        <th>Object ID</th>
+                        <th>Workflow definition</th>
+                        <th>Status</th>
+                        <th>Started (UTC)</th>
+                        <th>Finished (UTC)</th>
                     </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-    }
-</ApiStateDisplay>
+                    </thead>
+                    <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr>
+                            <td class="small">@UiLabels.HumanizeToken(r.ReferenceType)</td>
+                            <td class="font-monospace small">@r.ReferenceId</td>
+                            <td class="font-monospace small">@r.WorkflowDefinitionId</td>
+                            <td><StatusBadge Text="@UiLabels.WorkflowInstanceState(r.WorkflowState)" Tone="@UiLabels.WorkflowInstanceStateTone(r.WorkflowState)" /></td>
+                            <td class="small text-nowrap">@UiFormats.UtcMinute(r.StartedAt)</td>
+                            <td class="small text-nowrap">@UiFormats.UtcMinute(r.EndedAt)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </ApiStateDisplay>
+</DataPanel>
 
 @code {
     private bool _loading = true;

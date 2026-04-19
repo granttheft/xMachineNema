@@ -1,0 +1,19 @@
+<div class="xm-page-header mb-4">
+    @if (TopSlot is not null)
+    {
+        <div class="xm-page-header-top mb-2">
+            @TopSlot
+        </div>
+    }
+    <h1 class="xm-page-title">@Title</h1>
+    @if (!string.IsNullOrWhiteSpace(Subtitle))
+    {
+        <p class="xm-page-subtitle mb-0">@Subtitle</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? TopSlot { get; set; }
+}

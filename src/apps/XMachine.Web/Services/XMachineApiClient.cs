@@ -1,9 +1,13 @@
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace XMachine.Web.Services;
 
 public sealed class XMachineApiClient(HttpClient http)
 {
+    private const int MaxErrorBodyChars = 600;
+
     private async Task<ApiFetch<T>> GetAsync<T>(string relativeUrl, CancellationToken cancellationToken)
     {
         try
@@ -12,8 +16,15 @@ public sealed class XMachineApiClient(HttpClient http)
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                var detail = string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body;
-                return ApiFetch<T>.Fail($"{(int)response.StatusCode}: {detail}");
+                var detail = string.IsNullOrWhiteSpace(body)
+                    ? response.ReasonPhrase ?? ""
+                    : TrimErrorBody(body);
+                var code = (int)response.StatusCode;
+                var message = string.IsNullOrWhiteSpace(detail)
+                    ? $"{code} {response.StatusCode}"
+                    : $"{code}: {detail}";
+                message += StatusCodeHint(code);
+                return ApiFetch<T>.Fail(message);
             }
 
             var data = await response.Content.ReadFromJsonAsync<T>(ApiJson.Options, cancellationToken).ConfigureAwait(false);
@@ -21,11 +32,37 @@ public sealed class XMachineApiClient(HttpClient http)
                 return ApiFetch<T>.Fail("Empty response body.");
             return ApiFetch<T>.Ok(data);
         }
+        catch (JsonException jex)
+        {
+            return ApiFetch<T>.Fail($"Could not parse API JSON ({relativeUrl}): {jex.Message}");
+        }
+        catch (HttpRequestException ex)
+        {
+            return ApiFetch<T>.Fail(
+                $"Could not reach the API at {http.BaseAddress?.AbsoluteUri.TrimEnd('/') ?? "?"}. {ex.Message}");
+        }
         catch (Exception ex)
         {
             return ApiFetch<T>.Fail(ex.Message);
         }
     }
+
+    private static string TrimErrorBody(string body)
+    {
+        var t = body.Trim();
+        if (t.Length <= MaxErrorBodyChars)
+            return t;
+        return t[..MaxErrorBodyChars] + "…";
+    }
+
+    private static string StatusCodeHint(int statusCode) => statusCode switch
+    {
+        (int)HttpStatusCode.Unauthorized =>
+            " Sign in on the Web app (session cookie must reach the API). Platform and commercial list endpoints require authentication.",
+        (int)HttpStatusCode.Forbidden =>
+            " Your account may lack the TenantAdmin or SuperAdmin role required for this API route.",
+        _ => "",
+    };
 
     public Task<ApiFetch<MesSummaryDto>> GetMesSummaryAsync(CancellationToken cancellationToken = default) =>
         GetAsync<MesSummaryDto>("api/mes/summary", cancellationToken);

@@ -3,31 +3,53 @@
 @inject XMachineApiClient Api
 
 <PageTitle>Mappings</PageTitle>
-<nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb small mb-0">
-        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-        <li class="breadcrumb-item active">Integration</li>
-        <li class="breadcrumb-item active">Mappings</li>
-    </ol>
-</nav>
-<h1 class="h3 mb-3">Mapping profiles</h1>
-<ApiStateDisplay Loading="_loading" Error="_error">
-    <div class="table-responsive border rounded bg-white">
-        <table class="table table-sm table-striped mb-0">
-            <thead class="table-light"><tr><th>Name</th><th>Version</th><th>Connector instance</th></tr></thead>
-            <tbody>
-            @foreach (var r in _rows)
-            {
-                <tr><td>@r.Name</td><td>@r.Version</td><td class="small">@r.ConnectorInstanceId</td></tr>
-            }
-            </tbody>
-        </table>
-    </div>
-</ApiStateDisplay>
+
+<PageHeader Title="Mapping profiles"
+            Subtitle="Field and document maps bound to connector instances · read-only from XMachine.Api.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Integration</li>
+                <li class="breadcrumb-item active">Mappings</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
+
+<DataPanel>
+    <ApiStateDisplay Loading="_loading" Error="_error">
+        @if (_rows.Count == 0)
+        {
+            <EmptyState Message="No mapping profiles returned." />
+        }
+        else
+        {
+            <div class="table-responsive xm-table-wrap">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light"><tr><th>Name</th><th>Version</th><th>Connector instance ID</th><th>Record</th></tr></thead>
+                    <tbody>
+                    @foreach (var r in _rows)
+                    {
+                        <tr>
+                            <td>@r.Name</td>
+                            <td>@r.Version</td>
+                            <td class="small font-monospace">@r.ConnectorInstanceId</td>
+                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </ApiStateDisplay>
+</DataPanel>
+
 @code {
     private bool _loading = true;
     private string? _error;
     private IReadOnlyList<MappingProfileRowDto> _rows = [];
+
     protected override async Task OnInitializedAsync()
     {
         var res = await Api.GetMappingProfilesAsync().ConfigureAwait(false);

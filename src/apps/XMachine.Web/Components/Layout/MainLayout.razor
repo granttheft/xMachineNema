@@ -1,49 +1,59 @@
 ﻿@inherits LayoutComponentBase
 @using System.Diagnostics
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Hosting
 @using XMachine.Web.Services
 @inject ApiConnectivityState ApiConnectivity
+@inject IWebHostEnvironment HostEnv
 
 <div class="page">
-    <div class="sidebar border-end">
+    <div class="sidebar border-end border-dark border-opacity-25">
         <NavMenu />
     </div>
 
     <main>
-        <header class="top-bar border-bottom px-4 d-flex align-items-center justify-content-between">
+        <header class="top-bar xm-top-bar border-bottom px-3 px-lg-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="d-flex align-items-center gap-3 py-2">
-                <span class="fw-semibold text-secondary text-uppercase small">xMachine</span>
-                <span class="text-body-secondary small">Operations shell</span>
+                <span class="xm-top-bar-product fw-semibold">xMachine</span>
+                <span class="xm-top-bar-tagline d-none d-sm-inline">Operations</span>
+                @if (HostEnv.IsDevelopment())
+                {
+                    <span class="xm-env-pill">Development</span>
+                }
             </div>
-            <div class="d-flex align-items-center gap-3 small">
+            <div class="d-flex align-items-center gap-2 gap-sm-3 small xm-top-bar-user">
                 <AuthorizeView>
                     <Authorized>
-                        <span class="text-body">@context.User.Identity?.Name</span>
+                        <span class="xm-user-name">@context.User.Identity?.Name</span>
                         @{
                             var roles = string.Join(", ", context.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
                         }
                         @if (!string.IsNullOrEmpty(roles))
                         {
-                            <span class="badge text-bg-light border font-monospace">@roles</span>
+                            <span class="xm-role-pill font-monospace">@roles</span>
                         }
-                        <a class="link-secondary" href="/auth/logout">Sign out</a>
+                        <a class="xm-top-link" href="/auth/logout">Sign out</a>
                     </Authorized>
                     <NotAuthorized>
-                        <span class="badge text-bg-secondary">Not signed in</span>
-                        <a class="link-secondary" href="/login">Sign in</a>
+                        <span class="xm-env-pill xm-env-pill--muted">Guest</span>
+                        <a class="xm-top-link" href="/login">Sign in</a>
                     </NotAuthorized>
                 </AuthorizeView>
             </div>
         </header>
 
-        <article class="content px-4 pb-5">
+        <article class="content px-3 px-lg-4 pb-5">
             @if (ApiConnectivity.HasResult && !ApiConnectivity.IsReachable)
             {
-                <div class="alert alert-warning border-warning mt-3 mb-0" role="status">
-                    <strong>API not reachable.</strong>
-                    Web could not complete <code>GET /health/live</code> on
-                    <span class="font-monospace">@ApiConnectivity.ResolvedApiBaseUrl</span>.
-                    Start <strong>XMachine.Api</strong> or set <code>XMachine:Api:BaseUrl</code> to match your Api URL.
+                <div class="xm-api-banner alert d-flex flex-column flex-md-row gap-2 mt-3 mb-0" role="status">
+                    <div>
+                        <strong>API not reachable.</strong>
+                        Web could not complete <code>GET /health/live</code> on
+                        <span class="font-monospace">@ApiConnectivity.ResolvedApiBaseUrl</span>.
+                    </div>
+                    <div class="small">
+                        Start <strong>XMachine.Api</strong> or set <code>XMachine:Api:BaseUrl</code> to match your API URL.
+                    </div>
                 </div>
             }
             @Body

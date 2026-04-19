@@ -1,13 +1,16 @@
 @if (Loading)
 {
-    <p class="text-muted my-3">
-        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-        Loading…
-    </p>
+    <div class="xm-api-loading" role="status">
+        <span class="spinner-border spinner-border-sm text-secondary" aria-hidden="true"></span>
+        <span>Loading…</span>
+    </div>
 }
 else if (Error is not null)
 {
-    <div class="alert alert-warning">@Error</div>
+    <div class="xm-api-error" role="alert">
+        <div>@Error</div>
+        <p class="xm-api-error-hint mb-0 mt-2">If this keeps happening, confirm the API is running, the base URL is correct, and your account is allowed to call this data.</p>
+    </div>
 }
 else if (ChildContent is not null)
 {

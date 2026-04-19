@@ -1,0 +1,18 @@
+<section class="xm-metric-section mb-4">
+    <div class="xm-metric-section-head mb-3">
+        <h2 class="xm-section-title mb-0">@Heading</h2>
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <p class="xm-section-desc mb-0">@Description</p>
+        }
+    </div>
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Heading { get; set; } = "";
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

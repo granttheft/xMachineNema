@@ -1,19 +1,37 @@
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Nav
 
-@if (_loading)
-{
-    <p class="p-4 text-muted">Checking access…</p>
-}
-else if (_authenticated)
-{
-    <div class="alert alert-warning m-4">Your account is not permitted to view this page.</div>
-    <p class="px-4"><a href="/dashboard">Go to dashboard</a></p>
-}
-else
-{
-    <RedirectToLogin />
-}
+<div class="xm-gate-shell py-4 px-3">
+    @if (_loading)
+    {
+        <div class="xm-api-loading" role="status">
+            <span class="spinner-border spinner-border-sm text-secondary" aria-hidden="true"></span>
+            <span>Checking access…</span>
+        </div>
+    }
+    else if (_authenticated)
+    {
+        <PageHeader Title="Access restricted"
+                    Subtitle="You are signed in, but this area needs a higher permission level (for example tenant or platform administrator).">
+        </PageHeader>
+        <DataPanel Padded="true">
+            <p class="mb-2">You can continue with the parts of xMachine that your role already allows.</p>
+            <p class="small text-body-secondary mb-0">
+                <a href="/dashboard" class="xm-inline-link">Open the operations dashboard</a>
+            </p>
+        </DataPanel>
+    }
+    else
+    {
+        <PageHeader Title="Sign in required"
+                    Subtitle="Your session is not active (or has expired). Sign in to open this page.">
+        </PageHeader>
+        <DataPanel Padded="true">
+            <p class="small text-body-secondary mb-3">You will be redirected to the sign-in screen.</p>
+            <RedirectToLogin />
+        </DataPanel>
+    }
+</div>
 
 @code {
     private bool _loading = true;
