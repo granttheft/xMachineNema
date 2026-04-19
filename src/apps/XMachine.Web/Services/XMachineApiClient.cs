@@ -77,4 +77,43 @@ public sealed class XMachineApiClient(HttpClient http)
 
     public Task<ApiFetch<IntegrationHealthSummaryDto>> GetIntegrationHealthAsync(CancellationToken cancellationToken = default) =>
         GetAsync<IntegrationHealthSummaryDto>("api/integration/health/summary", cancellationToken);
+
+    public Task<ApiFetch<PlatformSummaryDto>> GetPlatformSummaryAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<PlatformSummaryDto>("api/platform/summary", cancellationToken);
+
+    public Task<ApiFetch<List<PlatformTenantRowDto>>> GetPlatformTenantsAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<PlatformTenantRowDto>>("api/platform/tenants", cancellationToken);
+
+    public Task<ApiFetch<List<PlatformSiteRowDto>>> GetPlatformSitesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<PlatformSiteRowDto>>("api/platform/sites", cancellationToken);
+
+    public Task<ApiFetch<List<PlatformLineRowDto>>> GetPlatformLinesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<PlatformLineRowDto>>("api/platform/lines", cancellationToken);
+
+    public Task<ApiFetch<List<PlatformMachineRowDto>>> GetPlatformMachinesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<PlatformMachineRowDto>>("api/platform/machines", cancellationToken);
+
+    public Task<ApiFetch<CommercialSummaryDto>> GetCommercialSummaryAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<CommercialSummaryDto>("api/commercial/summary", cancellationToken);
+
+    public Task<ApiFetch<List<LicenseRowDto>>> GetCommercialLicensesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<LicenseRowDto>>("api/commercial/licenses", cancellationToken);
+
+    public Task<ApiFetch<List<CommercialModuleRowDto>>> GetCommercialModulesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<CommercialModuleRowDto>>("api/commercial/modules", cancellationToken);
+
+    public Task<ApiFetch<List<ModuleActivationRowDto>>> GetCommercialModuleActivationsAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ModuleActivationRowDto>>("api/commercial/module-activations", cancellationToken);
+
+    public Task<ApiFetch<List<LicensedLineRowDto>>> GetCommercialLicensedLinesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<LicensedLineRowDto>>("api/commercial/licensed-lines", cancellationToken);
+
+    public Task<ApiFetch<WorkflowSummaryDto>> GetWorkflowSummaryAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<WorkflowSummaryDto>("api/workflow/summary", cancellationToken);
+
+    public Task<ApiFetch<List<WorkflowDefinitionRowDto>>> GetWorkflowDefinitionsAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<WorkflowDefinitionRowDto>>("api/workflow/definitions", cancellationToken);
+
+    public Task<ApiFetch<List<WorkflowInstanceRowDto>>> GetWorkflowInstancesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<WorkflowInstanceRowDto>>("api/workflow/instances", cancellationToken);
 }

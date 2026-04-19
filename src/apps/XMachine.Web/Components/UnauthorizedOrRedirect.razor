@@ -1,0 +1,28 @@
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Nav
+
+@if (_loading)
+{
+    <p class="p-4 text-muted">Checking access…</p>
+}
+else if (_authenticated)
+{
+    <div class="alert alert-warning m-4">Your account is not permitted to view this page.</div>
+    <p class="px-4"><a href="/dashboard">Go to dashboard</a></p>
+}
+else
+{
+    <RedirectToLogin />
+}
+
+@code {
+    private bool _loading = true;
+    private bool _authenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync().ConfigureAwait(false);
+        _authenticated = state.User.Identity?.IsAuthenticated == true;
+        _loading = false;
+    }
+}

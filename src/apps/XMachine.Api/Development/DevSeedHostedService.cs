@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
+using XMachine.Module.Auth.Security;
 using XMachine.Module.Commercial.Domain;
 using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
 using XMachine.Module.Quality.Domain;
+using XMachine.Module.Workflow.Domain;
 using XMachine.Persistence.Operational;
 using XMachine.SharedKernel;
 
@@ -46,8 +48,6 @@ internal sealed class DevSeedHostedService : IHostedService
 
         using var scope = _services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<XMachineDbContext>();
-
-        await db.Database.MigrateAsync(cancellationToken);
 
         if (await db.Tenants.AnyAsync(cancellationToken))
         {
@@ -105,19 +105,59 @@ internal sealed class DevSeedHostedService : IHostedService
             new Machine { TenantId = tenant.Id, LineId = line2.Id, Code = "M-202", Name = "Machine 202", Status = EntityStatus.Active },
         };
 
-        var roleAdmin = new Role
+        var roleSuperAdmin = new Role
         {
             TenantId = tenant.Id,
-            Code = "admin",
-            Name = "Administrator",
+            Code = ApplicationRoles.SuperAdmin,
+            Name = "Super admin",
             Status = EntityStatus.Active,
         };
 
-        var roleViewer = new Role
+        var roleTenantAdmin = new Role
         {
             TenantId = tenant.Id,
-            Code = "viewer",
-            Name = "Viewer",
+            Code = ApplicationRoles.TenantAdmin,
+            Name = "Tenant admin",
+            Status = EntityStatus.Active,
+        };
+
+        var roleSiteAdmin = new Role
+        {
+            TenantId = tenant.Id,
+            Code = ApplicationRoles.SiteAdmin,
+            Name = "Site admin",
+            Status = EntityStatus.Active,
+        };
+
+        var roleProductionManager = new Role
+        {
+            TenantId = tenant.Id,
+            Code = ApplicationRoles.ProductionManager,
+            Name = "Production manager",
+            Status = EntityStatus.Active,
+        };
+
+        var roleQuality = new Role
+        {
+            TenantId = tenant.Id,
+            Code = ApplicationRoles.Quality,
+            Name = "Quality",
+            Status = EntityStatus.Active,
+        };
+
+        var roleMaintenance = new Role
+        {
+            TenantId = tenant.Id,
+            Code = ApplicationRoles.Maintenance,
+            Name = "Maintenance",
+            Status = EntityStatus.Active,
+        };
+
+        var roleOperator = new Role
+        {
+            TenantId = tenant.Id,
+            Code = ApplicationRoles.Operator,
+            Name = "Operator",
             Status = EntityStatus.Active,
         };
 
@@ -137,6 +177,55 @@ internal sealed class DevSeedHostedService : IHostedService
             DisplayName = "Demo Supervisor",
             Email = "supervisor1@demo.local",
             Status = EntityStatus.Active,
+        };
+
+        var userDevAdmin = new UserAccount
+        {
+            TenantId = tenant.Id,
+            Username = "devadmin",
+            DisplayName = "Development Super Admin",
+            Email = "devadmin@demo.local",
+            Status = EntityStatus.Active,
+        };
+
+        var roleAssignments = new[]
+        {
+            new UserRoleAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userDevAdmin.Id,
+                RoleId = roleSuperAdmin.Id,
+                ScopeType = ScopeType.Tenant,
+                ScopeId = tenant.Id,
+                Status = EntityStatus.Active,
+            },
+            new UserRoleAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userSupervisor.Id,
+                RoleId = roleTenantAdmin.Id,
+                ScopeType = ScopeType.Tenant,
+                ScopeId = tenant.Id,
+                Status = EntityStatus.Active,
+            },
+            new UserRoleAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userSupervisor.Id,
+                RoleId = roleProductionManager.Id,
+                ScopeType = ScopeType.Tenant,
+                ScopeId = tenant.Id,
+                Status = EntityStatus.Active,
+            },
+            new UserRoleAssignment
+            {
+                TenantId = tenant.Id,
+                UserAccountId = userOperator.Id,
+                RoleId = roleOperator.Id,
+                ScopeType = ScopeType.Tenant,
+                ScopeId = tenant.Id,
+                Status = EntityStatus.Active,
+            },
         };
 
         var modulePlatform = new CommercialModule { Code = "platform", Name = "Platform", Status = EntityStatus.Active };
@@ -975,8 +1064,8 @@ internal sealed class DevSeedHostedService : IHostedService
             SiteId = site.Id,
             LineId = line1.Id,
             PeriodType = OeePeriodType.Day,
-            PeriodStart = DateTimeOffset.UtcNow.Date,
-            PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+            PeriodStart = UtcStartOfToday(),
+            PeriodEnd = UtcStartOfToday().AddDays(1),
             Availability = 0.90m,
             Performance = 0.85m,
             Quality = 0.98m,
@@ -989,8 +1078,8 @@ internal sealed class DevSeedHostedService : IHostedService
             TenantId = tenant.Id,
             SiteId = site.Id,
             PeriodType = OeePeriodType.Day,
-            PeriodStart = DateTimeOffset.UtcNow.Date,
-            PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+            PeriodStart = UtcStartOfToday(),
+            PeriodEnd = UtcStartOfToday().AddDays(1),
             Availability = 0.88m,
             Performance = 0.82m,
             Quality = 0.97m,
@@ -1028,8 +1117,8 @@ internal sealed class DevSeedHostedService : IHostedService
                 KpiDefinitionId = kpiOeeLine.Id,
                 ScopeType = "line",
                 ScopeId = line1.Id,
-                PeriodStart = DateTimeOffset.UtcNow.Date,
-                PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+                PeriodStart = UtcStartOfToday(),
+                PeriodEnd = UtcStartOfToday().AddDays(1),
                 Value = 0.752m,
                 Status = EntityStatus.Active,
             },
@@ -1039,8 +1128,8 @@ internal sealed class DevSeedHostedService : IHostedService
                 KpiDefinitionId = kpiOeeLine.Id,
                 ScopeType = "machine",
                 ScopeId = machines[0].Id,
-                PeriodStart = DateTimeOffset.UtcNow.Date,
-                PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+                PeriodStart = UtcStartOfToday(),
+                PeriodEnd = UtcStartOfToday().AddDays(1),
                 Value = 0.801m,
                 Status = EntityStatus.Active,
             },
@@ -1050,8 +1139,8 @@ internal sealed class DevSeedHostedService : IHostedService
                 KpiDefinitionId = kpiScrap.Id,
                 ScopeType = "line",
                 ScopeId = line1.Id,
-                PeriodStart = DateTimeOffset.UtcNow.Date,
-                PeriodEnd = DateTimeOffset.UtcNow.Date.AddDays(1),
+                PeriodStart = UtcStartOfToday(),
+                PeriodEnd = UtcStartOfToday().AddDays(1),
                 Value = 0.024m,
                 Status = EntityStatus.Active,
             },
@@ -1068,12 +1157,205 @@ internal sealed class DevSeedHostedService : IHostedService
             },
         };
 
+        var maintWorkOrderRefId = Guid.Parse("00000000-0000-4000-8000-000000000001");
+
+        var wfDefRecipe = new WorkflowDefinition
+        {
+            TenantId = tenant.Id,
+            WorkflowType = "recipe_approval",
+            Name = "Recipe publish approval",
+            Status = EntityStatus.Active,
+        };
+
+        var wfDefQuality = new WorkflowDefinition
+        {
+            TenantId = tenant.Id,
+            WorkflowType = "quality_approval",
+            Name = "Quality check / disposition approval",
+            Status = EntityStatus.Active,
+        };
+
+        var wfDefOrderClose = new WorkflowDefinition
+        {
+            TenantId = tenant.Id,
+            WorkflowType = "order_close_approval",
+            Name = "Production order close approval",
+            Status = EntityStatus.Active,
+        };
+
+        var wfDefMaint = new WorkflowDefinition
+        {
+            TenantId = tenant.Id,
+            WorkflowType = "maintenance_close_approval",
+            Name = "Maintenance work order close (placeholder type)",
+            Status = EntityStatus.Active,
+        };
+
+        var wfRecipeStep1 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefRecipe.Id,
+            SequenceNo = 10,
+            RoleCode = ApplicationRoles.Quality,
+            ApprovalMode = WorkflowApprovalMode.Sequential,
+            Status = EntityStatus.Active,
+        };
+
+        var wfRecipeStep2 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefRecipe.Id,
+            SequenceNo = 20,
+            RoleCode = ApplicationRoles.TenantAdmin,
+            ApprovalMode = WorkflowApprovalMode.Sequential,
+            Status = EntityStatus.Active,
+        };
+
+        var wfQualityStep1 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefQuality.Id,
+            SequenceNo = 10,
+            RoleCode = ApplicationRoles.TenantAdmin,
+            ApprovalMode = WorkflowApprovalMode.ParallelAny,
+            Status = EntityStatus.Active,
+        };
+
+        var wfQualityStep2 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefQuality.Id,
+            SequenceNo = 20,
+            RoleCode = ApplicationRoles.Quality,
+            ApprovalMode = WorkflowApprovalMode.Sequential,
+            Status = EntityStatus.Active,
+        };
+
+        var wfOrderStep1 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefOrderClose.Id,
+            SequenceNo = 10,
+            RoleCode = ApplicationRoles.ProductionManager,
+            ApprovalMode = WorkflowApprovalMode.Sequential,
+            Status = EntityStatus.Active,
+        };
+
+        var wfOrderStep2 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefOrderClose.Id,
+            SequenceNo = 20,
+            RoleCode = ApplicationRoles.TenantAdmin,
+            ApprovalMode = WorkflowApprovalMode.Sequential,
+            Status = EntityStatus.Active,
+        };
+
+        var wfMaintStep1 = new WorkflowStep
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefMaint.Id,
+            SequenceNo = 10,
+            RoleCode = ApplicationRoles.Maintenance,
+            ApprovalMode = WorkflowApprovalMode.Sequential,
+            Status = EntityStatus.Active,
+        };
+
+        var wfInstRecipe = new WorkflowInstance
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefRecipe.Id,
+            ReferenceType = "recipe",
+            ReferenceId = recipeAsm.Id,
+            WorkflowState = WorkflowInstanceState.InProgress,
+            StartedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            Status = EntityStatus.Active,
+        };
+
+        var wfInstQuality = new WorkflowInstance
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefQuality.Id,
+            ReferenceType = "quality_check",
+            ReferenceId = qcLine.Id,
+            WorkflowState = WorkflowInstanceState.InProgress,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-8),
+            Status = EntityStatus.Active,
+        };
+
+        var wfInstOrder = new WorkflowInstance
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefOrderClose.Id,
+            ReferenceType = "production_order",
+            ReferenceId = order1.Id,
+            WorkflowState = WorkflowInstanceState.Approved,
+            StartedAt = DateTimeOffset.UtcNow.AddDays(-3),
+            EndedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Status = EntityStatus.Active,
+        };
+
+        var wfInstMaint = new WorkflowInstance
+        {
+            TenantId = tenant.Id,
+            WorkflowDefinitionId = wfDefMaint.Id,
+            ReferenceType = "maintenance_work_order",
+            ReferenceId = maintWorkOrderRefId,
+            WorkflowState = WorkflowInstanceState.Draft,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            Status = EntityStatus.Active,
+        };
+
+        var wfActOrderApprove = new WorkflowAction
+        {
+            TenantId = tenant.Id,
+            WorkflowInstanceId = wfInstOrder.Id,
+            WorkflowStepId = wfOrderStep1.Id,
+            ActionType = WorkflowActionType.Approve,
+            ActionBy = userSupervisor.Id,
+            ActionTime = DateTimeOffset.UtcNow.AddHours(-3),
+            Comment = "Approved to close work order (demo)",
+            Status = EntityStatus.Active,
+        };
+
+        var wfActRecipeComment = new WorkflowAction
+        {
+            TenantId = tenant.Id,
+            WorkflowInstanceId = wfInstRecipe.Id,
+            WorkflowStepId = wfRecipeStep1.Id,
+            ActionType = WorkflowActionType.Comment,
+            ActionBy = userOperator.Id,
+            ActionTime = DateTimeOffset.UtcNow.AddHours(-12),
+            Comment = "Recipe parameters reviewed on shop floor (demo)",
+            Status = EntityStatus.Active,
+        };
+
+        var wfActQualityApprove = new WorkflowAction
+        {
+            TenantId = tenant.Id,
+            WorkflowInstanceId = wfInstQuality.Id,
+            WorkflowStepId = wfQualityStep1.Id,
+            ActionType = WorkflowActionType.Approve,
+            ActionBy = userSupervisor.Id,
+            ActionTime = DateTimeOffset.UtcNow.AddHours(-6),
+            Status = EntityStatus.Active,
+        };
+
         db.Add(tenant);
         db.Add(enterprise);
         db.Add(site);
         db.AddRange(line1, line2);
         db.AddRange(machines);
-        db.AddRange(roleAdmin, roleViewer, userOperator, userSupervisor);
+        db.AddRange(
+            roleSuperAdmin,
+            roleTenantAdmin,
+            roleSiteAdmin,
+            roleProductionManager,
+            roleQuality,
+            roleMaintenance,
+            roleOperator);
+        db.AddRange(userOperator, userSupervisor, userDevAdmin);
+        db.AddRange(roleAssignments);
         db.AddRange(modulePlatform, moduleCoreMes, moduleIntegration);
         db.Add(license);
         db.AddRange(activations);
@@ -1105,11 +1387,34 @@ internal sealed class DevSeedHostedService : IHostedService
         db.AddRange(oeeMachine, oeeLine, oeeSite);
         db.AddRange(kpiOeeLine, kpiScrap);
         db.AddRange(kpiResults);
+        db.AddRange(
+            wfDefRecipe,
+            wfDefQuality,
+            wfDefOrderClose,
+            wfDefMaint,
+            wfRecipeStep1,
+            wfRecipeStep2,
+            wfQualityStep1,
+            wfQualityStep2,
+            wfOrderStep1,
+            wfOrderStep2,
+            wfMaintStep1,
+            wfInstRecipe,
+            wfInstQuality,
+            wfInstOrder,
+            wfInstMaint,
+            wfActOrderApprove,
+            wfActRecipeComment,
+            wfActQualityApprove);
 
         await db.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Dev seed completed.");
     }
+
+    // UTC midnight (offset 0); DateTimeOffset.UtcNow.Date would be Unspecified→local offset and breaks Npgsql timestamptz.
+    private static DateTimeOffset UtcStartOfToday() =>
+        new DateTimeOffset(DateTimeOffset.UtcNow.UtcDateTime.Date, TimeSpan.Zero);
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

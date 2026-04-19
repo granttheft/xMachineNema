@@ -13,8 +13,9 @@ Edge runtime ayrı tutulur. Connector framework çekirdeğin stratejik parçası
 
 ## Notlar (bilinçli boşluklar)
 
-- Aspire için `XMachine.AppHost` ve `XMachine.ServiceDefaults` projeleri **derlenebilir placeholder** olarak bırakıldı.
-  Şablon/paketler hazır olduğunda gerçek Aspire AppHost’a dönüştürülecek.
+- `XMachine.AppHost` artık **yerel geliştirme orkestratörü** olarak Api + Web süreçlerini başlatır (Aspire workload gerekmez).
+  İleride tam .NET Aspire dağıtım modeli istenirse bu proje genişletilebilir.
+- `XMachine.ServiceDefaults` ortak telemetry/health şablonu için ayrı tutulur; AppHost doğrudan bağlanmak zorunda değildir.
 - Time-series motoru/storage/schema seçimi **bu aşamada yapılmadı**.
 - Modüller/connector’lar **iş mantığı içermez**; sadece scaffolding ve bağımlılık yönü kurulmuştur.
 

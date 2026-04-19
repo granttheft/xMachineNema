@@ -10,10 +10,12 @@
     <ProjectReference Include="..\..\modules\XMachine.Module.MES\XMachine.Module.MES.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Quality\XMachine.Module.Quality.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Eventing\XMachine.Module.Eventing.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Workflow\XMachine.Module.Workflow.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.6">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

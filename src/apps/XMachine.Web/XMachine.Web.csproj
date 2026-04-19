@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XMachine.ServiceDefaults\XMachine.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\building-blocks\XMachine.Persistence\XMachine.Persistence.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Auth\XMachine.Module.Auth.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

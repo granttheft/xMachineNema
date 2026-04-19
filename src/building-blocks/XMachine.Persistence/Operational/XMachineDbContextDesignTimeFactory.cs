@@ -9,7 +9,7 @@ public sealed class XMachineDbContextDesignTimeFactory : IDesignTimeDbContextFac
     {
         var connectionString =
             Environment.GetEnvironmentVariable("XMACHINE_OPERATIONAL_DB")
-            ?? "Host=localhost;Port=5432;Database=xmachine;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5432;Database=xmachine_nema;Username=postgres;Password=postgres";
 
         var optionsBuilder = new DbContextOptionsBuilder<XMachineDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

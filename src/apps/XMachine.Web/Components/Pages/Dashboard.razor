@@ -5,7 +5,7 @@
 <PageTitle>Dashboard</PageTitle>
 
 <h1 class="h3 mb-1">Dashboard</h1>
-<p class="text-body-secondary small mb-4">Summary cards from API · ensure XMachine.Api is running (<code>ApiBaseUrl</code> in appsettings).</p>
+<p class="text-body-secondary small mb-4">Summary cards from API · ensure XMachine.Api is running (<code>XMachine:Api:BaseUrl</code>). Workflow detail: <a href="/workflow/definitions">definitions</a> · <a href="/workflow/instances">instances</a>.</p>
 
 @if (_aggregateError is not null)
 {
@@ -30,11 +30,17 @@
     <SummaryCard Title="Nonconformances" Value="@Fmt(_quality.Data?.Nonconformances)" Error="@_quality.Error" />
     <SummaryCard Title="Dispositions" Value="@Fmt(_quality.Data?.Dispositions)" Error="@_quality.Error" />
 </div>
-<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
     <SummaryCard Title="Connector definitions" Value="@Fmt(_integration.Data?.Operational.Definitions)" Error="@_integration.Error" />
     <SummaryCard Title="Connector instances" Value="@Fmt(_integration.Data?.Operational.Instances)" Error="@_integration.Error" />
     <SummaryCard Title="Mapping profiles" Value="@Fmt(_integration.Data?.Operational.Profiles)" Error="@_integration.Error" />
     <SummaryCard Title="Runtime health rows" Value="@Fmt(_integration.Data?.Runtime.ActiveHealthRows)" Error="@_integration.Error" />
+</div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+    <SummaryCard Title="Workflow definitions" Value="@Fmt(_workflow.Data?.Definitions)" Error="@_workflow.Error" />
+    <SummaryCard Title="Workflow steps" Value="@Fmt(_workflow.Data?.Steps)" Error="@_workflow.Error" />
+    <SummaryCard Title="Workflow instances" Value="@Fmt(_workflow.Data?.Instances)" Error="@_workflow.Error" />
+    <SummaryCard Title="Workflow actions" Value="@Fmt(_workflow.Data?.Actions)" Error="@_workflow.Error" />
 </div>
 
 @code {
@@ -42,6 +48,7 @@
     private ApiFetch<QualitySummaryDto> _quality = ApiFetch<QualitySummaryDto>.InProgress();
     private ApiFetch<EventingSummaryDto> _eventing = ApiFetch<EventingSummaryDto>.InProgress();
     private ApiFetch<IntegrationHealthSummaryDto> _integration = ApiFetch<IntegrationHealthSummaryDto>.InProgress();
+    private ApiFetch<WorkflowSummaryDto> _workflow = ApiFetch<WorkflowSummaryDto>.InProgress();
     private string? _aggregateError;
 
     protected override async Task OnInitializedAsync()
@@ -50,14 +57,16 @@
         var tQuality = Api.GetQualitySummaryAsync();
         var tEventing = Api.GetEventingSummaryAsync();
         var tInt = Api.GetIntegrationHealthAsync();
-        await Task.WhenAll(tMes, tQuality, tEventing, tInt).ConfigureAwait(false);
+        var tWf = Api.GetWorkflowSummaryAsync();
+        await Task.WhenAll(tMes, tQuality, tEventing, tInt, tWf).ConfigureAwait(false);
         _mes = await tMes.ConfigureAwait(false);
         _quality = await tQuality.ConfigureAwait(false);
         _eventing = await tEventing.ConfigureAwait(false);
         _integration = await tInt.ConfigureAwait(false);
+        _workflow = await tWf.ConfigureAwait(false);
 
-        if (_mes.Error is not null && _quality.Error is not null && _eventing.Error is not null && _integration.Error is not null)
-            _aggregateError = "Could not reach the API. Check ApiBaseUrl and that XMachine.Api is running.";
+        if (_mes.Error is not null && _quality.Error is not null && _eventing.Error is not null && _integration.Error is not null && _workflow.Error is not null)
+            _aggregateError = "Could not reach the API. Check XMachine:Api:BaseUrl and that XMachine.Api is running.";
     }
 
     private static string? Fmt(int? v) => v?.ToString();

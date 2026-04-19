@@ -1,0 +1,77 @@
+@page "/workflow/definitions"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Workflow definitions</PageTitle>
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb small mb-0">
+        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+        <li class="breadcrumb-item active">Workflow</li>
+        <li class="breadcrumb-item active">Definitions</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-3">Workflow definitions</h1>
+<p class="text-body-secondary small mb-3">Read-only view from <code>GET /api/workflow/definitions</code> and <code>GET /api/workflow/summary</code>. · <a href="/workflow/instances">Instances</a></p>
+
+<div class="row row-cols-2 row-cols-md-4 g-3 mb-4">
+    <SummaryCard Title="Definitions" Value="@Fmt(_summary.Data?.Definitions)" Error="@_summary.Error" />
+    <SummaryCard Title="Steps" Value="@Fmt(_summary.Data?.Steps)" Error="@_summary.Error" />
+    <SummaryCard Title="Instances" Value="@Fmt(_summary.Data?.Instances)" Error="@_summary.Error" />
+    <SummaryCard Title="Actions" Value="@Fmt(_summary.Data?.Actions)" Error="@_summary.Error" />
+</div>
+
+<ApiStateDisplay Loading="_loading" Error="_error">
+    @if (_rows.Count == 0)
+    {
+        <p class="text-muted my-2">No workflow definitions returned.</p>
+    }
+    else
+    {
+        <div class="table-responsive border rounded bg-white">
+            <table class="table table-sm table-striped table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Workflow type</th>
+                    <th>Status</th>
+                    <th class="text-end">Steps</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td>@r.Name</td>
+                        <td class="font-monospace small">@r.WorkflowType</td>
+                        <td>@WorkflowUi.EntityStatusLabel(r.Status)</td>
+                        <td class="text-end">@r.StepCount</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</ApiStateDisplay>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private ApiFetch<WorkflowSummaryDto> _summary = ApiFetch<WorkflowSummaryDto>.InProgress();
+    private IReadOnlyList<WorkflowDefinitionRowDto> _rows = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tSummary = Api.GetWorkflowSummaryAsync();
+        var tDefs = Api.GetWorkflowDefinitionsAsync();
+        await Task.WhenAll(tSummary, tDefs).ConfigureAwait(false);
+        _summary = await tSummary.ConfigureAwait(false);
+        var defs = await tDefs.ConfigureAwait(false);
+        _loading = false;
+        _error = defs.Error;
+        _rows = defs.Data ?? [];
+    }
+
+    private static string? Fmt(int? v) => v?.ToString();
+}

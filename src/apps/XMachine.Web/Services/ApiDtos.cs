@@ -41,3 +41,38 @@ public sealed record ConnectorDefinitionRowDto(Guid Id, string Code, string Name
 public sealed record ConnectorInstanceRowDto(Guid Id, string Code, string Name, Guid ConnectorDefinitionId, Guid? SiteId, int Status);
 
 public sealed record MappingProfileRowDto(Guid Id, string Name, int Version, Guid ConnectorInstanceId, int Status);
+
+public sealed record PlatformSummaryDto(int Tenants, int Enterprises, int Sites, int Lines, int Machines, int Buildings, int Stations);
+
+public sealed record PlatformTenantRowDto(Guid Id, string Code, string Name, int Status, int SiteCount, int LineCount, int MachineCount);
+
+public sealed record PlatformSiteRowDto(Guid Id, Guid TenantId, Guid EnterpriseId, string Code, string Name, int Status);
+
+public sealed record PlatformLineRowDto(Guid Id, Guid TenantId, Guid SiteId, Guid? BuildingId, string Code, string Name, int Status);
+
+public sealed record PlatformMachineRowDto(Guid Id, Guid TenantId, Guid LineId, string Code, string Name, int Status);
+
+public sealed record CommercialSummaryDto(int Licenses, int Modules, int ModuleActivations, int LicensedLines);
+
+public sealed record LicenseRowDto(Guid Id, Guid TenantId, int LicenseType, DateTimeOffset? ValidFrom, DateTimeOffset? ValidTo, int Status);
+
+public sealed record CommercialModuleRowDto(Guid Id, string Code, string Name, int Status);
+
+public sealed record ModuleActivationRowDto(Guid Id, Guid TenantId, Guid ModuleId, string ModuleCode, string ModuleName, DateTimeOffset ActivatedAt, int Status);
+
+public sealed record LicensedLineRowDto(Guid Id, Guid TenantId, Guid LineId, string LineCode, string LineName, int Status);
+
+public sealed record WorkflowSummaryDto(int Definitions, int Steps, int Instances, int Actions);
+
+public sealed record WorkflowDefinitionRowDto(Guid Id, Guid TenantId, string WorkflowType, string Name, int Status, int StepCount);
+
+public sealed record WorkflowInstanceRowDto(
+    Guid Id,
+    Guid TenantId,
+    Guid WorkflowDefinitionId,
+    string ReferenceType,
+    Guid ReferenceId,
+    int WorkflowState,
+    DateTimeOffset? StartedAt,
+    DateTimeOffset? EndedAt,
+    int Status);

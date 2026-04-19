@@ -6,6 +6,7 @@ using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
 using XMachine.Module.Quality.Domain;
+using XMachine.Module.Workflow.Domain;
 
 namespace XMachine.Persistence.Operational;
 
@@ -73,6 +74,12 @@ public sealed class XMachineDbContext : DbContext
     public DbSet<OeeSnapshot> OeeSnapshots => Set<OeeSnapshot>();
     public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
     public DbSet<KpiResult> KpiResults => Set<KpiResult>();
+
+    // workflow
+    public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
+    public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
+    public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
+    public DbSet<WorkflowAction> WorkflowActions => Set<WorkflowAction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

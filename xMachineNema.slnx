@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/apps/">
+    <Project Path="src/apps/XMachine.Api/XMachine.Api.csproj" />
+    <Project Path="src/apps/XMachine.AppHost/XMachine.AppHost.csproj" />
+    <Project Path="src/apps/XMachine.ServiceDefaults/XMachine.ServiceDefaults.csproj" />
+    <Project Path="src/apps/XMachine.Web/XMachine.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/building-blocks/">
+    <Project Path="src/building-blocks/XMachine.Application/XMachine.Application.csproj" />
+    <Project Path="src/building-blocks/XMachine.Domain/XMachine.Domain.csproj" />
+    <Project Path="src/building-blocks/XMachine.Infrastructure/XMachine.Infrastructure.csproj" />
+    <Project Path="src/building-blocks/XMachine.Persistence/XMachine.Persistence.csproj" />
+    <Project Path="src/building-blocks/XMachine.SharedKernel/XMachine.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/connectors/">
+    <Project Path="src/connectors/XMachine.Connectors.Abstractions/XMachine.Connectors.Abstractions.csproj" />
+    <Project Path="src/connectors/XMachine.Connectors.Commands/XMachine.Connectors.Commands.csproj" />
+    <Project Path="src/connectors/XMachine.Connectors.Contracts/XMachine.Connectors.Contracts.csproj" />
+    <Project Path="src/connectors/XMachine.Connectors.Health/XMachine.Connectors.Health.csproj" />
+    <Project Path="src/connectors/XMachine.Connectors.Mapping/XMachine.Connectors.Mapping.csproj" />
+    <Project Path="src/connectors/XMachine.Connectors.Runtime/XMachine.Connectors.Runtime.csproj" />
+    <Project Path="src/connectors/XMachine.Connectors.Sync/XMachine.Connectors.Sync.csproj" />
+  </Folder>
+  <Folder Name="/src/modules/">
+    <Project Path="src/modules/XMachine.Module.Auth/XMachine.Module.Auth.csproj" />
+    <Project Path="src/modules/XMachine.Module.Commercial/XMachine.Module.Commercial.csproj" />
+    <Project Path="src/modules/XMachine.Module.Docs/XMachine.Module.Docs.csproj" />
+    <Project Path="src/modules/XMachine.Module.Eventing/XMachine.Module.Eventing.csproj" />
+    <Project Path="src/modules/XMachine.Module.Integration/XMachine.Module.Integration.csproj" />
+    <Project Path="src/modules/XMachine.Module.MES/XMachine.Module.MES.csproj" />
+    <Project Path="src/modules/XMachine.Module.Platform/XMachine.Module.Platform.csproj" />
+    <Project Path="src/modules/XMachine.Module.Plugin/XMachine.Module.Plugin.csproj" />
+    <Project Path="src/modules/XMachine.Module.Quality/XMachine.Module.Quality.csproj" />
+    <Project Path="src/modules/XMachine.Module.Workflow/XMachine.Module.Workflow.csproj" />
+  </Folder>
+</Solution>

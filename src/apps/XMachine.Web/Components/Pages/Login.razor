@@ -1,13 +1,82 @@
 @page "/login"
+@attribute [AllowAnonymous]
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.WebUtilities
+@inject IApplicationUserSignInService SignIn
+@inject NavigationManager Nav
 
 <PageTitle>Sign in</PageTitle>
 <h1 class="h3 mb-3">Sign in</h1>
 <div class="card border-0 shadow-sm" style="max-width:28rem">
     <div class="card-body">
-        <p class="text-body-secondary small mb-0">
-            Authentication is not wired in this shell. Use the API directly for development;
-            a real login flow will replace this placeholder.
+        <p class="text-body-secondary small">
+            Development sign-in uses <code>XMachine:DevAuth</code> and seeded users. Passwords are not stored as hashes in this skeleton.
         </p>
-        <a class="btn btn-primary mt-3" href="/dashboard">Continue to dashboard</a>
+        @if (_error is not null)
+        {
+            <div class="alert alert-danger small">@_error</div>
+        }
+        <div class="mb-3">
+            <label class="form-label small text-muted">Username</label>
+            <input class="form-control" @bind="_username" autocomplete="username" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label small text-muted">Password</label>
+            <input class="form-control" type="password" @bind="_password" autocomplete="current-password" />
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="OnLoginAsync" disabled="@_busy">Sign in</button>
     </div>
 </div>
+
+@code {
+    private string _username = "";
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private async Task OnLoginAsync()
+    {
+        _error = null;
+        _busy = true;
+        try
+        {
+            var result = await SignIn.SignInAsync(_username, _password).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                _error = result.ErrorMessage ?? "Sign-in failed.";
+                return;
+            }
+
+            var target = PickReturnUrl(ReadReturnUrl());
+            Nav.NavigateTo(target, forceLoad: true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string PickReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl))
+            return "/dashboard";
+        if (!returnUrl.StartsWith('/'))
+            return "/dashboard";
+        if (returnUrl.StartsWith("//", StringComparison.Ordinal))
+            return "/dashboard";
+        return returnUrl;
+    }
+
+    private string? ReadReturnUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(ReturnUrl))
+            return ReturnUrl;
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        return QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var v)
+            ? v.FirstOrDefault()
+            : null;
+    }
+}

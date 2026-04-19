@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@using System.Diagnostics
+@using System.Security.Claims
+@using XMachine.Web.Services
+@inject ApiConnectivityState ApiConnectivity
 
 <div class="page">
     <div class="sidebar border-end">
@@ -12,12 +16,36 @@
                 <span class="text-body-secondary small">Operations shell</span>
             </div>
             <div class="d-flex align-items-center gap-3 small">
-                <span class="badge text-bg-secondary">Dev · no auth</span>
-                <a class="link-secondary" href="/login">Sign in (placeholder)</a>
+                <AuthorizeView>
+                    <Authorized>
+                        <span class="text-body">@context.User.Identity?.Name</span>
+                        @{
+                            var roles = string.Join(", ", context.User.FindAll(ClaimTypes.Role).Select(c => c.Value));
+                        }
+                        @if (!string.IsNullOrEmpty(roles))
+                        {
+                            <span class="badge text-bg-light border font-monospace">@roles</span>
+                        }
+                        <a class="link-secondary" href="/auth/logout">Sign out</a>
+                    </Authorized>
+                    <NotAuthorized>
+                        <span class="badge text-bg-secondary">Not signed in</span>
+                        <a class="link-secondary" href="/login">Sign in</a>
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
         </header>
 
         <article class="content px-4 pb-5">
+            @if (ApiConnectivity.HasResult && !ApiConnectivity.IsReachable)
+            {
+                <div class="alert alert-warning border-warning mt-3 mb-0" role="status">
+                    <strong>API not reachable.</strong>
+                    Web could not complete <code>GET /health/live</code> on
+                    <span class="font-monospace">@ApiConnectivity.ResolvedApiBaseUrl</span>.
+                    Start <strong>XMachine.Api</strong> or set <code>XMachine:Api:BaseUrl</code> to match your Api URL.
+                </div>
+            }
             @Body
         </article>
     </main>
@@ -28,3 +56,18 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">×</span>
 </div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 25;
+        while (!ApiConnectivity.HasResult && Stopwatch.GetTimestamp() < deadline)
+        {
+            await Task.Delay(350);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

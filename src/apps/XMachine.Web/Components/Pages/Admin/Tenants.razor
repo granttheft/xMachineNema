@@ -1,4 +1,7 @@
 @page "/admin/tenants"
+@attribute [Authorize(Policy = AuthPolicies.AdminArea)]
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
 
 <PageTitle>Tenants</PageTitle>
 <nav aria-label="breadcrumb" class="mb-3">
@@ -8,7 +11,86 @@
         <li class="breadcrumb-item active">Tenants</li>
     </ol>
 </nav>
-<h1 class="h3 mb-3">Tenants</h1>
-<div class="alert alert-secondary">
-    Placeholder: tenant management UI will connect to platform APIs in a later task.
+<h1 class="h3 mb-1">Tenants</h1>
+<p class="text-body-secondary small mb-4">Platform snapshot from API · read-only.</p>
+
+@if (_aggregateError is not null)
+{
+    <div class="alert alert-danger">@_aggregateError</div>
+}
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+    <SummaryCard Title="Tenants" Value="@Fmt(_summary.Data?.Tenants)" Error="@_summary.Error" />
+    <SummaryCard Title="Sites" Value="@Fmt(_summary.Data?.Sites)" Error="@_summary.Error" />
+    <SummaryCard Title="Lines" Value="@Fmt(_summary.Data?.Lines)" Error="@_summary.Error" />
+    <SummaryCard Title="Machines" Value="@Fmt(_summary.Data?.Machines)" Error="@_summary.Error" />
 </div>
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+    <SummaryCard Title="Enterprises" Value="@Fmt(_summary.Data?.Enterprises)" Error="@_summary.Error" />
+    <SummaryCard Title="Buildings" Value="@Fmt(_summary.Data?.Buildings)" Error="@_summary.Error" />
+    <SummaryCard Title="Stations" Value="@Fmt(_summary.Data?.Stations)" Error="@_summary.Error" />
+</div>
+
+<h2 class="h6 text-muted mb-2">Tenant directory</h2>
+<ApiStateDisplay Loading="_loadingTenants" Error="_errTenants">
+    <div class="table-responsive border rounded bg-white">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light">
+            <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th class="text-end">Sites</th>
+                <th class="text-end">Lines</th>
+                <th class="text-end">Machines</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in _tenants)
+            {
+                <tr>
+                    <td class="font-monospace small">@r.Code</td>
+                    <td>@r.Name</td>
+                    <td class="text-end">@r.SiteCount</td>
+                    <td class="text-end">@r.LineCount</td>
+                    <td class="text-end">@r.MachineCount</td>
+                    <td class="small">@EntityStatusLabel(r.Status)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+@code {
+    private ApiFetch<PlatformSummaryDto> _summary = ApiFetch<PlatformSummaryDto>.InProgress();
+    private bool _loadingTenants = true;
+    private string? _errTenants;
+    private IReadOnlyList<PlatformTenantRowDto> _tenants = [];
+    private string? _aggregateError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tSummary = Api.GetPlatformSummaryAsync();
+        var tTenants = Api.GetPlatformTenantsAsync();
+        await Task.WhenAll(tSummary, tTenants).ConfigureAwait(false);
+        _summary = await tSummary.ConfigureAwait(false);
+        var tenantsFetch = await tTenants.ConfigureAwait(false);
+        _loadingTenants = false;
+        _errTenants = tenantsFetch.Error;
+        _tenants = tenantsFetch.Data ?? [];
+
+        if (_summary.Error is not null && _errTenants is not null)
+            _aggregateError = "Could not reach the API. Check XMachine:Api:BaseUrl and that XMachine.Api is running.";
+    }
+
+    private static string? Fmt(int? v) => v?.ToString();
+
+    private static string EntityStatusLabel(int v) => v switch
+    {
+        1 => "Active",
+        2 => "Inactive",
+        3 => "Archived",
+        _ => v.ToString(),
+    };
+}

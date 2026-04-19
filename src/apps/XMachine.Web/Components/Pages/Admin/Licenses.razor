@@ -1,4 +1,7 @@
 @page "/admin/licenses"
+@attribute [Authorize(Policy = AuthPolicies.AdminArea)]
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
 
 <PageTitle>Licenses</PageTitle>
 <nav aria-label="breadcrumb" class="mb-3">
@@ -8,7 +11,178 @@
         <li class="breadcrumb-item active">Licenses</li>
     </ol>
 </nav>
-<h1 class="h3 mb-3">Licenses</h1>
-<div class="alert alert-secondary">
-    Placeholder: license administration will use commercial module APIs when exposed.
+<h1 class="h3 mb-1">Licenses</h1>
+<p class="text-body-secondary small mb-4">Commercial snapshot from API · read-only.</p>
+
+@if (_aggregateError is not null)
+{
+    <div class="alert alert-danger">@_aggregateError</div>
+}
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3 mb-4">
+    <SummaryCard Title="Licenses" Value="@Fmt(_summary.Data?.Licenses)" Error="@_summary.Error" />
+    <SummaryCard Title="Module catalog" Value="@Fmt(_summary.Data?.Modules)" Error="@_summary.Error" />
+    <SummaryCard Title="Module activations" Value="@Fmt(_summary.Data?.ModuleActivations)" Error="@_summary.Error" />
+    <SummaryCard Title="Licensed lines" Value="@Fmt(_summary.Data?.LicensedLines)" Error="@_summary.Error" />
 </div>
+
+<h2 class="h6 text-muted mb-2">Licenses</h2>
+<ApiStateDisplay Loading="_loadingLicenses" Error="_errLicenses">
+    <div class="table-responsive border rounded bg-white mb-4">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light">
+            <tr>
+                <th>Tenant id</th>
+                <th>Type</th>
+                <th>Valid from</th>
+                <th>Valid to</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in _licenses)
+            {
+                <tr>
+                    <td class="small font-monospace">@r.TenantId</td>
+                    <td>@LicenseTypeLabel(r.LicenseType)</td>
+                    <td class="small">@FmtDate(r.ValidFrom)</td>
+                    <td class="small">@FmtDate(r.ValidTo)</td>
+                    <td class="small">@EntityStatusLabel(r.Status)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+<h2 class="h6 text-muted mb-2">Module catalog</h2>
+<ApiStateDisplay Loading="_loadingModules" Error="_errModules">
+    <div class="table-responsive border rounded bg-white mb-4">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Status</th></tr></thead>
+            <tbody>
+            @foreach (var r in _modules)
+            {
+                <tr><td class="font-monospace small">@r.Code</td><td>@r.Name</td><td class="small">@EntityStatusLabel(r.Status)</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+<h2 class="h6 text-muted mb-2">Module activations</h2>
+<ApiStateDisplay Loading="_loadingActivations" Error="_errActivations">
+    <div class="table-responsive border rounded bg-white mb-4">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light">
+            <tr>
+                <th>Tenant id</th>
+                <th>Module</th>
+                <th>Activated</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in _activations)
+            {
+                <tr>
+                    <td class="small font-monospace">@r.TenantId</td>
+                    <td><span class="font-monospace small">@r.ModuleCode</span> · @r.ModuleName</td>
+                    <td class="small">@r.ActivatedAt.ToString("u")</td>
+                    <td class="small">@EntityStatusLabel(r.Status)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+<h2 class="h6 text-muted mb-2">Licensed lines</h2>
+<ApiStateDisplay Loading="_loadingLicensedLines" Error="_errLicensedLines">
+    <div class="table-responsive border rounded bg-white">
+        <table class="table table-sm table-striped mb-0">
+            <thead class="table-light">
+            <tr>
+                <th>Tenant id</th>
+                <th>Line</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in _licensedLines)
+            {
+                <tr>
+                    <td class="small font-monospace">@r.TenantId</td>
+                    <td><span class="font-monospace small">@r.LineCode</span> · @r.LineName</td>
+                    <td class="small">@EntityStatusLabel(r.Status)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</ApiStateDisplay>
+
+@code {
+    private ApiFetch<CommercialSummaryDto> _summary = ApiFetch<CommercialSummaryDto>.InProgress();
+    private bool _loadingLicenses = true;
+    private bool _loadingModules = true;
+    private bool _loadingActivations = true;
+    private bool _loadingLicensedLines = true;
+    private string? _errLicenses;
+    private string? _errModules;
+    private string? _errActivations;
+    private string? _errLicensedLines;
+    private IReadOnlyList<LicenseRowDto> _licenses = [];
+    private IReadOnlyList<CommercialModuleRowDto> _modules = [];
+    private IReadOnlyList<ModuleActivationRowDto> _activations = [];
+    private IReadOnlyList<LicensedLineRowDto> _licensedLines = [];
+    private string? _aggregateError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tSummary = Api.GetCommercialSummaryAsync();
+        var tLicenses = Api.GetCommercialLicensesAsync();
+        var tModules = Api.GetCommercialModulesAsync();
+        var tAct = Api.GetCommercialModuleActivationsAsync();
+        var tLines = Api.GetCommercialLicensedLinesAsync();
+        await Task.WhenAll(tSummary, tLicenses, tModules, tAct, tLines).ConfigureAwait(false);
+        _summary = await tSummary.ConfigureAwait(false);
+        var fLic = await tLicenses.ConfigureAwait(false);
+        var fMod = await tModules.ConfigureAwait(false);
+        var fAct = await tAct.ConfigureAwait(false);
+        var fLl = await tLines.ConfigureAwait(false);
+
+        _loadingLicenses = _loadingModules = _loadingActivations = _loadingLicensedLines = false;
+        _errLicenses = fLic.Error;
+        _errModules = fMod.Error;
+        _errActivations = fAct.Error;
+        _errLicensedLines = fLl.Error;
+        _licenses = fLic.Data ?? [];
+        _modules = fMod.Data ?? [];
+        _activations = fAct.Data ?? [];
+        _licensedLines = fLl.Data ?? [];
+
+        if (_summary.Error is not null && _errLicenses is not null && _errModules is not null && _errActivations is not null && _errLicensedLines is not null)
+            _aggregateError = "Could not reach the API. Check XMachine:Api:BaseUrl and that XMachine.Api is running.";
+    }
+
+    private static string? Fmt(int? v) => v?.ToString();
+
+    private static string? FmtDate(DateTimeOffset? v) => v?.ToString("yyyy-MM-dd");
+
+    private static string LicenseTypeLabel(int v) => v switch
+    {
+        1 => "Trial",
+        2 => "Subscription",
+        3 => "Offline",
+        _ => v.ToString(),
+    };
+
+    private static string EntityStatusLabel(int v) => v switch
+    {
+        1 => "Active",
+        2 => "Inactive",
+        3 => "Archived",
+        _ => v.ToString(),
+    };
+}

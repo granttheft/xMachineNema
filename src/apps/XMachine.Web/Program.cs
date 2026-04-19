@@ -1,3 +1,11 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using XMachine.Module.Auth.Security;
+using XMachine.Persistence.Operational;
+using XMachine.Web.Auth;
 using XMachine.Web.Components;
 using XMachine.Web.Services;
 
@@ -6,26 +14,80 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddHttpClient<XMachineApiClient>((sp, client) =>
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, HttpContextAuthenticationStateProvider>();
+
+var authKeysPath = Path.GetFullPath(Path.Combine(builder.Environment.ContentRootPath, "..", "..", "..", ".xmachine-auth-keys"));
+Directory.CreateDirectory(authKeysPath);
+builder.Services.AddDataProtection()
+    .SetApplicationName(XMachineAuthDefaults.DataProtectionApplicationName)
+    .PersistKeysToFileSystem(new DirectoryInfo(authKeysPath));
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = XMachineAuthDefaults.CookieName;
+        options.LoginPath = "/login";
+    });
+
+builder.Services.AddAuthorization(o => XMachineAuthorizationPolicies.AddPolicies(o));
+
+var operationalDbCs = builder.Configuration.GetConnectionString("XMachineOperationalDb");
+if (string.IsNullOrWhiteSpace(operationalDbCs))
 {
-    var baseUrl = sp.GetRequiredService<IConfiguration>()["ApiBaseUrl"] ?? "http://localhost:5090";
-    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    throw new InvalidOperationException(
+        "Missing connection string: ConnectionStrings:XMachineOperationalDb");
+}
+
+builder.Services.AddDbContext<XMachineDbContext>(options =>
+    options.UseNpgsql(operationalDbCs));
+
+builder.Services.Configure<DevAuthOptions>(builder.Configuration.GetSection(DevAuthOptions.SectionPath));
+builder.Services.AddScoped<IApplicationUserSignInService, DevelopmentUserSignInService>();
+
+builder.Services.AddTransient<ForwardingAuthCookieHandler>();
+
+var apiBaseUrl = ApiBaseUrlResolver.Resolve(builder.Configuration);
+builder.Services.AddSingleton<ApiConnectivityState>();
+builder.Services.AddHttpClient(nameof(ApiLiveProbeHostedService), client => client.Timeout = TimeSpan.FromSeconds(8));
+builder.Services.AddHostedService<ApiLiveProbeHostedService>();
+
+builder.Services.AddHttpClient<XMachineApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
     client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
-});
+}).AddHttpMessageHandler<ForwardingAuthCookieHandler>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+var resolvedApi = ApiBaseUrlResolver.Resolve(app.Configuration);
+app.Logger.LogInformation(
+    "XMachine.Web → API {ApiBaseUrl} (official live health: {LiveUrl}). Configure {ConfigKey} (empty uses default {Default}).",
+    resolvedApi,
+    resolvedApi + "/health/live",
+    ApiBaseUrlResolver.ConfigKey,
+    ApiBaseUrlResolver.DefaultLocalApi);
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
+
+app.MapGet("/auth/logout", async (HttpContext ctx) =>
+{
+    await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/");
+}).AllowAnonymous();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
