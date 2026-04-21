@@ -18,10 +18,10 @@ public static class CommercialEndpoints
                 {
                     x.Id,
                     x.TenantId,
-                    LicenseType = (int)x.LicenseType,
+                    x.LicenseType,
                     x.ValidFrom,
                     x.ValidTo,
-                    Status = (int)x.Status,
+                    x.Status,
                 })
                 .ToListAsync(ct);
             return Results.Ok(rows);
@@ -36,7 +36,7 @@ public static class CommercialEndpoints
                     x.Id,
                     x.Code,
                     x.Name,
-                    Status = (int)x.Status,
+                    x.Status,
                 })
                 .ToListAsync(ct);
             return Results.Ok(rows);
@@ -56,7 +56,7 @@ public static class CommercialEndpoints
                         ModuleCode = m.Code,
                         ModuleName = m.Name,
                         a.ActivatedAt,
-                        Status = (int)a.Status,
+                        a.Status,
                     })
                 .ToListAsync(ct);
             return Results.Ok(rows);
@@ -75,7 +75,7 @@ public static class CommercialEndpoints
                         ll.LineId,
                         LineCode = ln.Code,
                         LineName = ln.Name,
-                        Status = (int)ll.Status,
+                        ll.Status,
                     })
                 .ToListAsync(ct);
             return Results.Ok(rows);

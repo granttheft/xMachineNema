@@ -19,7 +19,7 @@ public static class WorkflowEndpoints
                     x.TenantId,
                     x.WorkflowType,
                     x.Name,
-                    Status = (int)x.Status,
+                    x.Status,
                     StepCount = db.WorkflowSteps.Count(s => s.WorkflowDefinitionId == x.Id),
                 })
                 .ToListAsync(ct);
@@ -37,10 +37,10 @@ public static class WorkflowEndpoints
                     x.WorkflowDefinitionId,
                     x.ReferenceType,
                     x.ReferenceId,
-                    WorkflowState = (int)x.WorkflowState,
+                    x.WorkflowState,
                     x.StartedAt,
                     x.EndedAt,
-                    Status = (int)x.Status,
+                    x.Status,
                 })
                 .ToListAsync(ct);
             return Results.Ok(rows);

@@ -2,200 +2,212 @@ using XMachine.Web.Components.Shared;
 
 namespace XMachine.Web.Services;
 
-/// <summary>Short English labels for numeric domain codes shown in the Blazor UI (no i18n layer).</summary>
+/// <summary>Short English labels for domain enum names from the API (no i18n layer).</summary>
 public static class UiLabels
 {
-    public static string EntityStatus(int value) => value switch
+    public static string EntityStatus(string? value) => value switch
     {
-        1 => "Active",
-        2 => "Inactive",
-        3 => "Archived",
+        "Active" => "Active",
+        "Inactive" => "Inactive",
+        "Archived" => "Archived",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone EntityStatusTone(int value) => value switch
+    public static StatusBadgeTone EntityStatusTone(string? value) => value switch
     {
-        1 => StatusBadgeTone.Success,
-        2 => StatusBadgeTone.Warning,
-        3 => StatusBadgeTone.Neutral,
+        "Active" => StatusBadgeTone.Success,
+        "Inactive" => StatusBadgeTone.Warning,
+        "Archived" => StatusBadgeTone.Neutral,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string ProductionOrderStatus(int value) => value switch
+    public static string ProductionOrderStatus(string? value) => value switch
     {
-        1 => "Draft",
-        2 => "Released",
-        3 => "In progress",
-        4 => "Completed",
-        5 => "Cancelled",
+        "Draft" => "Draft",
+        "Released" => "Released",
+        "InProgress" => "In progress",
+        "Completed" => "Completed",
+        "Cancelled" => "Cancelled",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone ProductionOrderStatusTone(int value) => value switch
+    public static StatusBadgeTone ProductionOrderStatusTone(string? value) => value switch
     {
-        4 => StatusBadgeTone.Success,
-        5 => StatusBadgeTone.Warning,
-        3 => StatusBadgeTone.Info,
-        2 => StatusBadgeTone.Info,
-        1 => StatusBadgeTone.Neutral,
+        "Completed" => StatusBadgeTone.Success,
+        "Cancelled" => StatusBadgeTone.Warning,
+        "InProgress" => StatusBadgeTone.Info,
+        "Released" => StatusBadgeTone.Info,
+        "Draft" => StatusBadgeTone.Neutral,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string LotBatchStatus(int value) => value switch
+    public static string LotBatchStatus(string? value) => value switch
     {
-        1 => "Planned",
-        2 => "Active",
-        3 => "Closed",
+        "Planned" => "Planned",
+        "Active" => "Active",
+        "Closed" => "Closed",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone LotBatchStatusTone(int value) => value switch
+    public static StatusBadgeTone LotBatchStatusTone(string? value) => value switch
     {
-        2 => StatusBadgeTone.Info,
-        3 => StatusBadgeTone.Success,
-        1 => StatusBadgeTone.Neutral,
+        "Active" => StatusBadgeTone.Info,
+        "Closed" => StatusBadgeTone.Success,
+        "Planned" => StatusBadgeTone.Neutral,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string WorkShiftLifecycle(int value) => value switch
+    public static string WorkShiftLifecycle(string? value) => value switch
     {
-        1 => "Planned",
-        2 => "Open",
-        3 => "Closed",
+        "Planned" => "Planned",
+        "Open" => "Open",
+        "Closed" => "Closed",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone WorkShiftLifecycleTone(int value) => value switch
+    public static StatusBadgeTone WorkShiftLifecycleTone(string? value) => value switch
     {
-        2 => StatusBadgeTone.Info,
-        3 => StatusBadgeTone.Success,
-        1 => StatusBadgeTone.Neutral,
+        "Open" => StatusBadgeTone.Info,
+        "Closed" => StatusBadgeTone.Success,
+        "Planned" => StatusBadgeTone.Neutral,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string AlarmSeverity(int value) => value switch
+    public static string AlarmSeverity(string? value) => value switch
     {
-        1 => "Info",
-        2 => "Warning",
-        3 => "Error",
-        4 => "Critical",
+        "Info" => "Info",
+        "Warning" => "Warning",
+        "Error" => "Error",
+        "Critical" => "Critical",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone AlarmSeverityTone(int value) => value switch
+    public static StatusBadgeTone AlarmSeverityTone(string? value) => value switch
     {
-        4 => StatusBadgeTone.Danger,
-        3 => StatusBadgeTone.Danger,
-        2 => StatusBadgeTone.Warning,
-        1 => StatusBadgeTone.Info,
+        "Critical" => StatusBadgeTone.Danger,
+        "Error" => StatusBadgeTone.Danger,
+        "Warning" => StatusBadgeTone.Warning,
+        "Info" => StatusBadgeTone.Info,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string AlarmLifecycle(int value) => value switch
+    public static string AlarmLifecycle(string? value) => value switch
     {
-        1 => "Active",
-        2 => "Acknowledged",
-        3 => "Cleared",
+        "Active" => "Active",
+        "Acknowledged" => "Acknowledged",
+        "Cleared" => "Cleared",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone AlarmLifecycleTone(int value) => value switch
+    public static StatusBadgeTone AlarmLifecycleTone(string? value) => value switch
     {
-        1 => StatusBadgeTone.Danger,
-        2 => StatusBadgeTone.Warning,
-        3 => StatusBadgeTone.Success,
+        "Active" => StatusBadgeTone.Danger,
+        "Acknowledged" => StatusBadgeTone.Warning,
+        "Cleared" => StatusBadgeTone.Success,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string OeePeriodType(int value) => value switch
+    public static string OeePeriodType(string? value) => value switch
     {
-        1 => "Hour",
-        2 => "Shift",
-        3 => "Day",
-        4 => "Week",
+        "Hour" => "Hour",
+        "Shift" => "Shift",
+        "Day" => "Day",
+        "Week" => "Week",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static string QualityCheckStatus(int value) => value switch
+    public static string QualityCheckStatus(string? value) => value switch
     {
-        1 => "Pending",
-        2 => "In progress",
-        3 => "Passed",
-        4 => "Failed",
-        5 => "Waived",
+        "Pending" => "Pending",
+        "InProgress" => "In progress",
+        "Passed" => "Passed",
+        "Failed" => "Failed",
+        "Waived" => "Waived",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone QualityCheckStatusTone(int value) => value switch
+    public static StatusBadgeTone QualityCheckStatusTone(string? value) => value switch
     {
-        3 => StatusBadgeTone.Success,
-        4 => StatusBadgeTone.Danger,
-        5 => StatusBadgeTone.Warning,
-        2 => StatusBadgeTone.Info,
+        "Passed" => StatusBadgeTone.Success,
+        "Failed" => StatusBadgeTone.Danger,
+        "Waived" => StatusBadgeTone.Warning,
+        "InProgress" => StatusBadgeTone.Info,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string NonconformanceSeverity(int value) => value switch
+    public static string NonconformanceSeverity(string? value) => value switch
     {
-        1 => "Minor",
-        2 => "Major",
-        3 => "Critical",
+        "Minor" => "Minor",
+        "Major" => "Major",
+        "Critical" => "Critical",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone NonconformanceSeverityTone(int value) => value switch
+    public static StatusBadgeTone NonconformanceSeverityTone(string? value) => value switch
     {
-        3 => StatusBadgeTone.Danger,
-        2 => StatusBadgeTone.Warning,
+        "Critical" => StatusBadgeTone.Danger,
+        "Major" => StatusBadgeTone.Warning,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string NonconformanceStatus(int value) => value switch
+    public static string NonconformanceStatus(string? value) => value switch
     {
-        1 => "Open",
-        2 => "Under review",
-        3 => "Closed",
+        "Open" => "Open",
+        "UnderReview" => "Under review",
+        "Closed" => "Closed",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone NonconformanceStatusTone(int value) => value switch
+    public static StatusBadgeTone NonconformanceStatusTone(string? value) => value switch
     {
-        1 => StatusBadgeTone.Warning,
-        2 => StatusBadgeTone.Info,
-        3 => StatusBadgeTone.Success,
+        "Open" => StatusBadgeTone.Warning,
+        "UnderReview" => StatusBadgeTone.Info,
+        "Closed" => StatusBadgeTone.Success,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string WorkflowInstanceState(int value) => value switch
+    public static string WorkflowInstanceState(string? value) => value switch
     {
-        1 => "Draft",
-        2 => "In progress",
-        3 => "Approved",
-        4 => "Rejected",
-        5 => "Cancelled",
+        "Draft" => "Draft",
+        "InProgress" => "In progress",
+        "Approved" => "Approved",
+        "Rejected" => "Rejected",
+        "Cancelled" => "Cancelled",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone WorkflowInstanceStateTone(int value) => value switch
+    public static StatusBadgeTone WorkflowInstanceStateTone(string? value) => value switch
     {
-        3 => StatusBadgeTone.Success,
-        4 => StatusBadgeTone.Danger,
-        5 => StatusBadgeTone.Warning,
-        2 => StatusBadgeTone.Info,
+        "Approved" => StatusBadgeTone.Success,
+        "Rejected" => StatusBadgeTone.Danger,
+        "Cancelled" => StatusBadgeTone.Warning,
+        "InProgress" => StatusBadgeTone.Info,
         _ => StatusBadgeTone.Neutral,
     };
 
-    public static string ConnectorDirection(int value) => value switch
+    public static string ConnectorDirection(string? value) => value switch
     {
-        1 => "Inbound",
-        2 => "Outbound",
-        3 => "Bidirectional",
+        "Inbound" => "Inbound",
+        "Outbound" => "Outbound",
+        "Bidirectional" => "Bidirectional",
+        null or "" => "—",
         _ => $"Unknown ({value})",
     };
 
-    public static StatusBadgeTone ConnectorDirectionTone(int value) => value switch
+    public static StatusBadgeTone ConnectorDirectionTone(string? value) => value switch
     {
-        3 => StatusBadgeTone.Info,
+        "Bidirectional" => StatusBadgeTone.Info,
         _ => StatusBadgeTone.Neutral,
     };
 

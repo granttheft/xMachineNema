@@ -19,7 +19,7 @@ public static class PlatformEndpoints
                     t.Id,
                     t.Code,
                     t.Name,
-                    Status = (int)t.Status,
+                    t.Status,
                     SiteCount = db.Sites.Count(s => s.TenantId == t.Id),
                     LineCount = db.Lines.Count(l => l.TenantId == t.Id),
                     MachineCount = db.Machines.Count(m => m.TenantId == t.Id),
@@ -39,7 +39,7 @@ public static class PlatformEndpoints
                     x.EnterpriseId,
                     x.Code,
                     x.Name,
-                    Status = (int)x.Status,
+                    x.Status,
                 })
                 .ToListAsync(ct);
             return Results.Ok(rows);
@@ -57,7 +57,7 @@ public static class PlatformEndpoints
                     x.BuildingId,
                     x.Code,
                     x.Name,
-                    Status = (int)x.Status,
+                    x.Status,
                 })
                 .ToListAsync(ct);
             return Results.Ok(rows);
@@ -74,7 +74,7 @@ public static class PlatformEndpoints
                     x.LineId,
                     x.Code,
                     x.Name,
-                    Status = (int)x.Status,
+                    x.Status,
                 })
                 .ToListAsync(ct);
             return Results.Ok(rows);

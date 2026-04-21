@@ -216,11 +216,12 @@
 
     private static string? FmtDate(DateTimeOffset? v) => v?.ToString("yyyy-MM-dd");
 
-    private static string LicenseTypeLabel(int v) => v switch
+    private static string LicenseTypeLabel(string? v) => v switch
     {
-        1 => "Trial",
-        2 => "Subscription",
-        3 => "Offline",
-        _ => v.ToString(),
+        "Trial" => "Trial",
+        "Subscription" => "Subscription",
+        "Offline" => "Offline",
+        null or "" => "—",
+        _ => v,
     };
 }
