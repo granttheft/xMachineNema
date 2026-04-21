@@ -1,15 +1,13 @@
 @page "/login"
 @layout MainLayout
 @attribute [AllowAnonymous]
-@rendermode InteractiveServer
 @using Microsoft.AspNetCore.WebUtilities
-@inject IApplicationUserSignInService SignIn
 @inject NavigationManager Nav
 
 <PageTitle>Sign in</PageTitle>
 
 <PageHeader Title="Sign in"
-            Subtitle="Use your assigned operator or administrator account. In development, sign-in uses the shared password from configuration.">
+            Subtitle="Use your assigned operator or administrator account.">
     <TopSlot>
         <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
             <ol class="breadcrumb small mb-0">
@@ -23,74 +21,43 @@
     <div class="col-12" style="max-width:28rem">
         <DataPanel Padded="true">
             <p class="small text-body-secondary mb-3">
-                Uses <code class="small">XMachine:DevAuth</code> when enabled. Seeded users live in the operational database.
+                Development sign-in uses the shared password from configuration.
             </p>
             @if (_error is not null)
             {
                 <div class="xm-api-error mb-3" role="alert">@_error</div>
             }
-            <div class="mb-3">
-                <label class="form-label small text-muted">Username</label>
-                <input class="form-control" @bind="_username" autocomplete="username" />
-            </div>
-            <div class="mb-3">
-                <label class="form-label small text-muted">Password</label>
-                <input class="form-control" type="password" @bind="_password" autocomplete="current-password" />
-            </div>
-            <button type="button" class="btn btn-primary" @onclick="OnLoginAsync" disabled="@_busy">Sign in</button>
+            <form method="post" action="/auth/login">
+                <input type="hidden" name="returnUrl" value="@_returnUrl" />
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Username</label>
+                    <input class="form-control" name="username"
+                           autocomplete="username" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Password</label>
+                    <input class="form-control" type="password" name="password"
+                           autocomplete="current-password" />
+                </div>
+                <button type="submit" class="btn btn-primary">Sign in</button>
+            </form>
         </DataPanel>
     </div>
 </div>
 
 @code {
-    private string _username = "";
-    private string _password = "";
     private string? _error;
-    private bool _busy;
+    private string? _returnUrl;
 
-    [SupplyParameterFromQuery(Name = "returnUrl")]
-    public string? ReturnUrl { get; set; }
-
-    private async Task OnLoginAsync()
+    protected override void OnInitialized()
     {
-        _error = null;
-        _busy = true;
-        try
-        {
-            var result = await SignIn.SignInAsync(_username, _password).ConfigureAwait(false);
-            if (!result.Succeeded)
-            {
-                _error = result.ErrorMessage ?? "Sign-in was not successful. Check your username and password.";
-                return;
-            }
-
-            var target = PickReturnUrl(ReadReturnUrl());
-            Nav.NavigateTo(target, forceLoad: true);
-        }
-        finally
-        {
-            _busy = false;
-        }
-    }
-
-    private static string PickReturnUrl(string? returnUrl)
-    {
-        if (string.IsNullOrWhiteSpace(returnUrl))
-            return "/dashboard";
-        if (!returnUrl.StartsWith('/'))
-            return "/dashboard";
-        if (returnUrl.StartsWith("//", StringComparison.Ordinal))
-            return "/dashboard";
-        return returnUrl;
-    }
-
-    private string? ReadReturnUrl()
-    {
-        if (!string.IsNullOrWhiteSpace(ReturnUrl))
-            return ReturnUrl;
         var uri = Nav.ToAbsoluteUri(Nav.Uri);
-        return QueryHelpers.ParseQuery(uri.Query).TryGetValue("returnUrl", out var v)
-            ? v.FirstOrDefault()
-            : null;
+        var query = QueryHelpers.ParseQuery(uri.Query);
+
+        if (query.TryGetValue("error", out var err) && err == "invalid")
+            _error = "Invalid username or password.";
+
+        if (query.TryGetValue("returnUrl", out var ret))
+            _returnUrl = ret.FirstOrDefault();
     }
 }

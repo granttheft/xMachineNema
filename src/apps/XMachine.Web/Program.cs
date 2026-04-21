@@ -47,7 +47,6 @@ builder.Services.AddDbContext<XMachineDbContext>(options =>
     options.UseNpgsql(operationalDbCs));
 
 builder.Services.Configure<DevAuthOptions>(builder.Configuration.GetSection(DevAuthOptions.SectionPath));
-builder.Services.AddScoped<IApplicationUserSignInService, DevelopmentUserSignInService>();
 
 builder.Services.AddTransient<ForwardingAuthCookieHandler>();
 
@@ -93,6 +92,7 @@ app.MapGet("/auth/logout", async (HttpContext ctx) =>
 }).AllowAnonymous();
 
 app.MapStaticAssets();
+app.MapLoginEndpoints();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
