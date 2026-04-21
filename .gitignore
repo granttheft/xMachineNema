@@ -419,3 +419,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+**/appsettings.Development.json
+.xmachine-auth-keys/
