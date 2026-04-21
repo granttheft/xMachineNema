@@ -1,37 +1,30 @@
-using Microsoft.AspNetCore.Http;
 using XMachine.Module.Auth.Security;
 
 namespace XMachine.Web.Auth;
 
 /// <summary>
-/// Forwards the xMachine auth cookie from the incoming browser request
-/// to outgoing API HttpClient requests.
+/// Forwards the captured auth cookie to outgoing API HttpClient requests.
+/// Uses <see cref="BlazorCookieStore"/> instead of HTTP context
+/// because <c>HttpContext</c> can be null during Blazor Server SignalR rendering.
 /// </summary>
 public sealed class ForwardingAuthCookieHandler : DelegatingHandler
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly BlazorCookieStore _cookieStore;
 
-    public ForwardingAuthCookieHandler(IHttpContextAccessor httpContextAccessor)
+    public ForwardingAuthCookieHandler(BlazorCookieStore cookieStore)
     {
-        _httpContextAccessor = httpContextAccessor;
+        _cookieStore = cookieStore;
     }
 
     protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext is not null)
+        if (!string.IsNullOrEmpty(_cookieStore.AuthCookieValue))
         {
-            // Forward the auth cookie
-            if (httpContext.Request.Cookies.TryGetValue(
-                XMachineAuthDefaults.CookieName, out var cookieValue)
-                && !string.IsNullOrEmpty(cookieValue))
-            {
-                request.Headers.TryAddWithoutValidation(
-                    "Cookie",
-                    $"{XMachineAuthDefaults.CookieName}={cookieValue}");
-            }
+            request.Headers.TryAddWithoutValidation(
+                "Cookie",
+                $"{XMachineAuthDefaults.CookieName}={_cookieStore.AuthCookieValue}");
         }
 
         return base.SendAsync(request, cancellationToken);
