@@ -33,6 +33,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization(o => XMachineAuthorizationPolicies.AddPolicies(o));
 
+builder.Services.AddScoped<XMachine.Module.Auth.Security.ICurrentUser,
+    XMachine.Module.Auth.Security.CurrentUser>();
+
 var operationalDbCs = builder.Configuration.GetConnectionString("XMachineOperationalDb");
 if (string.IsNullOrWhiteSpace(operationalDbCs))
 {
