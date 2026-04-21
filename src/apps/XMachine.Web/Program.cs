@@ -15,7 +15,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<BlazorCookieStore>();
+builder.Services.AddSingleton<UserCookieStore>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, HttpContextAuthenticationStateProvider>();
 
@@ -81,10 +81,11 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
-app.UseMiddleware<CookieCaptureMiddleware>();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authentication so HttpContext.User has NameIdentifier for cookie capture.
+app.UseMiddleware<CookieCaptureMiddleware>();
 
 app.UseAntiforgery();
 
