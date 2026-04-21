@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Connectors.Abstractions;
+using XMachine.Module.Auth.Security;
 using XMachine.Persistence.Operational;
 
 namespace XMachine.Api.Integration;
@@ -8,29 +9,41 @@ public static class IntegrationEndpoints
 {
     public static void MapIntegrationEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/integration");
+        var g = app.MapGroup("/api/integration").RequireAuthorization();
 
-        g.MapGet("connector-definitions", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("connector-definitions", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var rows = await db.ConnectorDefinitions.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderBy(x => x.Code)
                 .Select(x => new { x.Id, x.Code, x.Name, x.Category, x.Direction, x.Status })
                 .ToListAsync(ct);
             return Results.Ok(rows);
         });
 
-        g.MapGet("connector-instances", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("connector-instances", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var rows = await db.ConnectorInstances.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderBy(x => x.Code)
                 .Select(x => new { x.Id, x.Code, x.Name, x.ConnectorDefinitionId, x.SiteId, x.Status })
                 .ToListAsync(ct);
             return Results.Ok(rows);
         });
 
-        g.MapGet("mapping-profiles", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("mapping-profiles", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var rows = await db.MappingProfiles.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderBy(x => x.Name)
                 .ThenByDescending(x => x.Version)
                 .Select(x => new { x.Id, x.Name, x.Version, x.ConnectorInstanceId, x.Status })
@@ -42,11 +55,15 @@ public static class IntegrationEndpoints
             XMachineDbContext db,
             IConnectorRegistry registry,
             IConnectorHealthProvider health,
+            ICurrentUser currentUser,
             CancellationToken ct) =>
         {
-            var definitions = await db.ConnectorDefinitions.AsNoTracking().CountAsync(ct);
-            var instances = await db.ConnectorInstances.AsNoTracking().CountAsync(ct);
-            var profiles = await db.MappingProfiles.AsNoTracking().CountAsync(ct);
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
+            var definitions = await db.ConnectorDefinitions.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
+            var instances = await db.ConnectorInstances.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
+            var profiles = await db.MappingProfiles.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
 
             var runtime = await health.GetSnapshotAsync(ct).ConfigureAwait(false);
 

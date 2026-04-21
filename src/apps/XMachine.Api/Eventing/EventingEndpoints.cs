@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using XMachine.Module.Auth.Security;
 using XMachine.Persistence.Operational;
 
 namespace XMachine.Api.Eventing;
@@ -7,11 +8,15 @@ public static class EventingEndpoints
 {
     public static void MapEventingEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/eventing");
+        var g = app.MapGroup("/api/eventing").RequireAuthorization();
 
-        g.MapGet("alarms", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("alarms", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var rows = await db.AlarmEvents.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderByDescending(x => x.StartTime)
                 .Select(x => new
                 {
@@ -35,9 +40,13 @@ public static class EventingEndpoints
             return Results.Ok(rows);
         });
 
-        g.MapGet("downtimes", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("downtimes", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var rows = await db.DowntimeRecords.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderByDescending(x => x.StartTime)
                 .Select(x => new
                 {
@@ -58,9 +67,13 @@ public static class EventingEndpoints
             return Results.Ok(rows);
         });
 
-        g.MapGet("oee", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("oee", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var rows = await db.OeeSnapshots.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderByDescending(x => x.PeriodStart)
                 .Select(x => new
                 {
@@ -81,13 +94,18 @@ public static class EventingEndpoints
             return Results.Ok(rows);
         });
 
-        g.MapGet("kpis", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("kpis", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
             var defs = await db.KpiDefinitions.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderBy(x => x.Code)
                 .Select(x => new { x.Id, x.Code, x.Name, x.ScopeType, x.DataSourceType, x.Status })
                 .ToListAsync(ct);
             var results = await db.KpiResults.AsNoTracking()
+                .Where(x => x.TenantId == tenantId)
                 .OrderByDescending(x => x.PeriodStart)
                 .Select(x => new
                 {
@@ -104,13 +122,16 @@ public static class EventingEndpoints
             return Results.Ok(new { definitions = defs, results });
         });
 
-        g.MapGet("summary", async (XMachineDbContext db, CancellationToken ct) =>
+        g.MapGet("summary", async (XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
         {
-            var alarms = await db.AlarmEvents.AsNoTracking().CountAsync(ct);
-            var downtimes = await db.DowntimeRecords.AsNoTracking().CountAsync(ct);
-            var oee = await db.OeeSnapshots.AsNoTracking().CountAsync(ct);
-            var kpiDefs = await db.KpiDefinitions.AsNoTracking().CountAsync(ct);
-            var kpiResults = await db.KpiResults.AsNoTracking().CountAsync(ct);
+            if (currentUser.TenantId is null) return Results.Unauthorized();
+            var tenantId = currentUser.TenantId.Value;
+
+            var alarms = await db.AlarmEvents.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
+            var downtimes = await db.DowntimeRecords.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
+            var oee = await db.OeeSnapshots.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
+            var kpiDefs = await db.KpiDefinitions.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
+            var kpiResults = await db.KpiResults.AsNoTracking().Where(x => x.TenantId == tenantId).CountAsync(ct);
             return Results.Ok(new { alarms, downtimes, oee, kpiDefs, kpiResults });
         });
     }
