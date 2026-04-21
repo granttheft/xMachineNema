@@ -11,7 +11,7 @@ public static class UiLabels
         "Inactive" => "Inactive",
         "Archived" => "Archived",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone EntityStatusTone(string? value) => value switch
@@ -30,7 +30,7 @@ public static class UiLabels
         "Completed" => "Completed",
         "Cancelled" => "Cancelled",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone ProductionOrderStatusTone(string? value) => value switch
@@ -49,7 +49,7 @@ public static class UiLabels
         "Active" => "Active",
         "Closed" => "Closed",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone LotBatchStatusTone(string? value) => value switch
@@ -66,7 +66,7 @@ public static class UiLabels
         "Open" => "Open",
         "Closed" => "Closed",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone WorkShiftLifecycleTone(string? value) => value switch
@@ -84,7 +84,7 @@ public static class UiLabels
         "Error" => "Error",
         "Critical" => "Critical",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone AlarmSeverityTone(string? value) => value switch
@@ -102,7 +102,7 @@ public static class UiLabels
         "Acknowledged" => "Acknowledged",
         "Cleared" => "Cleared",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone AlarmLifecycleTone(string? value) => value switch
@@ -120,7 +120,7 @@ public static class UiLabels
         "Day" => "Day",
         "Week" => "Week",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static string QualityCheckStatus(string? value) => value switch
@@ -131,7 +131,7 @@ public static class UiLabels
         "Failed" => "Failed",
         "Waived" => "Waived",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone QualityCheckStatusTone(string? value) => value switch
@@ -149,7 +149,7 @@ public static class UiLabels
         "Major" => "Major",
         "Critical" => "Critical",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone NonconformanceSeverityTone(string? value) => value switch
@@ -165,7 +165,7 @@ public static class UiLabels
         "UnderReview" => "Under review",
         "Closed" => "Closed",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone NonconformanceStatusTone(string? value) => value switch
@@ -184,7 +184,7 @@ public static class UiLabels
         "Rejected" => "Rejected",
         "Cancelled" => "Cancelled",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone WorkflowInstanceStateTone(string? value) => value switch
@@ -202,7 +202,7 @@ public static class UiLabels
         "Outbound" => "Outbound",
         "Bidirectional" => "Bidirectional",
         null or "" => "—",
-        _ => $"Unknown ({value})",
+        _ => string.IsNullOrWhiteSpace(value) ? "—" : value!,
     };
 
     public static StatusBadgeTone ConnectorDirectionTone(string? value) => value switch
