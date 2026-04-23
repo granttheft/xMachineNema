@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\modules\XMachine.Module.MES\XMachine.Module.MES.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Quality\XMachine.Module.Quality.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Eventing\XMachine.Module.Eventing.csproj" />
+    <ProjectReference Include="..\..\modules\XMachine.Module.Engineering\XMachine.Module.Engineering.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Workflow\XMachine.Module.Workflow.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Docs\XMachine.Module.Docs.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Plugin\XMachine.Module.Plugin.csproj" />

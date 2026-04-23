@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
 using XMachine.Module.Auth.Security;
 using XMachine.Module.Commercial.Domain;
+using XMachine.Module.Engineering.Domain;
 using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
@@ -1406,6 +1407,135 @@ internal sealed class DevSeedHostedService : IHostedService
             wfActOrderApprove,
             wfActRecipeComment,
             wfActQualityApprove);
+
+        machines[0].OperationalStatus = MachineOperationalStatus.Down;
+        machines[1].OperationalStatus = MachineOperationalStatus.Running;
+        machines[2].OperationalStatus = MachineOperationalStatus.PmDue;
+        machines[3].OperationalStatus = MachineOperationalStatus.Running;
+
+        var pmM101 = new PreventiveMaintenanceSchedule
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[0].Id,
+            Name = "Monthly preventive maintenance",
+            IntervalDays = 30,
+            LastDoneAt = DateTimeOffset.UtcNow.AddDays(-45),
+            NextDueAt = DateTimeOffset.UtcNow.AddDays(-15),
+            OwnerRole = "maintenance",
+            Status = EntityStatus.Active,
+        };
+
+        var pmM102 = new PreventiveMaintenanceSchedule
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[1].Id,
+            Name = "Weekly lubrication check",
+            IntervalDays = 7,
+            LastDoneAt = DateTimeOffset.UtcNow.AddDays(-3),
+            NextDueAt = DateTimeOffset.UtcNow.AddDays(4),
+            OwnerRole = "maintenance",
+            Status = EntityStatus.Active,
+        };
+
+        var pmM201 = new PreventiveMaintenanceSchedule
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            Name = "Quarterly mold inspection",
+            IntervalDays = 90,
+            LastDoneAt = DateTimeOffset.UtcNow.AddDays(-92),
+            NextDueAt = DateTimeOffset.UtcNow.AddDays(-2),
+            OwnerRole = "mold",
+            Status = EntityStatus.Active,
+        };
+
+        var wo1 = new MaintenanceWorkOrder
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[0].Id,
+            LineId = line1.Id,
+            WorkOrderNo = "WO-20240115-001",
+            WorkOrderType = MaintenanceWorkOrderType.Corrective,
+            Priority = MaintenancePriority.P1Critical,
+            WorkOrderStatus = MaintenanceWorkOrderStatus.InProgress,
+            Description = "Hydraulic oil leak on machine M-101. Oil found pooling under unit.",
+            ReasonCode = "HYD-LEAK",
+            AssignedRole = "maintenance",
+            AssignedTo = userSupervisor.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-3),
+            ReportedBy = userOperator.Id,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Status = EntityStatus.Active,
+        };
+
+        var wo2 = new MaintenanceWorkOrder
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            LineId = line2.Id,
+            WorkOrderNo = "WO-20240115-002",
+            WorkOrderType = MaintenanceWorkOrderType.Preventive,
+            Priority = MaintenancePriority.P2High,
+            WorkOrderStatus = MaintenanceWorkOrderStatus.Open,
+            Description = "Quarterly mold inspection overdue. Schedule and perform full inspection.",
+            ReasonCode = "PM-MOLD-INSPECT",
+            AssignedRole = "mold",
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-1),
+            ReportedBy = userSupervisor.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var wo3 = new MaintenanceWorkOrder
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[1].Id,
+            LineId = line1.Id,
+            WorkOrderNo = "WO-20240114-001",
+            WorkOrderType = MaintenanceWorkOrderType.Corrective,
+            Priority = MaintenancePriority.P3Medium,
+            WorkOrderStatus = MaintenanceWorkOrderStatus.Done,
+            Description = "Conveyor belt tension adjustment. Belt was slipping under load.",
+            ReasonCode = "MECH-BELT",
+            AssignedRole = "maintenance",
+            AssignedTo = userSupervisor.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddDays(-1),
+            ReportedBy = userOperator.Id,
+            StartedAt = DateTimeOffset.UtcNow.AddDays(-1).AddHours(1),
+            CompletedAt = DateTimeOffset.UtcNow.AddDays(-1).AddHours(3),
+            ClosingNotes = "Belt tension adjusted and tested. Running normally.",
+            Status = EntityStatus.Active,
+        };
+
+        var fault1 = new MachineFault
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[0].Id,
+            MaintenanceWorkOrderId = wo1.Id,
+            FaultCode = "HYD-001",
+            Description = "Hydraulic pressure dropped below 180 bar. Oil leak detected at seal.",
+            ReportedBy = userOperator.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-3).AddMinutes(-15),
+            Resolved = false,
+            Status = EntityStatus.Active,
+        };
+
+        var fault2 = new MachineFault
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[1].Id,
+            MaintenanceWorkOrderId = wo3.Id,
+            FaultCode = "MECH-003",
+            Description = "Conveyor belt slipping detected on encoder feedback.",
+            ReportedBy = userOperator.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddDays(-1).AddMinutes(-30),
+            Resolved = true,
+            ResolvedAt = DateTimeOffset.UtcNow.AddDays(-1).AddHours(3),
+            Status = EntityStatus.Active,
+        };
+
+        db.AddRange(pmM101, pmM102, pmM201);
+        db.AddRange(wo1, wo2, wo3);
+        db.AddRange(fault1, fault2);
 
         await db.SaveChangesAsync(cancellationToken);
 
