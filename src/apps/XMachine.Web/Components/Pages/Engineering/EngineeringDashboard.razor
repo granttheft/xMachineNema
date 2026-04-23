@@ -2,9 +2,36 @@
 @rendermode InteractiveServer
 @using System.Globalization
 @using Microsoft.AspNetCore.Components
+@inject XMachineApiClient Api
 
 <PageTitle>Engineering Dashboard · xMachine</PageTitle>
 
+@if (_loading)
+{
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            @for (var i = 0; i < 4; i++)
+            {
+                <div class="rounded-lg border-2 border-slate-200 bg-white shadow-sm p-6 animate-pulse">
+                    <div class="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
+                    <div class="h-3 bg-slate-200 rounded w-1/2 mb-6"></div>
+                    <div class="h-3 bg-slate-200 rounded w-full mb-2"></div>
+                    <div class="h-3 bg-slate-200 rounded w-5/6"></div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="p-6">
+        <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            Error loading engineering data: @_error
+        </div>
+    </div>
+}
+else
+{
 <div class="min-h-screen bg-slate-50">
     <!-- Header -->
     <div class="bg-white border-b border-slate-200 px-6 py-4">
@@ -239,7 +266,7 @@
                     <div class="space-y-2">
                         <label class="text-sm font-medium leading-none text-slate-900">Machine ID</label>
                         <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-                            @foreach (var m in MockMachines)
+                            @foreach (var m in _machines)
                             {
                                 <option value="@m.Id">@m.Id - @m.Type</option>
                             }
@@ -291,6 +318,7 @@
         </div>
     </div>
 }
+}
 
 @code {
     private string _filterStatus = "all";
@@ -299,39 +327,15 @@
     private bool _showBreakdownModal;
     private string? _toastInfo;
 
-    private static readonly IReadOnlyList<EngMachine> MockMachines =
-    [
-        new("IM-001", "IM-001", "Injection Machine 1", "down",
-            new EngCurrentJob("JOB-2024-001", "PLN-2024-001", "Bottle Cap Red"),
-            new EngDowntime("Hydraulic Oil Leak", "09:30", "2h 15m"),
-            new EngEngineer("ENG-001", "Ko Thant", "maintenance", "in-progress", new EngContact("+95-9-123456789", "ko.thant@factory.com")),
-            "2024-01-15", "2024-02-15"),
-        new("IM-002", "IM-002", "Injection Machine 2", "running",
-            new EngCurrentJob("JOB-2024-002", "PLN-2024-002", "Container Blue"),
-            null, null, "2024-01-20", "2024-02-20"),
-        new("IM-003", "IM-003", "Injection Machine 3", "down",
-            null,
-            new EngDowntime("Mold Jam", "13:15", "45m"),
-            null, "2024-01-12", "2024-02-12"),
-        new("IM-004", "IM-004", "Injection Machine 4", "pm-due",
-            null,
-            new EngDowntime("PM Scheduled for Tomorrow", "", ""),
-            null, "2023-12-15", "2024-01-15"),
-        new("IM-005", "IM-005", "Injection Machine 5", "waiting-parts",
-            null,
-            new EngDowntime("Waiting for Spare Parts", "10:00", "4h 30m"),
-            new EngEngineer("ENG-002", "Ma Aye", "mold", "assigned", new EngContact("+95-9-987654321", "ma.aye@factory.com")),
-            "2024-01-10", "2024-02-10"),
-    ];
-
-    private static readonly IReadOnlyList<EngTask> MockTasks =
-    [
-        new("TSK-001", "IM-001", "in-progress"),
-        new("TSK-002", "IM-005", "waiting-parts"),
-    ];
+    private List<ApiMachine> _apiMachines = [];
+    private List<ApiWorkOrder> _apiWorkOrders = [];
+    private List<ApiPmSchedule> _apiPmSchedules = [];
+    private List<EngMachine> _machines = [];
+    private bool _loading = true;
+    private string? _error;
 
     /// <summary>
-    /// Machine row for the engineering dashboard mock fleet.
+    /// Machine row for the engineering dashboard grid.
     /// </summary>
     private sealed record EngMachine(
         string Id,
@@ -348,7 +352,6 @@
     private sealed record EngDowntime(string Reason, string StartTime, string Duration);
     private sealed record EngContact(string Phone, string Email);
     private sealed record EngEngineer(string Id, string Name, string Role, string Status, EngContact ContactInfo);
-    private sealed record EngTask(string Id, string MachineId, string Status);
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -356,9 +359,140 @@
         if (!firstRender)
             return;
 
-        await Task.CompletedTask;
-        StateHasChanged();
+        try
+        {
+            var mTask = Api.GetEngineeringMachineStatusAsync();
+            var wTask = Api.GetEngineeringWorkOrdersAsync();
+            var pTask = Api.GetEngineeringPmSchedulesAsync();
+            await Task.WhenAll(mTask, wTask, pTask);
+
+            var mRes = await mTask;
+            var wRes = await wTask;
+            var pRes = await pTask;
+
+            var errors = new List<string>();
+            if (mRes.Error is not null) errors.Add(mRes.Error);
+            if (wRes.Error is not null) errors.Add(wRes.Error);
+            if (pRes.Error is not null) errors.Add(pRes.Error);
+
+            if (errors.Count > 0)
+            {
+                _error = string.Join(" ", errors);
+                _apiMachines = [];
+                _apiWorkOrders = [];
+                _apiPmSchedules = [];
+                _machines = [];
+            }
+            else
+            {
+                _error = null;
+                _apiMachines = mRes.Data ?? [];
+                _apiWorkOrders = wRes.Data ?? [];
+                _apiPmSchedules = pRes.Data ?? [];
+                RebuildMachineViewModels();
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            _apiMachines = [];
+            _apiWorkOrders = [];
+            _apiPmSchedules = [];
+            _machines = [];
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
+
+    private void RebuildMachineViewModels()
+    {
+        var list = new List<EngMachine>();
+        foreach (var machine in _apiMachines)
+        {
+            var status = MapOperationalStatusToKebab(machine.OperationalStatus);
+
+            var wo = _apiWorkOrders
+                .Where(w => w.MachineId == machine.Id && !IsWorkOrderClosed(w.WorkOrderStatus))
+                .OrderByDescending(w => w.ReportedAt)
+                .FirstOrDefault();
+
+            EngDowntime? downtime = null;
+            if (wo is not null)
+            {
+                var reason = wo.Description.Length > 60 ? wo.Description[..60] + "…" : wo.Description;
+                var startTime = wo.StartedAt?.ToString("HH:mm") ?? wo.ReportedAt.ToString("HH:mm");
+                downtime = new EngDowntime(reason, startTime, FormatDuration(wo.StartedAt ?? wo.ReportedAt));
+            }
+
+            EngEngineer? engineer = null;
+            if (wo?.AssignedRole is not null)
+            {
+                engineer = new EngEngineer(
+                    wo.AssignedTo?.ToString() ?? "unassigned",
+                    MapRoleToDisplayName(wo.AssignedRole),
+                    wo.AssignedRole,
+                    IsWorkOrderInProgress(wo.WorkOrderStatus) ? "in-progress" : "assigned",
+                    new EngContact("", ""));
+            }
+
+            var pm = _apiPmSchedules
+                .Where(p => p.MachineId == machine.Id)
+                .OrderBy(p => p.NextDueAt ?? DateTimeOffset.MaxValue)
+                .FirstOrDefault();
+
+            var lastPm = pm?.LastDoneAt?.ToString("yyyy-MM-dd") ?? "-";
+            var nextPm = pm?.NextDueAt?.ToString("yyyy-MM-dd") ?? "-";
+
+            list.Add(new EngMachine(
+                machine.Id.ToString(),
+                machine.Code,
+                string.IsNullOrWhiteSpace(machine.MachineType) ? machine.Name : machine.MachineType!,
+                status,
+                CurrentJob: null,
+                downtime,
+                engineer,
+                lastPm,
+                nextPm));
+        }
+
+        _machines = list;
+    }
+
+    private static string MapOperationalStatusToKebab(string operationalStatus)
+    {
+        if (string.IsNullOrWhiteSpace(operationalStatus))
+            return "idle";
+        return operationalStatus.Trim() switch
+        {
+            "Running" or "running" => "running",
+            "Idle" or "idle" => "idle",
+            "Down" or "down" => "down",
+            "PmDue" or "pmDue" => "pm-due",
+            "WaitingParts" or "waitingParts" => "waiting-parts",
+            _ => "idle",
+        };
+    }
+
+    private static string FormatDuration(DateTimeOffset since)
+    {
+        var elapsed = DateTimeOffset.UtcNow - since;
+        if (elapsed.TotalHours >= 1)
+            return $"{(int)elapsed.TotalHours}h {elapsed.Minutes}m";
+        return $"{elapsed.Minutes}m";
+    }
+
+    private static string MapRoleToDisplayName(string role) => role switch
+    {
+        "plastic" => "Ko Thant",
+        "mold" => "Ma Aye",
+        "maintenance" => "Maintenance Eng.",
+        "mold-change" => "Mold Changer",
+        "technician-head" => "Tech. Head",
+        _ => role,
+    };
 
     private void SetFilterStatus(string status)
     {
@@ -369,7 +503,7 @@
     private IEnumerable<EngMachine> GetFilteredMachines()
     {
         var q = _searchTerm.Trim();
-        foreach (var machine in MockMachines)
+        foreach (var machine in _machines)
         {
             if (_filterStatus != "all" && !string.Equals(machine.Status, _filterStatus, StringComparison.OrdinalIgnoreCase))
                 continue;
@@ -380,7 +514,9 @@
                 var idMatch = machine.Id.Contains(q, StringComparison.OrdinalIgnoreCase);
                 var jobMatch = machine.CurrentJob?.JobId.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
                 var planMatch = machine.CurrentJob?.PlanId.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
-                if (!idMatch && !jobMatch && !planMatch)
+                var codeMatch = machine.Name.Contains(q, StringComparison.OrdinalIgnoreCase);
+                var typeMatch = machine.Type.Contains(q, StringComparison.OrdinalIgnoreCase);
+                if (!idMatch && !jobMatch && !planMatch && !codeMatch && !typeMatch)
                     continue;
             }
 
@@ -388,8 +524,24 @@
         }
     }
 
-    private static int OpenTaskCount(string machineId) =>
-        MockTasks.Count(t => t.MachineId == machineId && t.Status != "done");
+    private int OpenTaskCount(string machineId)
+    {
+        if (!Guid.TryParse(machineId, out var id))
+            return 0;
+        return _apiWorkOrders.Count(w =>
+            w.MachineId == id &&
+            (IsWorkOrderOpen(w.WorkOrderStatus) || IsWorkOrderInProgress(w.WorkOrderStatus)));
+    }
+
+    private static bool IsWorkOrderClosed(string status) =>
+        status.Equals("Done", StringComparison.OrdinalIgnoreCase)
+        || status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsWorkOrderOpen(string status) =>
+        status.Equals("Open", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsWorkOrderInProgress(string status) =>
+        status.Equals("InProgress", StringComparison.OrdinalIgnoreCase);
 
     private static string GetStatusColor(string status) => status switch
     {

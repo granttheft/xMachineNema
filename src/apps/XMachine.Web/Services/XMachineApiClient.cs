@@ -153,4 +153,16 @@ public sealed class XMachineApiClient(HttpClient http)
 
     public Task<ApiFetch<List<WorkflowInstanceRowDto>>> GetWorkflowInstancesAsync(CancellationToken cancellationToken = default) =>
         GetAsync<List<WorkflowInstanceRowDto>>("api/workflow/instances", cancellationToken);
+
+    public Task<ApiFetch<List<ApiMachine>>> GetEngineeringMachineStatusAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiMachine>>("api/engineering/machine-status", cancellationToken);
+
+    public Task<ApiFetch<List<ApiWorkOrder>>> GetEngineeringWorkOrdersAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiWorkOrder>>("api/engineering/work-orders", cancellationToken);
+
+    public Task<ApiFetch<List<ApiPmSchedule>>> GetEngineeringPmSchedulesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiPmSchedule>>("api/engineering/pm-schedules", cancellationToken);
+
+    public Task<ApiFetch<ApiSummary>> GetEngineeringSummaryAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<ApiSummary>("api/engineering/summary", cancellationToken);
 }
