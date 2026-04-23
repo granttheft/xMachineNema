@@ -1,0 +1,552 @@
+@page "/engineering"
+@rendermode InteractiveServer
+
+<PageTitle>Engineering · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <h1 class="text-2xl font-semibold text-slate-900">Engineering</h1>
+        <p class="text-sm text-slate-500 mt-1">Breakdown Management · Preventive Maintenance · Spare Parts</p>
+    </div>
+
+    <div class="bg-white border-b border-slate-200 px-6">
+        <div class="flex flex-wrap gap-x-8">
+            <button type="button"
+                    @onclick='() => SetTab("breakdowns")'
+                    class="@TabClass(_activeTab == "breakdowns") py-3 px-1 text-sm mr-8">
+                Breakdowns
+            </button>
+            <button type="button"
+                    @onclick='() => SetTab("pm")'
+                    class="@TabClass(_activeTab == "pm") py-3 px-1 text-sm mr-8">
+                Preventive Maintenance
+            </button>
+            <button type="button"
+                    @onclick='() => SetTab("spares")'
+                    class="@TabClass(_activeTab == "spares") py-3 px-1 text-sm mr-8">
+                Spare Parts
+            </button>
+            <button type="button"
+                    @onclick='() => SetTab("process")'
+                    class="@TabClass(_activeTab == "process") py-3 px-1 text-sm mr-8">
+                Process Setup
+            </button>
+            <button type="button"
+                    @onclick='() => SetTab("reports")'
+                    class="@TabClass(_activeTab == "reports") py-3 px-1 text-sm mr-8">
+                Reports
+            </button>
+        </div>
+    </div>
+
+    <div class="p-6">
+        @if (_activeTab == "breakdowns")
+        {
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Open Work Orders</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.Open</p>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">In Progress</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.InProgress</p>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Waiting Parts</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.WaitingParts</p>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Completed Today</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.CompletedToday</p>
+                    </div>
+                </div>
+                <button type="button"
+                        @onclick="() => _showBreakdownModal = true"
+                        class="shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800 whitespace-nowrap">
+                    Report New Breakdown
+                </button>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">WO Number</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Assigned Role</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Reported At</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var row in _breakdownRows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@row.WoNumber</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.Machine</td>
+                                <td class="px-4 py-3 text-sm text-slate-700">@row.WoType</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetPriorityClass(row.Priority)">@row.Priority</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetWoStatusClass(row.Status)">@row.Status</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-slate-700">@row.AssignedRole</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@row.ReportedAt</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-3 hover:bg-slate-50">View Details</button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else if (_activeTab == "pm")
+        {
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total PM Schedules</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.Total</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Overdue</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.Overdue</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Due This Week</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.DueThisWeek</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Compliance %</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.CompliancePct%</p>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Schedule Name</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Interval</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Last Done</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Next Due</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Owner Role</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var row in _pmRows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="px-4 py-3 text-sm text-slate-900 font-medium">@row.ScheduleName</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.Machine</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.Interval</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">@row.LastDone</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">@row.NextDue</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetPmStatusClass(row.Status)">@row.Status</span>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.OwnerRole</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-3 hover:bg-green-700">Mark Done</button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else if (_activeTab == "spares")
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Parts</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_spareSummary.TotalParts</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Low Stock Items</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_spareSummary.LowStock</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Orders Pending</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_spareSummary.OrdersPending</p>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Part Code</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Description</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Category</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Stock Qty</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Min Level</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var row in _spareRows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@row.PartCode</td>
+                                <td class="px-4 py-3 text-sm text-slate-700">@row.Description</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.Category</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.StockQty</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@row.MinLevel</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStockStatusClass(row.Status)">@row.StatusLabel</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-3 hover:bg-slate-50">Request</button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else if (_activeTab == "process")
+        {
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-4">Mold Settings</h3>
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Clamp Position 1</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="120.5" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Clamp Position 2</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="118.2" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Core Forward</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="45.0" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Core Back</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="0.0" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Mold Temperature</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="65" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Cycle Time</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="42" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">sec</span></div></div>
+                    </div>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-4">Injection Settings</h3>
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Injection Pressure</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="142" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">MPa</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Injection Speed</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="78" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">%</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Holding Pressure</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="95" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">MPa</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Holding Time</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="8.5" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">sec</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Injection Timer</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="12" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">sec</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Back Pressure</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="12" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">MPa</span></div></div>
+                    </div>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-4">Screw Settings</h3>
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Screw Speed</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="95" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">RPM</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Cushion</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="8.2" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Back Position</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="142" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Screw Timer</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="9.1" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">sec</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Decompression</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="3.0" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Dosing Position</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="88" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">mm</span></div></div>
+                    </div>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                    <h3 class="text-sm font-semibold text-slate-900 mb-4">Temperature Settings</h3>
+                    <div class="space-y-4">
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Barrel Zone 1</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="210" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Barrel Zone 2</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="215" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Barrel Zone 3</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="218" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Barrel Zone 4</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="220" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Nozzle Temperature</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="225" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3"><label class="text-sm font-medium text-slate-700 shrink-0 sm:w-44">Mold Temperature</label><div class="flex flex-1 items-center gap-2 min-w-0"><input type="number" readonly value="65" class="h-10 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700" /><span class="text-xs text-slate-500 shrink-0">°C</span></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-4">Workflow status</p>
+                <div class="flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold">1</span>
+                        <span class="font-medium text-slate-900">Fill</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-300"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold">2</span>
+                        <span>Submit</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-300"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold">3</span>
+                        <span>Verify</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-300"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 text-xs font-semibold">4</span>
+                        <span>Approve</span>
+                    </div>
+                </div>
+                <div class="mt-6 flex flex-wrap gap-3">
+                    <button type="button" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50">Save Draft</button>
+                    <button type="button" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-10 px-4 hover:bg-slate-800">Submit for Verification</button>
+                </div>
+            </div>
+        }
+        else if (_activeTab == "reports")
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">MTTR</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">2.5h</p>
+                    <p class="text-xs text-green-600 mt-1">-15% vs last month</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">MTBF</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">168h</p>
+                    <p class="text-xs text-green-600 mt-1">+8%</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">PM Compliance</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">92%</p>
+                    <p class="text-xs text-green-600 mt-1">+5%</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Machine Uptime</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">95.2%</p>
+                    <p class="text-xs text-green-600 mt-1">+2.3%</p>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                <div class="flex flex-col gap-3">
+                    <button type="button" class="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 w-full sm:w-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download Engineering Form History
+                    </button>
+                    <button type="button" class="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 w-full sm:w-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download Breakdown Log (MTTR/MTBF)
+                    </button>
+                    <button type="button" class="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 w-full sm:w-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Download PM Report
+                    </button>
+                </div>
+                <p class="text-sm text-slate-500 mt-4">Select date range and machine filters to generate detailed reports.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@if (_showBreakdownModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="() => _showBreakdownModal = false">
+        <div class="max-w-2xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Breakdown Report</h2>
+                    <p class="text-sm text-slate-500 mt-1">Log a new breakdown and assign follow-up.</p>
+                </div>
+                <button type="button" @onclick="() => _showBreakdownModal = false" class="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Machine</label>
+                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        @foreach (var m in _mockMachines)
+                        {
+                            <option value="@m">@m</option>
+                        }
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Type</label>
+                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option>Corrective</option>
+                        <option>Preventive</option>
+                        <option>MoldChange</option>
+                        <option>Inspection</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Priority</label>
+                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option>P1Critical</option>
+                        <option>P2High</option>
+                        <option>P3Medium</option>
+                        <option>P4Low</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Assigned Role</label>
+                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option value="maintenance">maintenance</option>
+                        <option value="mold">mold</option>
+                        <option value="plastic">plastic</option>
+                        <option value="mold-change">mold-change</option>
+                        <option value="technician-head">technician-head</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Description</label>
+                    <textarea rows="4" placeholder="Describe the issue..." class="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @onclick="() => _showBreakdownModal = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                    <button type="button" @onclick="() => _showBreakdownModal = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800">Save Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _activeTab = "breakdowns";
+    private bool _showBreakdownModal;
+
+    private static readonly IReadOnlyList<string> _mockMachines = ["M-101", "M-102", "M-201", "M-202"];
+
+    private readonly BreakdownSummary _breakdownSummary = new(12, 5, 3, 8);
+
+    private static readonly IReadOnlyList<BreakdownRow> _breakdownRows =
+    [
+        new("WO-20240115-001", "M-101", "Corrective", "P1Critical", "InProgress", "maintenance", "3h ago"),
+        new("WO-20240115-002", "M-201", "Preventive", "P2High", "Open", "mold", "1h ago"),
+        new("WO-20240114-001", "M-102", "Corrective", "P3Medium", "Done", "maintenance", "yesterday"),
+    ];
+
+    private readonly PmSummary _pmSummary = new(24, 5, 7, 94);
+
+    private static readonly IReadOnlyList<PmScheduleRow> _pmRows =
+    [
+        new("Monthly preventive maintenance", "M-101", "30 days", "45 days ago", "15 days overdue", "Overdue", "maintenance"),
+        new("Weekly lubrication check", "M-102", "7 days", "3 days ago", "in 4 days", "Due Soon", "maintenance"),
+        new("Quarterly mold inspection", "M-201", "90 days", "92 days ago", "2 days overdue", "Overdue", "mold"),
+        new("Daily tooling check", "M-202", "1 day", "today", "tomorrow", "OK", "plastic"),
+    ];
+
+    private readonly SpareSummary _spareSummary = new(124, 3, 2);
+
+    private static readonly IReadOnlyList<SparePartRow> _spareRows =
+    [
+        new("SP-001", "Temperature Sensor", "Sensors", "5 qty", "min 3", "InStock", "In Stock"),
+        new("SP-002", "Injection Nozzle", "Injection", "2 qty", "min 5", "LowStock", "Low Stock"),
+        new("SP-003", "Motor Belt", "Mechanical", "8 qty", "min 4", "InStock", "In Stock"),
+        new("SP-004", "Hydraulic Seal", "Hydraulic", "0 qty", "min 2", "OutOfStock", "Out of Stock"),
+    ];
+
+    /// <summary>
+    /// Summary counts for the Breakdowns tab.
+    /// </summary>
+    private sealed record BreakdownSummary(int Open, int InProgress, int WaitingParts, int CompletedToday);
+
+    /// <summary>
+    /// One row in the breakdown work order table.
+    /// </summary>
+    private sealed record BreakdownRow(
+        string WoNumber,
+        string Machine,
+        string WoType,
+        string Priority,
+        string Status,
+        string AssignedRole,
+        string ReportedAt);
+
+    /// <summary>
+    /// Summary counts for the Preventive Maintenance tab.
+    /// </summary>
+    private sealed record PmSummary(int Total, int Overdue, int DueThisWeek, int CompliancePct);
+
+    /// <summary>
+    /// One row in the PM schedule table.
+    /// </summary>
+    private sealed record PmScheduleRow(
+        string ScheduleName,
+        string Machine,
+        string Interval,
+        string LastDone,
+        string NextDue,
+        string Status,
+        string OwnerRole);
+
+    /// <summary>
+    /// Summary counts for the Spare Parts tab.
+    /// </summary>
+    private sealed record SpareSummary(int TotalParts, int LowStock, int OrdersPending);
+
+    /// <summary>
+    /// One row in the spare parts table.
+    /// </summary>
+    private sealed record SparePartRow(
+        string PartCode,
+        string Description,
+        string Category,
+        string StockQty,
+        string MinLevel,
+        string Status,
+        string StatusLabel);
+
+    private void SetTab(string tab)
+    {
+        _activeTab = tab;
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private static string TabClass(bool active) =>
+        active
+            ? "border-b-2 border-slate-900 text-slate-900 font-medium"
+            : "border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+
+    private static string GetPriorityClass(string priority) => priority switch
+    {
+        "P1Critical" => "bg-red-100 text-red-800",
+        "P2High" => "bg-orange-100 text-orange-800",
+        "P3Medium" => "bg-blue-100 text-blue-800",
+        "P4Low" => "bg-slate-100 text-slate-600",
+        _ => "bg-slate-100 text-slate-600",
+    };
+
+    private static string GetWoStatusClass(string status) => status switch
+    {
+        "Open" => "bg-yellow-100 text-yellow-800",
+        "InProgress" => "bg-blue-100 text-blue-800",
+        "WaitingParts" => "bg-orange-100 text-orange-800",
+        "Done" => "bg-green-100 text-green-800",
+        "Cancelled" => "bg-slate-100 text-slate-500",
+        _ => "bg-slate-100 text-slate-500",
+    };
+
+    private static string GetPmStatusClass(string status) => status switch
+    {
+        "Overdue" => "bg-red-100 text-red-800",
+        "Due Soon" => "bg-orange-100 text-orange-800",
+        "OK" => "bg-green-100 text-green-800",
+        _ => "bg-slate-100 text-slate-600",
+    };
+
+    private static string GetStockStatusClass(string status) => status switch
+    {
+        "LowStock" => "bg-yellow-100 text-yellow-800",
+        "InStock" => "bg-green-100 text-green-800",
+        "OutOfStock" => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-600",
+    };
+}
