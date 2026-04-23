@@ -1,58 +1,606 @@
 @page "/dashboard"
 @rendermode InteractiveServer
+@using System.Globalization
 @inject XMachineApiClient Api
+@implements IDisposable
 
 <PageTitle>Dashboard · xMachine</PageTitle>
 
-<div class="space-y-10">
-    <!-- Page header -->
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-slate-900">Operations Dashboard</h1>
-            <p class="mt-1 text-sm text-slate-500">
-                Cross-module snapshot from XMachine.Api. Ensure the API is running and
-                <code class="rounded bg-slate-100 px-1 py-0.5 text-xs text-slate-700">XMachine:Api:BaseUrl</code>
-                points to your instance.
-            </p>
-        </div>
-        <div class="shrink-0 text-xs font-medium tabular-nums text-slate-400 sm:text-right">
-            @DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm") UTC
+<div class="min-h-screen bg-slate-50">
+    <!-- FactoryDashboard: top navigation -->
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-10 5L2 8v12Z"/><path d="M22 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/><path d="M6 2v4"/><path d="M10 2v4"/><path d="M14 2v4"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">Smart Factory Dashboard</h1>
+                    <p class="text-sm text-slate-600">စမတ်စက်ရုံ ထိန်းချုပ်ရေး</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <input type="date" @bind="_selectedDate" @bind:format="yyyy-MM-dd" class="w-40 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+                </div>
+                <select @bind="_currentShift" class="w-48 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                    <option value="Day Shift A">Day Shift A (08:00-16:00)</option>
+                    <option value="Day Shift B">Day Shift B (16:00-24:00)</option>
+                    <option value="Night Shift">Night Shift (00:00-08:00)</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <div class="text-sm font-medium">Production Manager</div>
+                    <div class="text-xs text-slate-600">ထုတ်လုပ်ရေးမန်နေဂျာ</div>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-700">PM</div>
+                <div class="flex items-center gap-1">
+                    <div class="h-2 w-2 rounded-full bg-green-500"></div>
+                    <span class="text-xs text-slate-600">Online</span>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- ExecutiveDashboard: header -->
+    <div class="bg-slate-900 text-white p-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-start">
+                <div class="flex items-center gap-4">
+                    <div class="bg-blue-600 p-3 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-10 5L2 8v12Z"/><path d="M22 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/><path d="M6 2v4"/><path d="M10 2v4"/><path d="M14 2v4"/></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-semibold">Smart Plastic Factory</h1>
+                        <h2 class="text-xl text-slate-300">Executive Dashboard</h2>
+                        <p class="text-sm text-slate-400 mt-1">@(_languageToggle == "en" ? "Executive Command Center" : "အမှုဆောင်ဒက်ရှ်ဘုတ်")</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <div class="text-2xl font-semibold font-mono">@FormatExecTime(_currentTime)</div>
+                        <div class="text-sm text-slate-300">@FormatExecDate(_currentTime)</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            @(_languageToggle == "en" ? "Export PDF" : "PDF ထုတ်")
+                        </button>
+                        <button type="button" @onclick="() => StateHasChanged()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                            @(_languageToggle == "en" ? "Refresh" : "ပြန်လည်စတင်")
+                        </button>
+                        <button type="button" @onclick="() => { _chatOpen = !_chatOpen; }" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-blue-600/20 border-blue-400/50 text-blue-200 hover:bg-blue-600/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            @(_languageToggle == "en" ? "AI Chat" : "AI ချတ်")
+                        </button>
+                        <button type="button" @onclick="ToggleLanguage" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            @(_languageToggle == "en" ? "မြန်မာ" : "EN")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_alerts.Count > 0)
+    {
+        <div class="bg-red-600 text-white">
+            @foreach (var alert in _alerts)
+            {
+                <div class="flex items-center justify-between px-6 py-3 border-b border-red-500 last:border-b-0">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span class="font-medium">@alert.Message</span>
+                        <span class="text-sm opacity-80">@alert.Time</span>
+                    </div>
+                    <button type="button" @onclick="() => DismissAlert(alert.Id)" class="inline-flex h-8 w-8 items-center justify-center rounded-md text-white hover:bg-white/20 p-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="max-w-7xl mx-auto p-6 space-y-6">
+        <!-- FactoryDashboard: factory KPI summary (monitoring tab) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            <div class="rounded-lg border text-card-foreground shadow-sm bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100 text-sm font-medium">🟢 Running Machines</p>
+                            <p class="text-xs text-green-100">လည်ပတ်နေသောစက်များ</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-100"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-3xl font-bold">@FactoryKpiRunningCount</div>
+                        <div class="text-sm text-green-100">of @FactoryKpiTotal machines (@FactoryKpiRunningPct%)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border text-card-foreground shadow-sm bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-yellow-100 text-sm font-medium">🟡 Idle Machines</p>
+                            <p class="text-xs text-yellow-100">အပတ်စဉ်စက်များ</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-yellow-100"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-3xl font-bold">@FactoryKpiIdleCount</div>
+                        <div class="text-sm text-yellow-100">of @FactoryKpiTotal machines (@FactoryKpiIdlePct%)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border text-card-foreground shadow-sm bg-gradient-to-br from-red-500 to-red-600 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-red-100 text-sm font-medium">🔴 Blocked/Down</p>
+                            <p class="text-xs text-red-100">ပိတ်နေသောစက်များ</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-red-100"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-3xl font-bold">@FactoryKpiBlockedCount</div>
+                        <div class="text-sm text-red-100">of @FactoryKpiTotal machines (@FactoryKpiBlockedPct%)</div>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border text-card-foreground shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 text-sm font-medium">📦 Units Produced Today</p>
+                            <p class="text-xs text-blue-100">ယနေ့ထုတ်လုပ်မှု</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-100"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-3xl font-bold">@FactoryKpiProducedCount.ToString("N0")</div>
+                        <div class="text-sm text-blue-100">Target: @FactoryKpiProducedTarget.ToString("N0") (@FactoryKpiProducedPct%)</div>
+                        <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-blue-400">
+                            <div class="h-2 rounded-full bg-white/90" style="width: @(FactoryKpiProducedPct)%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border text-card-foreground shadow-sm bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-orange-100 text-sm font-medium">❌ Defects Today</p>
+                            <p class="text-xs text-orange-100">ယနေ့ချွတ်ယွင်းချက်များ</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-orange-100"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    </div>
+                    <div class="mt-4">
+                        <div class="text-3xl font-bold">@FactoryKpiDefectsCount</div>
+                        <div class="text-sm text-orange-100">@FactoryKpiDefectsRatePct% defect rate</div>
+                        <div class="text-xs text-orange-100 mt-1">Top: @FactoryKpiDefectsTopReason</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ExecutiveDashboard: output summary -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="rounded-lg border-0 text-card-foreground shadow-sm bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-blue-100 mb-1">@(_languageToggle == "en" ? "Total Units Produced" : "စုစုပေါင်းထုတ်လုပ်မှု")</p>
+                            <p class="text-3xl font-bold">@TodayKpiTotalUnits.ToString("N0")</p>
+                            <p class="text-sm text-blue-100">pcs (Today)</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-200"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border-0 text-card-foreground shadow-sm bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-orange-100 mb-1">@(_languageToggle == "en" ? "Defective Products" : "ချွတ်ယွင်းထုတ်ကုန်များ")</p>
+                            <p class="text-3xl font-bold">@TodayKpiDefectiveProducts</p>
+                            <p class="text-sm text-orange-100">pcs (3.4%)</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-orange-200"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border-0 text-card-foreground shadow-sm bg-gradient-to-r from-green-600 to-green-700 text-white">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-green-100 mb-1">@(_languageToggle == "en" ? "QR-Printed Finished Goods" : "QR ကုဒ်ပါထုတ်ကုန်များ")</p>
+                            <p class="text-3xl font-bold">@TodayKpiQrPrinted.ToString("N0")</p>
+                            <p class="text-sm text-green-100">pcs (93.6%)</p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-200"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ExecutiveDashboard: live machine table -->
+        <div class="rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+                <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    @(_languageToggle == "en" ? "Live Machine Status Monitor" : "တိုက်ရိုက်စက်အခြေအနေစစ်ကြည့်မှု")
+                </h3>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Machine ID" : "စက်နံပါတ်")</th>
+                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Status" : "အခြေအနေ")</th>
+                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Product Name" : "ထုတ်ကုန်အမည်")</th>
+                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Target vs Done" : "ပစ်မှတ်နှင့်ပြီးစီး")</th>
+                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Progress" : "တိုးတက်မှု")</th>
+                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Downtime Reason" : "ရပ်နားချိန်အကြောင်းရင်း")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var machine in _execMachineRows)
+                            {
+                                <tr class="border-b hover:bg-slate-50">
+                                    <td class="p-3 font-semibold">@machine.Id</td>
+                                    <td class="p-3">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-lg">@GetStatusEmoji(machine.Status)</span>
+                                            <span class="@GetExecStatusBadgeClass(machine.Status) inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors">@Capitalize(machine.Status)</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-3">@machine.Product</td>
+                                    <td class="p-3">
+                                        <div class="text-sm">
+                                            <div class="font-medium">@machine.Done / @machine.Target</div>
+                                            <div class="text-slate-500">units</div>
+                                        </div>
+                                    </td>
+                                    <td class="p-3">
+                                        <div class="flex items-center gap-2">
+                                            <div class="relative h-2 w-20 overflow-hidden rounded-full bg-slate-200">
+                                                <div class="h-full bg-blue-600 transition-all" style="width: @(Math.Min(100, (double)machine.Progress))%"></div>
+                                            </div>
+                                            <span class="text-sm font-medium">@machine.Progress%</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-3">
+                                        @if (machine.Downtime is not null)
+                                        {
+                                            <span class="inline-flex items-center rounded-md border border-transparent bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">@machine.Downtime</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-slate-400 text-sm">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- FactoryDashboard: machine tiles (3-column) -->
+        <div class="rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-10 5L2 8v12Z"/></svg>
+                        <span>Live Machine Status</span>
+                        <span class="text-sm font-normal text-slate-600">တိုက်ရိုက်စက်အခြေအနေ</span>
+                    </h3>
+                    <div class="flex items-center gap-2 text-sm text-slate-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                        <span>Last updated: @_lastUpdate.ToString("T")</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach (var machine in _factoryMachines)
+                    {
+                        var op = machine.OperatorId is null ? null : _factoryOperators.FirstOrDefault(o => o.Id == machine.OperatorId);
+                        var product = machine.ProductId is null ? null : _factoryProducts.FirstOrDefault(p => p.Id == machine.ProductId);
+                        var progressPct = GetProgressPercentage(machine.CompletedQty, machine.TargetQty);
+                        <div class="cursor-pointer rounded-lg border bg-white text-card-foreground shadow-sm @GetFactoryMachineCardBorderClass(machine.Status)">
+                            <div class="p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h3 class="font-bold text-base">@machine.Name</h3>
+                                        <p class="text-xs text-slate-600">@machine.NameMyanmar</p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-full @GetFactoryStatusDotClass(machine.Status) @(machine.Status == "running" ? "animate-pulse" : "")"></div>
+                                        @if (machine.Status == "running")
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                        }
+                                        else if (machine.Status == "idle")
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                        }
+                                        else if (machine.Status == "blocked")
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                        }
+                                        else if (machine.Status == "scheduled")
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        }
+                                        else if (machine.Status == "maintenance")
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                                        }
+                                        else
+                                        {
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <span class="@GetFactoryStatusBadgeClass(machine.Status) inline-flex items-center rounded-md border px-2.5 py-0.5 text-sm font-medium">
+                                        @machine.Status.ToUpper() @(machine.Status == "running" ? $"- {progressPct}%" : "")
+                                    </span>
+                                </div>
+                                @if (op is not null)
+                                {
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">@op.Id</div>
+                                        <div>
+                                            <p class="text-sm font-medium">@op.Name</p>
+                                            <p class="text-xs text-slate-600">@op.NameMyanmar • Shift @op.Shift</p>
+                                        </div>
+                                    </div>
+                                }
+                                @if (product is not null && machine.JobId is not null)
+                                {
+                                    <div class="mb-3">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <div class="flex h-8 w-8 items-center justify-center rounded border bg-slate-50 text-xs text-slate-500">img</div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="text-sm font-medium truncate">@product.Name</p>
+                                                <p class="text-xs text-slate-600">Job: @machine.JobId</p>
+                                            </div>
+                                        </div>
+                                        @if (machine.TargetQty > 0)
+                                        {
+                                            <div class="space-y-1">
+                                                <div class="flex justify-between text-sm">
+                                                    <span>Progress:</span>
+                                                    <span class="font-medium">@machine.CompletedQty.ToString("N0") / @machine.TargetQty.ToString("N0")</span>
+                                                </div>
+                                                <div class="relative h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                                                    <div class="h-full bg-blue-600" style="width: @(progressPct)%"></div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                @if (machine.Alerts.Length > 0)
+                                {
+                                    <div class="mb-3">
+                                        @foreach (var a in machine.Alerts)
+                                        {
+                                            <div class="flex items-center gap-1 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded mb-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                                                <span>@a</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                <div class="text-xs text-slate-600 space-y-1 border-t pt-2">
+                                    @if (machine.StartTime is not null)
+                                    {
+                                        <div class="flex justify-between"><span>Started:</span><span>@machine.StartTime</span></div>
+                                    }
+                                    @if (machine.EstimatedFinish is not null)
+                                    {
+                                        <div class="flex justify-between"><span>ETA:</span><span>@machine.EstimatedFinish</span></div>
+                                    }
+                                    @if (machine.WorkOrderNo is not null)
+                                    {
+                                        <div class="flex justify-between"><span>WO:</span><span class="font-mono">@machine.WorkOrderNo</span></div>
+                                    }
+                                    @if (machine.Efficiency > 0)
+                                    {
+                                        <div class="flex justify-between">
+                                            <span>Efficiency:</span>
+                                            <span class="font-medium @(machine.Efficiency >= 90 ? "text-green-600" : machine.Efficiency >= 75 ? "text-yellow-600" : "text-red-600")">@machine.Efficiency%</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ExecutiveDashboard: operator assignment -->
+        <div class="rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+                <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    @(_languageToggle == "en" ? "Operator Assignment" : "အလုပ်သမားတာဝန်ခွဲဝေမှု")
+                </h3>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    @foreach (var op in _execOperatorCards)
+                    {
+                        <div class="bg-white border border-slate-200 rounded-lg p-4">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-700">@op.Photo</div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-medium text-sm truncate">@op.Name</p>
+                                    <p class="text-xs text-slate-500">@op.Machine</p>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between"><span class="text-slate-500">Shift:</span><span class="font-medium">@op.Shift</span></div>
+                                <div class="flex justify-between"><span class="text-slate-500">Output:</span><span class="font-medium">@op.Output</span></div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-slate-500">Status:</span>
+                                    <span class="@(op.Status == "Active" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800") inline-flex items-center rounded-md border border-transparent px-2.5 py-0.5 text-xs font-semibold">@op.Status</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- ExecutiveDashboard: analytics row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-6">
+                    <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        @(_languageToggle == "en" ? "Production Output (Today)" : "ထုတ်လုပ်မှုပမာဏ (ဒီနေ့)")
+                    </h3>
+                </div>
+                <div class="p-6 pt-0">
+                    <div class="h-[300px] flex flex-col">
+                        <div class="flex flex-1 items-end justify-around gap-2 border-b border-dashed border-slate-200 px-4 pb-8 pt-4">
+                            @{
+                                var chartScale = Math.Max(1, _chartRows.Max(r => Math.Max(r.Target, r.Actual)));
+                            }
+                            @foreach (var row in _chartRows)
+                            {
+                                var hT = (int)Math.Round(220.0 * row.Target / chartScale);
+                                var hA = (int)Math.Round(220.0 * row.Actual / chartScale);
+                                <div class="flex flex-1 flex-col items-center gap-2">
+                                    <div class="flex h-[220px] w-full items-end justify-center gap-1">
+                                        <div title="Target" class="w-6 rounded-t bg-slate-200" style="height: @(hT)px"></div>
+                                        <div title="Actual" class="w-6 rounded-t bg-blue-600" style="height: @(hA)px"></div>
+                                    </div>
+                                    <span class="text-xs font-medium text-slate-600">@row.Machine</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="mt-3 flex justify-center gap-6 text-xs text-slate-500">
+                            <span class="flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm bg-slate-200"></span> Target</span>
+                            <span class="flex items-center gap-2"><span class="inline-block h-3 w-3 rounded-sm bg-blue-600"></span> Actual</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-6">
+                    <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        @(_languageToggle == "en" ? "Top Performers" : "အကောင်းဆုံးစွမ်းဆောင်သူများ")
+                    </h3>
+                </div>
+                <div class="p-6 pt-0">
+                    <div class="space-y-3">
+                        @foreach (var (op, index) in _operatorRanking.Select((o, i) => (o, i)))
+                        {
+                            <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-lg">@op.Badge</span>
+                                    <div>
+                                        <p class="font-medium text-sm">@op.Name</p>
+                                        <p class="text-xs text-slate-500">@op.Efficiency% efficiency</p>
+                                    </div>
+                                </div>
+                                <span class="inline-flex items-center rounded-md border border-transparent bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">#@(index + 1)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ExecutiveDashboard: downtime pie -->
+        <div class="rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+                <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    @(_languageToggle == "en" ? "Machine Downtime Analysis (Top 5 Reasons)" : "စက်ရပ်နားချိန်ခွဲခြမ်းစိတ်ဖြာမှု")
+                </h3>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="flex flex-col items-center gap-6 md:flex-row md:items-center md:justify-center">
+                    <div class="relative h-52 w-52 shrink-0">
+                        <div class="absolute inset-0 rounded-full" style="background: conic-gradient(from -90deg, #ef4444 0deg 126deg, #f59e0b 126deg 216deg, #06b6d4 216deg 288deg, #8b5cf6 288deg 342deg, #64748b 342deg 360deg);"></div>
+                        <div class="absolute inset-[18%] rounded-full bg-white"></div>
+                    </div>
+                    <div class="flex flex-col gap-2 text-sm">
+                        @foreach (var d in _downtimeSlices)
+                        {
+                            <div class="flex items-center gap-2">
+                                <span class="inline-block h-3 w-3 rounded-sm shrink-0" style="background-color: @d.Color"></span>
+                                <span>@d.Name</span>
+                                <span class="ml-auto font-medium tabular-nums">@d.Value%</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (_chatOpen)
+    {
+        <div class="fixed right-6 bottom-6 w-80 h-96 bg-white border border-slate-200 rounded-lg shadow-xl z-50 flex flex-col">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 rounded-t-lg flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <h3 class="font-medium">AI Assistant</h3>
+                </div>
+                <button type="button" @onclick="() => _chatOpen = false" class="inline-flex h-6 w-6 items-center justify-center rounded-md text-white hover:bg-white/20 p-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="p-4 flex-1 overflow-y-auto">
+                <div class="space-y-3">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <p class="text-sm">Hello! I'm your AI assistant. How can I help you with factory operations today?</p>
+                    </div>
+                    <div class="text-sm text-slate-600">
+                        <p class="mb-2">Quick suggestions:</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var s in _chatSuggestions)
+                            {
+                                <button type="button" @onclick="() => _chatMessage = s" class="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-2 py-1 text-xs h-6 hover:bg-slate-50">@s</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t mt-auto">
+                <div class="flex gap-2">
+                    <input @bind="_chatMessage" placeholder="Type your question..." class="flex-1 h-8 rounded-md border border-slate-200 px-2 text-sm" />
+                    <button type="button" @onclick="SubmitChat" class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- API snapshot (existing sections) -->
+    <div class="max-w-7xl mx-auto px-6 pb-10 space-y-10 border-t border-slate-200 pt-10">
     @if (_aggregateError is not null)
     {
         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm" role="alert">
             @_aggregateError
         </div>
     }
-
-    <!-- Executive summary (Figma KPI strip) -->
-    <section class="space-y-4">
-        <div>
-            <h2 class="text-base font-semibold uppercase tracking-wide text-slate-700">Executive summary</h2>
-            <p class="text-sm text-slate-500">Cross-cutting counts from MES, quality, eventing, and workflow.</p>
-        </div>
-        @if (_mes.Loading || _quality.Loading || _eventing.Loading || _workflow.Loading)
-        {
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                @for (var i = 0; i < 4; i++)
-                {
-                    <div class="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-100 shadow-sm" />
-                }
-            </div>
-        }
-        else
-        {
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                @MetricCard("Production orders", _mes.Error is null ? _mes.Data?.Orders : null, ClipboardSvg)
-                @MetricCard("Quality checks", _quality.Error is null ? _quality.Data?.Checks : null, CheckSvg)
-                @MetricCard("Alarms", _eventing.Error is null ? _eventing.Data?.Alarms : null, BellSvg, warn: true)
-                @MetricCard("Workflow instances", _workflow.Error is null ? _workflow.Data?.Instances : null, PlaySvg)
-            </div>
-        }
-    </section>
-
     <!-- MES -->
     <section class="space-y-4">
         <div>
@@ -209,9 +757,130 @@
         <span class="text-slate-400">·</span>
         <a href="/workflow/instances" class="font-medium text-blue-700 underline-offset-2 hover:underline">Instances</a>
     </p>
+    </div>
 </div>
 
 @code {
+    // --- Figma mock data (ExecutiveDashboard + FactoryDashboard) ---
+    private const int TodayKpiTotalUnits = 9400;
+    private const int TodayKpiDefectiveProducts = 320;
+    private const int TodayKpiQrPrinted = 8800;
+
+    private const int FactoryKpiRunningCount = 8;
+    private const int FactoryKpiTotal = 12;
+    private const int FactoryKpiRunningPct = 67;
+    private const int FactoryKpiIdleCount = 2;
+    private const int FactoryKpiIdlePct = 17;
+    private const int FactoryKpiBlockedCount = 2;
+    private const int FactoryKpiBlockedPct = 16;
+    private const int FactoryKpiProducedCount = 15420;
+    private const int FactoryKpiProducedTarget = 18000;
+    private const int FactoryKpiProducedPct = 86;
+    private const int FactoryKpiDefectsCount = 85;
+    private const string FactoryKpiDefectsRatePct = "0.55";
+    private const string FactoryKpiDefectsTopReason = "Mold Flash";
+
+    private static readonly IReadOnlyList<ExecMachineRow> _execMachineRows =
+    [
+        new("MCH-01", "running", "Plastic Bottle 500ml", 1200, 1150, 95.8m, null, "Ko Zaw Min"),
+        new("MCH-02", "idle", "Food Container Large", 800, 680, 85.0m, "Material Shortage", "Ma Thandar"),
+        new("MCH-03", "running", "Plastic Cup 300ml", 1000, 1080, 108.0m, null, "Ko Aung Aung"),
+        new("MCH-04", "down", "Storage Box Medium", 600, 250, 41.7m, "Mold Breakage", "Ma Phyu Phyu"),
+        new("MCH-05", "running", "Bottle Cap Standard", 2000, 1950, 97.5m, null, "Ko Min Thu"),
+    ];
+
+    private static readonly IReadOnlyList<ExecOpCard> _execOperatorCards =
+    [
+        new("Ko Zaw Min", "MCH-01", "Morning", 1150, "Active", "KZ"),
+        new("Ma Thandar", "MCH-02", "Morning", 680, "Active", "MT"),
+        new("Ko Aung Aung", "MCH-03", "Morning", 1080, "Active", "KA"),
+        new("Ma Phyu Phyu", "MCH-04", "Evening", 250, "Inactive", "MP"),
+        new("Ko Min Thu", "MCH-05", "Evening", 1950, "Active", "KM"),
+    ];
+
+    private static readonly IReadOnlyList<ChartRow> _chartRows =
+    [
+        new("MCH-01", 1200, 1150),
+        new("MCH-02", 800, 680),
+        new("MCH-03", 1000, 1080),
+        new("MCH-04", 600, 250),
+        new("MCH-05", 2000, 1950),
+    ];
+
+    private static readonly IReadOnlyList<DowntimeSlice> _downtimeSlices =
+    [
+        new("Mold Issue", 35, "#ef4444"),
+        new("Material Shortage", 25, "#f59e0b"),
+        new("Power Cut", 20, "#06b6d4"),
+        new("Operator Delay", 15, "#8b5cf6"),
+        new("Others", 5, "#64748b"),
+    ];
+
+    private static readonly IReadOnlyList<OpRank> _operatorRanking =
+    [
+        new("Ko Min Thu", 118, "🥇"),
+        new("Ko Zaw Min", 115, "🥈"),
+        new("Ko Aung Aung", 108, "🥉"),
+        new("Ma Thandar", 102, "4th"),
+        new("Ma Phyu Phyu", 85, "5th"),
+    ];
+
+    private static readonly IReadOnlyList<FactoryProduct> _factoryProducts =
+    [
+        new("P001", "Plastic Cup 250ml", "Clear"),
+        new("P002", "Plastic Bottle 500ml", "Blue"),
+        new("P003", "Container 1L", "White"),
+        new("P004", "Lid 100ml", "Red"),
+        new("P005", "Tray Large", "Black"),
+    ];
+
+    private static readonly IReadOnlyList<FactoryOp> _factoryOperators =
+    [
+        new("OP001", "Ko Aung", "ကိုအောင်", "/api/placeholder/40/40", "A", 4.8m),
+        new("OP002", "Ma Suu", "မစု", "/api/placeholder/40/40", "A", 4.6m),
+        new("OP003", "Ko Thant", "ကိုသန့်", "/api/placeholder/40/40", "A", 4.9m),
+        new("OP004", "Ma Phyu", "မဖြူ", "/api/placeholder/40/40", "A", 4.5m),
+        new("OP005", "Ko Zaw", "ကိုဇော်", "/api/placeholder/40/40", "A", 4.7m),
+    ];
+
+    private static readonly IReadOnlyList<FactoryMachineRow> _factoryMachines =
+    [
+        new("INJ-M001", "Injection Machine 1", "ထိုးစက် ၁", "running", "OP001", "P001", "JOB001", 5000, 3400, "09:00", "14:30", "WO-2025-001", 92, ["Material Low"]),
+        new("INJ-M002", "Injection Machine 2", "ထိုးစက် ၂", "idle", "OP002", null, null, 0, 0, null, null, null, 0, []),
+        new("INJ-M003", "Injection Machine 3", "ထိုးစက် ၃", "blocked", "OP003", "P002", "JOB003", 3000, 1200, "08:00", "16:00", "WO-2025-003", 65, ["Mold Jam", "Maintenance Required"]),
+        new("INJ-M004", "Injection Machine 4", "ထိုးစက် ၄", "running", "OP004", "P003", "JOB004", 2000, 1800, "07:00", "15:00", "WO-2025-004", 98, []),
+        new("INJ-M005", "Injection Machine 5", "ထိုးစက် ၅", "maintenance", null, null, null, 0, 0, null, null, null, 0, ["Scheduled Maintenance"]),
+        new("INJ-M006", "Injection Machine 6", "ထိုးစက် ၆", "scheduled", "OP005", "P004", "JOB006", 8000, 0, "15:00", "23:00", "WO-2025-006", 0, []),
+    ];
+
+    private static readonly string[] _chatSuggestions = ["Today's Output", "Top Downtime", "Who's on MCH-02?"];
+
+    private List<DashboardAlert> _alerts =
+    [
+        new(1, "Machine MCH-05 is down for 45 min", "error", "10:30 AM"),
+        new(2, "Production target missed by 20% today", "warning", "09:15 AM"),
+    ];
+
+    private string _languageToggle = "en";
+    private bool _chatOpen;
+    private string _chatMessage = "";
+    private DateTime _selectedDate = DateTime.Today;
+    private string _currentShift = "Day Shift A";
+    private DateTime _currentTime = DateTime.Now;
+    private DateTime _lastUpdate = DateTime.Now;
+    private System.Threading.Timer? _clockTimer;
+
+    private sealed record DashboardAlert(int Id, string Message, string Type, string Time);
+    private sealed record ExecMachineRow(string Id, string Status, string Product, int Target, int Done, decimal Progress, string? Downtime, string Operator);
+    private sealed record ExecOpCard(string Name, string Machine, string Shift, int Output, string Status, string Photo);
+    private sealed record ChartRow(string Machine, int Target, int Actual);
+    private sealed record DowntimeSlice(string Name, int Value, string Color);
+    private sealed record OpRank(string Name, int Efficiency, string Badge);
+    private sealed record FactoryProduct(string Id, string Name, string Color);
+    private sealed record FactoryOp(string Id, string Name, string NameMyanmar, string Photo, string Shift, decimal Rating);
+    private sealed record FactoryMachineRow(string Id, string Name, string NameMyanmar, string Status, string? OperatorId, string? ProductId, string? JobId, int TargetQty, int CompletedQty, string? StartTime, string? EstimatedFinish, string? WorkOrderNo, int Efficiency, string[] Alerts);
+
+    // --- Existing API state ---
     private ApiFetch<MesSummaryDto> _mes = ApiFetch<MesSummaryDto>.InProgress();
     private ApiFetch<QualitySummaryDto> _quality = ApiFetch<QualitySummaryDto>.InProgress();
     private ApiFetch<EventingSummaryDto> _eventing = ApiFetch<EventingSummaryDto>.InProgress();
@@ -219,10 +888,22 @@
     private ApiFetch<WorkflowSummaryDto> _workflow = ApiFetch<WorkflowSummaryDto>.InProgress();
     private string? _aggregateError;
 
+    /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (firstRender)
+        {
+            _clockTimer = new System.Threading.Timer(_ => _ = InvokeAsync(() =>
+            {
+                _currentTime = DateTime.Now;
+                StateHasChanged();
+            }), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
 
+        if (!firstRender)
+            return;
+
+        _lastUpdate = DateTime.Now;
         var tMes = Api.GetMesSummaryAsync();
         var tQuality = Api.GetQualitySummaryAsync();
         var tEventing = Api.GetEventingSummaryAsync();
@@ -237,9 +918,91 @@
 
         if (_mes.Error is not null && _quality.Error is not null && _eventing.Error is not null && _integration.Error is not null && _workflow.Error is not null)
             _aggregateError = "Could not reach the API. Check XMachine:Api:BaseUrl and that XMachine.Api is running.";
+        else
+            _aggregateError = null;
 
         StateHasChanged();
     }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _clockTimer?.Dispose();
+        _clockTimer = null;
+    }
+
+    private void ToggleLanguage()
+    {
+        _languageToggle = _languageToggle == "en" ? "mm" : "en";
+    }
+
+    private void DismissAlert(int id)
+    {
+        _alerts.RemoveAll(a => a.Id == id);
+    }
+
+    private void SubmitChat()
+    {
+        _chatMessage = "";
+    }
+
+    private static string FormatExecTime(DateTime date) =>
+        date.ToString("hh:mm:ss tt", CultureInfo.InvariantCulture);
+
+    private static string FormatExecDate(DateTime date) =>
+        date.ToString("D", CultureInfo.InvariantCulture);
+
+    private static string GetStatusEmoji(string status) => status switch
+    {
+        "running" => "🟢",
+        "idle" => "🟡",
+        "down" => "🔴",
+        _ => "⚪",
+    };
+
+    private static string GetExecStatusBadgeClass(string status) => status switch
+    {
+        "running" => "bg-green-100 text-green-800",
+        "idle" => "bg-yellow-100 text-yellow-800",
+        "down" => "bg-red-100 text-red-800",
+        _ => "bg-gray-100 text-gray-800",
+    };
+
+    private static string GetFactoryMachineCardBorderClass(string status) => status switch
+    {
+        "running" => "border-l-4 border-l-green-500 bg-green-50",
+        "idle" => "border-l-4 border-l-yellow-500 bg-yellow-50",
+        "blocked" => "border-l-4 border-l-red-500 bg-red-50",
+        "scheduled" => "border-l-4 border-l-blue-500 bg-blue-50",
+        "maintenance" => "border-l-4 border-l-orange-500 bg-orange-50",
+        _ => "border-l-4 border-l-slate-300",
+    };
+
+    private static string GetFactoryStatusDotClass(string status) => status switch
+    {
+        "running" => "bg-green-500",
+        "idle" => "bg-yellow-500",
+        "blocked" => "bg-red-500",
+        "scheduled" => "bg-blue-500",
+        "maintenance" => "bg-orange-500",
+        _ => "bg-gray-500",
+    };
+
+    private static string GetFactoryStatusBadgeClass(string status) => status switch
+    {
+        "running" => "bg-green-100 text-green-800",
+        "idle" => "bg-yellow-100 text-yellow-800",
+        "blocked" => "bg-red-100 text-red-800",
+        "scheduled" => "bg-blue-100 text-blue-800",
+        "maintenance" => "bg-orange-100 text-orange-800",
+        _ => "bg-gray-100 text-gray-800",
+    };
+
+    private static int GetProgressPercentage(int completed, int target) =>
+        target == 0 ? 0 : Math.Min(100, (int)Math.Round(100.0 * completed / target));
+
+    private static string Capitalize(string s) =>
+        string.IsNullOrEmpty(s) ? s : char.ToUpperInvariant(s[0]) + s[1..];
 
     private static string? Fmt(int? v) => v?.ToString();
 
