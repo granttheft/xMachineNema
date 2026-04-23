@@ -17,7 +17,7 @@
     </TopSlot>
 </PageHeader>
 
-<ApiStateDisplay Loading="_loading" Error="_error">
+<ApiStateDisplay Loading="_loading" Error="@_error">
     @if (_error is null && !_loading)
     {
         <DataPanel Title="Definitions">

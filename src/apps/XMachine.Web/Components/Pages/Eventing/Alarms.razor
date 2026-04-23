@@ -22,7 +22,7 @@
 </div>
 
 <DataPanel>
-    <ApiStateDisplay Loading="_loading" Error="_error">
+    <ApiStateDisplay Loading="_loading" Error="@_error">
         @if (_rows.Count == 0)
         {
             <EmptyState Message="No alarm events returned." />

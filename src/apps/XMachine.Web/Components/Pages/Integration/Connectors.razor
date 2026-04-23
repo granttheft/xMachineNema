@@ -18,7 +18,7 @@
 </PageHeader>
 
 <DataPanel Title="Definitions">
-    <ApiStateDisplay Loading="_loadingDefs" Error="_errDefs">
+    <ApiStateDisplay Loading="_loadingDefs" Error="@_errDefs">
         @if (_defs.Count == 0)
         {
             <EmptyState Message="No connector definitions returned." />
@@ -48,7 +48,7 @@
 
 <div class="mt-4">
 <DataPanel Title="Instances">
-    <ApiStateDisplay Loading="_loadingInst" Error="_errInst">
+    <ApiStateDisplay Loading="_loadingInst" Error="@_errInst">
         @if (_inst.Count == 0)
         {
             <EmptyState Message="No connector instances returned." />

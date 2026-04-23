@@ -18,7 +18,7 @@
 </PageHeader>
 
 <DataPanel Padded="true">
-    <ApiStateDisplay Loading="_loading" Error="_error">
+    <ApiStateDisplay Loading="_loading" Error="@_error">
         @if (_data is not null)
         {
             <div class="row g-3">
