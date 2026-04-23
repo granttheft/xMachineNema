@@ -1,0 +1,612 @@
+@page "/engineering/mold-changes"
+@rendermode InteractiveServer
+
+<PageTitle>Mold Change Requests · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <div class="flex flex-wrap items-start justify-between gap-4 bg-white border-b border-slate-200 px-6 py-4">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">Mold Change Requests</h1>
+            <p class="text-sm text-slate-500 mt-1">Manage mold change lifecycle — approval and execution</p>
+        </div>
+        <select @bind="_viewRole" @bind:after="OnViewRoleChanged" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm shrink-0">
+            <option value="production-control">Production Control View</option>
+            <option value="mold-technician">Mold Technician View</option>
+        </select>
+    </div>
+
+    @if (_statusMessage is not null)
+    {
+        <div class="border-b border-green-200 bg-green-50 px-6 py-2 text-sm text-green-800">@_statusMessage</div>
+    }
+
+    <div class="p-6">
+        @if (_viewRole == "production-control")
+        {
+            <div class="bg-white border-b border-slate-200 px-0 mb-6 -mx-6 px-6">
+                <div class="flex flex-wrap gap-x-8">
+                    <button type="button" @onclick='() => SetProdTab("pending")' class="@TabClass(_activeTab == "pending") py-3 px-1 text-sm mr-8">Pending Approval</button>
+                    <button type="button" @onclick='() => SetProdTab("approved")' class="@TabClass(_activeTab == "approved") py-3 px-1 text-sm mr-8">Approved</button>
+                    <button type="button" @onclick='() => SetProdTab("rejected")' class="@TabClass(_activeTab == "rejected") py-3 px-1 text-sm mr-8">Rejected</button>
+                </div>
+            </div>
+
+            @if (_activeTab == "pending")
+            {
+                var list = GetByStatus("pending").ToList();
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-amber-600 shrink-0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span class="text-sm font-semibold text-slate-900">Pending MCRs (@list.Count)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">From Mold</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Mold</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Scheduled Date</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Est. Time</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var m in list)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900">@m.MachineName</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">@m.ProductName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.FromMoldName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.ToMoldName</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@m.ScheduledDate @m.ScheduledTime</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@m.EstimatedTime min</td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <div class="flex flex-wrap gap-2">
+                                            <button type="button" @onclick="() => OpenDetail(m)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-3 hover:bg-slate-50">View</button>
+                                            <button type="button" @onclick="() => OpenApproval(m)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-3 hover:bg-green-700">Approve / Reject</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else if (_activeTab == "approved")
+            {
+                var list = GetByStatus("approved").ToList();
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-600 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <span class="text-sm font-semibold text-slate-900">Approved MCRs (@list.Count)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Mold</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Approved By</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Approved At</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var m in list)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900">@m.MachineName</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">@m.ProductName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.ToMoldName</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@(m.ApprovedBy ?? "—")</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@(m.ApprovedAt ?? "—")</td>
+                                    <td class="px-4 py-3 text-sm"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800">@GetStatusLabel(m.Status)</span></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                var list = GetByStatus("rejected").ToList();
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-red-600 shrink-0"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        <span class="text-sm font-semibold text-slate-900">Rejected MCRs (@list.Count)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Mold</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Rejected By</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Rejection Reason</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var m in list)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900">@m.MachineName</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">@m.ProductName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.ToMoldName</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@(m.RejectedBy ?? "—")</td>
+                                    <td class="max-w-xs truncate px-4 py-3 text-sm text-slate-600" title="@m.RejectionReason">@(m.RejectionReason ?? "—")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="bg-white border-b border-slate-200 px-0 mb-6 -mx-6 px-6">
+                <div class="flex flex-wrap gap-x-8">
+                    <button type="button" @onclick='() => SetTechTab("ready")' class="@TabClass(_activeTechTab == "ready") py-3 px-1 text-sm mr-8">Ready to Start</button>
+                    <button type="button" @onclick='() => SetTechTab("inprogress")' class="@TabClass(_activeTechTab == "inprogress") py-3 px-1 text-sm mr-8">In Progress</button>
+                    <button type="button" @onclick='() => SetTechTab("completed")' class="@TabClass(_activeTechTab == "completed") py-3 px-1 text-sm mr-8">Completed</button>
+                </div>
+            </div>
+
+            @if (_activeTechTab == "ready")
+            {
+                var list = GetByStatus("approved").ToList();
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600 shrink-0"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                        <span class="text-sm font-semibold text-slate-900">Ready to Start (@list.Count)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">From Mold</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Mold</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Est. Time</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Scheduled</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var m in list)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900">@m.MachineName</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">@m.ProductName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.FromMoldName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.ToMoldName</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@m.EstimatedTime min</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@m.ScheduledDate @m.ScheduledTime</td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <button type="button" @onclick="() => StartMcr(m)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-blue-600 text-white h-8 px-3 hover:bg-blue-700">Start</button>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else if (_activeTechTab == "inprogress")
+            {
+                var list = GetByStatus("in-progress").ToList();
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600 shrink-0"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                        <span class="text-sm font-semibold text-slate-900">In Progress (@list.Count)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Mold</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Started At</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Est. Time</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var m in list)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900">@m.MachineName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.ToMoldName</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@(m.StartedAt ?? "—")</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@m.EstimatedTime min</td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <button type="button" @onclick="() => OpenComplete(m)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-3 hover:bg-green-700">Complete</button>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+            else
+            {
+                var list = GetByStatus("completed").ToList();
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-emerald-600 shrink-0"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                        <span class="text-sm font-semibold text-slate-900">Completed (@list.Count)</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Mold</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Completed At</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Est. Time</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actual Time</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Variance</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var m in list)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-900">@m.MachineName</td>
+                                    <td class="px-4 py-3 text-sm font-mono text-slate-600">@m.ToMoldName</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@(m.CompletedAt ?? "—")</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@m.EstimatedTime min</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-700">@(m.ActualTime?.ToString() ?? "—") min</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm font-medium @FormatVarianceClass(m)">@FormatVariance(m)</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (_showDetailModal && _selectedMcr is not null)
+{
+    var d = _selectedMcr;
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseDetail">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">MCR @d.Id</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div><p class="text-xs text-slate-500">Machine</p><p class="font-medium text-slate-900">@d.MachineName</p></div>
+                <div><p class="text-xs text-slate-500">Product</p><p class="font-medium text-slate-900">@d.ProductName</p></div>
+                <div><p class="text-xs text-slate-500">From Mold</p><p class="font-medium text-slate-900">@d.FromMoldName</p></div>
+                <div><p class="text-xs text-slate-500">To Mold</p><p class="font-medium text-slate-900">@d.ToMoldName</p></div>
+                <div><p class="text-xs text-slate-500">Scheduled Date</p><p class="font-medium text-slate-900">@d.ScheduledDate</p></div>
+                <div><p class="text-xs text-slate-500">Scheduled Time</p><p class="font-medium text-slate-900">@d.ScheduledTime</p></div>
+                <div><p class="text-xs text-slate-500">Est. Time</p><p class="font-medium text-slate-900">@d.EstimatedTime minutes</p></div>
+                <div><p class="text-xs text-slate-500">Status</p><p><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStatusClass(d.Status)">@GetStatusLabel(d.Status)</span></p></div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" @onclick="CloseDetail" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Close</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showApprovalModal && _selectedMcr is not null)
+{
+    var a = _selectedMcr;
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseApproval">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-2">Approve / Reject</h2>
+            <div class="rounded-md bg-slate-50 border border-slate-100 p-4 text-sm space-y-1 mb-4">
+                <p><span class="text-slate-500">Machine:</span> <span class="font-medium text-slate-900">@a.MachineName</span></p>
+                <p><span class="text-slate-500">Product:</span> <span class="font-medium text-slate-900">@a.ProductName</span></p>
+                <p><span class="text-slate-500">Change:</span> <span class="font-medium text-slate-900">@a.FromMoldName → @a.ToMoldName</span></p>
+            </div>
+            <label class="block text-sm font-medium text-slate-900 mb-1">Rejection Reason (if rejecting)</label>
+            <textarea @bind="_rejectionReason" rows="3" class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex flex-wrap justify-end gap-2">
+                <button type="button" @onclick="CloseApproval" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="RejectMcr" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Reject</button>
+                <button type="button" @onclick="ApproveMcr" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-green-600 text-white h-9 px-4 hover:bg-green-700">Approve</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showCompleteModal && _selectedMcr is not null)
+{
+    var c = _selectedMcr;
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseComplete">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-2">Complete mold change</h2>
+            <div class="rounded-md bg-slate-50 border border-slate-100 p-4 text-sm space-y-1 mb-4">
+                <p><span class="text-slate-500">Machine:</span> <span class="font-medium text-slate-900">@c.MachineName</span></p>
+                <p><span class="text-slate-500">To Mold:</span> <span class="font-medium text-slate-900">@c.ToMoldName</span></p>
+                <p><span class="text-slate-500">Est. Time:</span> <span class="font-medium text-slate-900">@c.EstimatedTime min</span></p>
+            </div>
+            <label class="block text-sm font-medium text-slate-900 mb-1">Actual Time (minutes) *</label>
+            <input type="number" @bind="_actualTimeInput" class="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm mb-3" />
+            <label class="block text-sm font-medium text-slate-900 mb-1">Notes</label>
+            <textarea @bind="_completionNotes" rows="3" class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex flex-wrap justify-end gap-2">
+                <button type="button" @onclick="CloseComplete" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="CompleteMcr" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-green-600 text-white h-9 px-4 hover:bg-green-700">Complete</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _viewRole = "production-control";
+    private string _activeTab = "pending";
+    private string _activeTechTab = "ready";
+    private List<MoldChangeRequest> _mcrs = new();
+    private bool _initialized;
+
+    private MoldChangeRequest? _selectedMcr;
+    private bool _showDetailModal;
+    private bool _showApprovalModal;
+    private bool _showCompleteModal;
+    private string _rejectionReason = string.Empty;
+    private string _actualTimeInput = string.Empty;
+    private string _completionNotes = string.Empty;
+    private string? _statusMessage;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+
+        _initialized = true;
+        _mcrs = BuildMockMcrs();
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private static List<MoldChangeRequest> BuildMockMcrs()
+    {
+        var t = DateTime.Today;
+        string D(int days) => t.AddDays(days).ToString("yyyy-MM-dd");
+        var yesterday = t.AddDays(-1).ToString("yyyy-MM-dd") + " 10:00";
+        var startedToday = t.ToString("yyyy-MM-dd") + " 08:30";
+        var completedYesterday = t.AddDays(-1).ToString("yyyy-MM-dd") + " 16:00";
+        var approvedTodayMorning = t.ToString("yyyy-MM-dd") + " 09:00";
+        var completedMcr6 = t.AddDays(-1).ToString("yyyy-MM-dd") + " 11:00";
+        var completedMcr9 = t.AddDays(-3).ToString("yyyy-MM-dd") + " 15:00";
+
+        return
+        [
+            new("MCR-001", "Machine M-101", "Plastic Cup 16oz", "MOLD-A01", "MOLD-B02", D(1), "08:00", 45, "pending", null, null, null, null, null, null, null, null),
+            new("MCR-002", "Machine M-102", "Bottle Cap 28mm", "MOLD-C03", "MOLD-A01", D(2), "08:00", 30, "pending", null, null, null, null, null, null, null, null),
+            new("MCR-003", "Machine M-201", "Food Container", "MOLD-B02", "MOLD-D04", D(-1), "13:00", 60, "approved", "Supervisor1", yesterday, null, null, null, null, null, null),
+            new("MCR-004", "Machine M-202", "Water Bottle", "MOLD-D04", "MOLD-C03", D(-3), "09:00", 45, "rejected", null, null, "Supervisor1", "Mold not available", null, null, null, null),
+            new("MCR-005", "Machine M-101", "Lunch Box Kids", "MOLD-E05", "MOLD-A01", D(-1), "14:00", 90, "in-progress", "Supervisor1", yesterday, null, null, startedToday, null, null, null),
+            new("MCR-006", "Machine M-102", "Disposable Plate", "MOLD-A01", "MOLD-E05", D(-5), "08:00", 30, "completed", "Supervisor1", t.AddDays(-6).ToString("yyyy-MM-dd") + " 11:00", null, null, null, completedMcr6, 28, null),
+            new("MCR-007", "Machine M-201", "Plastic Spoon", "MOLD-C03", "MOLD-B02", D(3), "10:00", 45, "pending", null, null, null, null, null, null, null, null),
+            new("MCR-008", "Machine M-202", "Bottle 1L Green", "MOLD-B02", "MOLD-E05", D(1), "15:00", 60, "approved", "Supervisor1", approvedTodayMorning, null, null, null, null, null, null),
+            new("MCR-009", "Machine M-101", "Plastic Cup 16oz", "MOLD-D04", "MOLD-C03", D(-4), "11:00", 30, "completed", "Supervisor1", t.AddDays(-5).ToString("yyyy-MM-dd") + " 09:00", null, null, null, completedMcr9, 35, null),
+            new("MCR-010", "Machine M-102", "Food Container", "MOLD-E05", "MOLD-D04", D(4), "09:00", 75, "pending", null, null, null, null, null, null, null, null),
+        ];
+    }
+
+    private IEnumerable<MoldChangeRequest> GetByStatus(string status) =>
+        _mcrs.Where(m => m.Status == status);
+
+    private static string TabClass(bool active) =>
+        active
+            ? "border-b-2 border-slate-900 text-slate-900 font-medium"
+            : "border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+
+    private void SetProdTab(string tab)
+    {
+        _activeTab = tab;
+        StateHasChanged();
+    }
+
+    private void SetTechTab(string tab)
+    {
+        _activeTechTab = tab;
+        StateHasChanged();
+    }
+
+    private void OnViewRoleChanged() => StateHasChanged();
+
+    private static string GetStatusClass(string status) => status switch
+    {
+        "pending" => "bg-blue-100 text-blue-800",
+        "approved" => "bg-green-100 text-green-800",
+        "rejected" => "bg-red-100 text-red-800",
+        "in-progress" => "bg-orange-100 text-orange-800",
+        "completed" => "bg-emerald-100 text-emerald-800",
+        _ => "bg-slate-100 text-slate-600",
+    };
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        "pending" => "Pending",
+        "approved" => "Approved",
+        "rejected" => "Rejected",
+        "in-progress" => "In Progress",
+        "completed" => "Completed",
+        _ => status,
+    };
+
+    private static string FormatVariance(MoldChangeRequest m)
+    {
+        if (m.ActualTime is not { } a)
+            return "—";
+        var diff = a - m.EstimatedTime;
+        if (diff == 0)
+            return "On time";
+        if (diff > 0)
+            return $"+{diff}m";
+        return $"{diff}m";
+    }
+
+    private static string FormatVarianceClass(MoldChangeRequest m)
+    {
+        if (m.ActualTime is not { } a)
+            return "text-slate-500";
+        var diff = a - m.EstimatedTime;
+        if (diff > 0)
+            return "text-red-600";
+        if (diff < 0)
+            return "text-green-600";
+        return "text-slate-700";
+    }
+
+    private void ReplaceMcr(MoldChangeRequest updated)
+    {
+        var i = _mcrs.FindIndex(x => x.Id == updated.Id);
+        if (i >= 0)
+            _mcrs[i] = updated;
+    }
+
+    private void OpenDetail(MoldChangeRequest m)
+    {
+        _selectedMcr = m;
+        _showDetailModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseDetail()
+    {
+        _showDetailModal = false;
+        _selectedMcr = null;
+        StateHasChanged();
+    }
+
+    private void OpenApproval(MoldChangeRequest m)
+    {
+        _selectedMcr = m;
+        _rejectionReason = string.Empty;
+        _showApprovalModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseApproval()
+    {
+        _showApprovalModal = false;
+        _selectedMcr = null;
+        _rejectionReason = string.Empty;
+        StateHasChanged();
+    }
+
+    private void ApproveMcr()
+    {
+        if (_selectedMcr is null) return;
+        var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        ReplaceMcr(_selectedMcr with
+        {
+            Status = "approved",
+            ApprovedBy = "Supervisor1",
+            ApprovedAt = now,
+        });
+        _statusMessage = "MCR approved.";
+        CloseApproval();
+        StateHasChanged();
+    }
+
+    private void RejectMcr()
+    {
+        if (_selectedMcr is null) return;
+        if (string.IsNullOrWhiteSpace(_rejectionReason))
+        {
+            _statusMessage = "Rejection reason required.";
+            StateHasChanged();
+            return;
+        }
+
+        var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        ReplaceMcr(_selectedMcr with
+        {
+            Status = "rejected",
+            RejectedBy = "Supervisor1",
+            RejectionReason = _rejectionReason.Trim(),
+        });
+        _statusMessage = "MCR rejected.";
+        CloseApproval();
+        StateHasChanged();
+    }
+
+    private void StartMcr(MoldChangeRequest m)
+    {
+        var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        ReplaceMcr(m with { Status = "in-progress", StartedAt = now });
+        _statusMessage = "Mold change started.";
+        StateHasChanged();
+    }
+
+    private void OpenComplete(MoldChangeRequest m)
+    {
+        _selectedMcr = m;
+        _actualTimeInput = string.Empty;
+        _completionNotes = string.Empty;
+        _showCompleteModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseComplete()
+    {
+        _showCompleteModal = false;
+        _selectedMcr = null;
+        _actualTimeInput = string.Empty;
+        _completionNotes = string.Empty;
+        StateHasChanged();
+    }
+
+    private void CompleteMcr()
+    {
+        if (_selectedMcr is null) return;
+        if (!int.TryParse(_actualTimeInput.Trim(), out var actual) || actual < 0)
+        {
+            _statusMessage = "Enter a valid actual time in minutes.";
+            StateHasChanged();
+            return;
+        }
+
+        var now = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+        ReplaceMcr(_selectedMcr with
+        {
+            Status = "completed",
+            CompletedAt = now,
+            ActualTime = actual,
+            Notes = string.IsNullOrWhiteSpace(_completionNotes) ? null : _completionNotes.Trim(),
+        });
+        _statusMessage = "Mold change completed.";
+        CloseComplete();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Represents a mold change request row in mock state.
+    /// </summary>
+    private sealed record MoldChangeRequest(
+        string Id,
+        string MachineName,
+        string ProductName,
+        string FromMoldName,
+        string ToMoldName,
+        string ScheduledDate,
+        string ScheduledTime,
+        int EstimatedTime,
+        string Status,
+        string? ApprovedBy,
+        string? ApprovedAt,
+        string? RejectedBy,
+        string? RejectionReason,
+        string? StartedAt,
+        string? CompletedAt,
+        int? ActualTime,
+        string? Notes);
+}
