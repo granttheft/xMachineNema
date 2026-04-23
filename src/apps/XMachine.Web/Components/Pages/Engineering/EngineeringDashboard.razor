@@ -1,0 +1,481 @@
+@page "/engineering/dashboard"
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Engineering Dashboard · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900">Engineering Dashboard</h1>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button type="button"
+                            @onclick='() => SetFilterStatus("all")'
+                            class="@FilterBtnClass(_filterStatus == "all") h-9 px-3 text-sm font-medium rounded-md transition-colors">
+                        All
+                    </button>
+                    <button type="button"
+                            @onclick='() => SetFilterStatus("running")'
+                            class="@FilterBtnClass(_filterStatus == "running") h-9 px-3 text-sm font-medium rounded-md transition-colors">
+                        Running
+                    </button>
+                    <button type="button"
+                            @onclick='() => SetFilterStatus("down")'
+                            class="@FilterBtnClass(_filterStatus == "down") h-9 px-3 text-sm font-medium rounded-md transition-colors">
+                        Down
+                    </button>
+                    <button type="button"
+                            @onclick='() => SetFilterStatus("pm-due")'
+                            class="@FilterBtnClass(_filterStatus == "pm-due") h-9 px-3 text-sm font-medium rounded-md transition-colors">
+                        PM Due
+                    </button>
+                    <button type="button"
+                            @onclick='() => SetFilterStatus("waiting-parts")'
+                            class="@FilterBtnClass(_filterStatus == "waiting-parts") h-9 px-3 text-sm font-medium rounded-md transition-colors">
+                        Waiting Parts
+                    </button>
+                </div>
+
+                <div class="h-6 w-px bg-slate-200 shrink-0" role="separator" aria-orientation="vertical"></div>
+
+                <select @bind="_filterRole" @bind:after="StateHasChanged" class="h-9 w-48 rounded-md border border-slate-200 bg-white px-3 text-sm">
+                    <option value="all">All Roles</option>
+                    <option value="plastic">Plastic</option>
+                    <option value="mold">Mold</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="mold-change">Mold Change</option>
+                    <option value="technician-head">Technician Head</option>
+                </select>
+
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input @bind="_searchTerm" @bind:event="oninput" placeholder="Machine ID / Plan ID / Job ID" class="pl-10 w-64 h-9 rounded-md border border-slate-200 bg-white px-3 py-1 text-sm" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6">
+        @if (!string.IsNullOrEmpty(_toastInfo))
+        {
+            <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800" role="status">@_toastInfo</div>
+        }
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+            <h3 class="text-lg font-semibold text-slate-900">Engineering Dashboard – Machine List</h3>
+            <div class="flex gap-2">
+                <button type="button" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-200 bg-white h-9 px-3 hover:bg-slate-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export
+                </button>
+                <button type="button" @onclick="() => _showBreakdownModal = true" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-slate-900 text-white h-9 px-3 hover:bg-slate-800">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Report Breakdown
+                </button>
+            </div>
+        </div>
+
+        <!-- Machine Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            @foreach (var machine in GetFilteredMachines())
+            {
+                var borderColor =
+                    machine.Status == "running" ? "border-green-400" :
+                    machine.Status == "down" ? "border-red-400" :
+                    machine.Status == "pm-due" ? "border-purple-400" :
+                    machine.Status == "waiting-parts" ? "border-orange-400" :
+                    "border-yellow-400";
+
+                <div class="@($"rounded-lg border-2 bg-white text-card-foreground shadow-sm {borderColor} hover:shadow-lg transition-all duration-200")">
+                    <div class="flex flex-col space-y-1.5 p-6 pb-3">
+                        <div class="flex justify-between items-start gap-2">
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-base font-semibold leading-none tracking-tight text-slate-900">@machine.Type</h3>
+                                <p class="text-sm text-slate-600 font-medium mt-1">(@machine.Name)</p>
+                            </div>
+                            <div class="flex flex-col items-end gap-2 shrink-0">
+                                <span class="@($"{GetStatusColor(machine.Status)} border inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold")">@GetStatusLabel(machine.Status)</span>
+                                @if (machine.AssignedEngineer is not null)
+                                {
+                                    <div class="h-6 w-6 bg-blue-100 rounded-full flex items-center justify-center text-slate-600">
+                                        @((MarkupString)RoleIconSvg(machine.AssignedEngineer.Role))
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 pt-0 space-y-3">
+                        <div>
+                            <p class="text-xs text-slate-500 mb-1">Current Job</p>
+                            @if (machine.CurrentJob is not null)
+                            {
+                                <div>
+                                    <p class="text-sm font-medium text-slate-900">@machine.CurrentJob.JobId</p>
+                                    <p class="text-xs text-slate-600">@machine.CurrentJob.Product</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-slate-500">No Job</p>
+                            }
+                        </div>
+
+                        @if (machine.Downtime is not null && machine.Status != "pm-due")
+                        {
+                            <div class="bg-red-50 p-3 rounded-lg border border-red-200">
+                                <p class="text-xs text-red-600 font-medium mb-1">Issue</p>
+                                <p class="text-sm font-medium text-red-800">@machine.Downtime.Reason</p>
+                                @if (!string.IsNullOrEmpty(machine.Downtime.Duration))
+                                {
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-red-500"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                        <span class="text-xs text-red-600 font-medium">@machine.Downtime.Duration</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (machine.Status == "pm-due")
+                        {
+                            <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                <p class="text-xs text-purple-600 font-medium mb-1">Maintenance</p>
+                                <p class="text-sm font-medium text-purple-800">@(machine.Downtime?.Reason ?? "PM Scheduled")</p>
+                            </div>
+                        }
+
+                        <div>
+                            <p class="text-xs text-slate-500 mb-2">Assigned engineer</p>
+                            @if (machine.AssignedEngineer is not null)
+                            {
+                                <div class="flex items-center gap-3 p-2 bg-slate-50 rounded-lg">
+                                    <div class="relative shrink-0">
+                                        <div class="@($"h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-medium bg-slate-100 {GetEngineerStatusColor(machine.AssignedEngineer.Status)}")">
+                                            @GetInitials(machine.AssignedEngineer.Name)
+                                        </div>
+                                        <div class="absolute -top-1 -right-1 h-4 w-4 bg-white rounded-full flex items-center justify-center border border-slate-200 text-slate-600 scale-75">
+                                            @((MarkupString)RoleIconSvg(machine.AssignedEngineer.Role))
+                                        </div>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-900">@GetRoleText(machine.AssignedEngineer.Role)</p>
+                                        <p class="text-xs text-slate-600 truncate">@machine.AssignedEngineer.Name</p>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-2 bg-red-50 rounded-lg border border-red-200">
+                                    <p class="text-sm font-medium text-red-600">Unassigned</p>
+                                    <p class="text-xs text-red-500">No engineer assigned yet</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="px-6 pb-6">
+                        <div class="h-px w-full bg-slate-200 mb-3" role="separator"></div>
+                        <div class="grid grid-cols-3 gap-2 mb-3 text-xs">
+                            <div>
+                                <p class="text-slate-500">Downtime</p>
+                                <p class="font-medium text-slate-900">@(string.IsNullOrEmpty(machine.Downtime?.Duration) ? "0m" : machine.Downtime!.Duration)</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500">Open Tasks</p>
+                                <p class="font-medium text-slate-900">@OpenTaskCount(machine.Id)</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500">Next PM</p>
+                                <p class="font-medium text-xs text-slate-900">@FormatNextPm(machine.NextPM)</p>
+                            </div>
+                        </div>
+                        <button type="button"
+                                @onclick="() => OnViewDetails(machine)"
+                                class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border border-slate-200 bg-white h-9 px-3 w-full hover:bg-slate-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View Details
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!GetFilteredMachines().Any())
+        {
+            <div class="rounded-lg border border-slate-200 bg-white text-card-foreground shadow-sm p-8 text-center mt-6">
+                <div class="space-y-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-400 mx-auto"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <h3 class="text-lg font-semibold text-slate-600">No Machines Found</h3>
+                    <p class="text-slate-500">Try adjusting your filters to see more results.</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (_showBreakdownModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="() => _showBreakdownModal = false">
+        <div class="max-w-2xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Machine Breakdown Report</h2>
+                    <p class="text-sm text-slate-500 mt-1">Report a new machine breakdown and assign an engineer.</p>
+                </div>
+                <button type="button" @onclick="() => _showBreakdownModal = false" class="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium leading-none text-slate-900">Machine ID</label>
+                        <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                            @foreach (var m in MockMachines)
+                            {
+                                <option value="@m.Id">@m.Id - @m.Type</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-sm font-medium leading-none text-slate-900">Priority</label>
+                        <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                            <option>P1 - Critical</option>
+                            <option>P2 - High</option>
+                            <option>P3 - Medium</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none text-slate-900">Reason Code</label>
+                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option>Mechanical Issue</option>
+                        <option>Electrical Issue</option>
+                        <option>Hydraulic Issue</option>
+                        <option>Mold Issue</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none text-slate-900">Assign Engineer</label>
+                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option>Plastic Technician</option>
+                        <option>Mold Technician</option>
+                        <option>Maintenance Engineer</option>
+                        <option>Mold Change</option>
+                        <option>Technician Head</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none text-slate-900">Description</label>
+                    <textarea rows="4" placeholder="Describe the issue in detail..." class="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 flex-wrap">
+                    <button type="button" @onclick="() => _showBreakdownModal = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                    <button type="button" @onclick="CloseModalAfterSave" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800">Save</button>
+                    <button type="button" @onclick="CloseModalAfterSaveAndRepair" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">Save &amp; Start Repair</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _filterStatus = "all";
+    private string _filterRole = "all";
+    private string _searchTerm = "";
+    private bool _showBreakdownModal;
+    private string? _toastInfo;
+
+    private static readonly IReadOnlyList<EngMachine> MockMachines =
+    [
+        new("IM-001", "IM-001", "Injection Machine 1", "down",
+            new EngCurrentJob("JOB-2024-001", "PLN-2024-001", "Bottle Cap Red"),
+            new EngDowntime("Hydraulic Oil Leak", "09:30", "2h 15m"),
+            new EngEngineer("ENG-001", "Ko Thant", "maintenance", "in-progress", new EngContact("+95-9-123456789", "ko.thant@factory.com")),
+            "2024-01-15", "2024-02-15"),
+        new("IM-002", "IM-002", "Injection Machine 2", "running",
+            new EngCurrentJob("JOB-2024-002", "PLN-2024-002", "Container Blue"),
+            null, null, "2024-01-20", "2024-02-20"),
+        new("IM-003", "IM-003", "Injection Machine 3", "down",
+            null,
+            new EngDowntime("Mold Jam", "13:15", "45m"),
+            null, "2024-01-12", "2024-02-12"),
+        new("IM-004", "IM-004", "Injection Machine 4", "pm-due",
+            null,
+            new EngDowntime("PM Scheduled for Tomorrow", "", ""),
+            null, "2023-12-15", "2024-01-15"),
+        new("IM-005", "IM-005", "Injection Machine 5", "waiting-parts",
+            null,
+            new EngDowntime("Waiting for Spare Parts", "10:00", "4h 30m"),
+            new EngEngineer("ENG-002", "Ma Aye", "mold", "assigned", new EngContact("+95-9-987654321", "ma.aye@factory.com")),
+            "2024-01-10", "2024-02-10"),
+    ];
+
+    private static readonly IReadOnlyList<EngTask> MockTasks =
+    [
+        new("TSK-001", "IM-001", "in-progress"),
+        new("TSK-002", "IM-005", "waiting-parts"),
+    ];
+
+    /// <summary>
+    /// Machine row for the engineering dashboard mock fleet.
+    /// </summary>
+    private sealed record EngMachine(
+        string Id,
+        string Name,
+        string Type,
+        string Status,
+        EngCurrentJob? CurrentJob,
+        EngDowntime? Downtime,
+        EngEngineer? AssignedEngineer,
+        string LastPM,
+        string NextPM);
+
+    private sealed record EngCurrentJob(string JobId, string PlanId, string Product);
+    private sealed record EngDowntime(string Reason, string StartTime, string Duration);
+    private sealed record EngContact(string Phone, string Email);
+    private sealed record EngEngineer(string Id, string Name, string Role, string Status, EngContact ContactInfo);
+    private sealed record EngTask(string Id, string MachineId, string Status);
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    private void SetFilterStatus(string status)
+    {
+        _filterStatus = status;
+        StateHasChanged();
+    }
+
+    private IEnumerable<EngMachine> GetFilteredMachines()
+    {
+        var q = _searchTerm.Trim();
+        foreach (var machine in MockMachines)
+        {
+            if (_filterStatus != "all" && !string.Equals(machine.Status, _filterStatus, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (_filterRole != "all" && (machine.AssignedEngineer is null || !string.Equals(machine.AssignedEngineer.Role, _filterRole, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            if (q.Length > 0)
+            {
+                var idMatch = machine.Id.Contains(q, StringComparison.OrdinalIgnoreCase);
+                var jobMatch = machine.CurrentJob?.JobId.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
+                var planMatch = machine.CurrentJob?.PlanId.Contains(q, StringComparison.OrdinalIgnoreCase) == true;
+                if (!idMatch && !jobMatch && !planMatch)
+                    continue;
+            }
+
+            yield return machine;
+        }
+    }
+
+    private static int OpenTaskCount(string machineId) =>
+        MockTasks.Count(t => t.MachineId == machineId && t.Status != "done");
+
+    private static string GetStatusColor(string status) => status switch
+    {
+        "running" => "bg-green-100 text-green-800 border-green-200",
+        "idle" => "bg-yellow-100 text-yellow-800 border-yellow-200",
+        "down" => "bg-red-100 text-red-800 border-red-200",
+        "pm-due" => "bg-purple-100 text-purple-800 border-purple-200",
+        "waiting-parts" => "bg-orange-100 text-orange-800 border-orange-200",
+        _ => "bg-gray-100 text-gray-800 border-gray-200",
+    };
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        "running" => "🟢 Running",
+        "idle" => "🟡 Idle",
+        "down" => "🔴 Down",
+        "pm-due" => "🟣 PM Due",
+        "waiting-parts" => "🟠 Waiting Parts",
+        _ => "Unknown",
+    };
+
+    private static string GetEngineerStatusColor(string status) => status switch
+    {
+        "assigned" => "border-orange-400",
+        "in-progress" => "border-blue-400",
+        "resolved" => "border-green-400",
+        _ => "border-gray-300",
+    };
+
+    private static string GetRoleText(string role) => role switch
+    {
+        "plastic" => "Plastic Technician",
+        "mold" => "Mold Technician",
+        "maintenance" => "Maintenance Engineer",
+        "mold-change" => "Mold Change",
+        "technician-head" => "Technician Head",
+        _ => "Engineer",
+    };
+
+    private static string GetInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 0
+            ? "?"
+            : string.Concat(parts.Select(p => p.Length > 0 ? char.ToUpperInvariant(p[0]) : ' ')).Replace(" ", "");
+    }
+
+    private static string FormatNextPm(string nextPm)
+    {
+        if (!DateTime.TryParse(nextPm, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+            return nextPm;
+        return d.ToString("dd/MM", CultureInfo.InvariantCulture);
+    }
+
+    private static string RoleIconSvg(string role) => role switch
+    {
+        "plastic" => """<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>""",
+        "mold" => """<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>""",
+        "maintenance" => """<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>""",
+        "mold-change" => """<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>""",
+        "technician-head" => """<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>""",
+        _ => """<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>""",
+    };
+
+    private static string FilterBtnClass(bool active) =>
+        active
+            ? "inline-flex items-center justify-center border border-transparent bg-slate-900 text-white hover:bg-slate-800"
+            : "inline-flex items-center justify-center border border-slate-200 bg-white text-slate-900 hover:bg-slate-50";
+
+    private void OnViewDetails(EngMachine machine)
+    {
+        _toastInfo = $"Opening details for {machine.Name}";
+        StateHasChanged();
+    }
+
+    private void CloseModalAfterSave()
+    {
+        _showBreakdownModal = false;
+        _toastInfo = "Breakdown report saved and engineer assigned.";
+        StateHasChanged();
+    }
+
+    private void CloseModalAfterSaveAndRepair()
+    {
+        _showBreakdownModal = false;
+        _toastInfo = "Report saved and repair started.";
+        StateHasChanged();
+    }
+}
