@@ -85,9 +85,17 @@
         var sum = await Api.GetQualitySummaryAsync().ConfigureAwait(false);
         var list = await Api.GetNonconformancesAsync().ConfigureAwait(false);
         _loading = false;
-        if (sum.Error is not null) _error = sum.Error;
-        else _summary = sum.Data;
-        if (list.Error is not null) _error ??= list.Error;
-        _rows = list.Data ?? [];
+        if (sum.Error is not null)
+            _error = sum.Error;
+        else
+            _summary = sum.Data;
+
+        if (list.Error is not null)
+            _error ??= list.Error;
+        else
+            _rows = list.Data ?? [];
+
+        if (sum.Error is null && list.Error is null)
+            _error = null;
     }
 }

@@ -70,7 +70,12 @@
     {
         var res = await Api.GetDowntimesAsync().ConfigureAwait(false);
         _loading = false;
-        _error = res.Error;
-        _rows = res.Data ?? [];
+        if (res.Error is not null)
+            _error = res.Error;
+        else
+        {
+            _error = null;
+            _rows = res.Data ?? [];
+        }
     }
 }

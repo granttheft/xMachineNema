@@ -78,8 +78,13 @@
         _summary = await tSummary.ConfigureAwait(false);
         var defs = await tDefs.ConfigureAwait(false);
         _loading = false;
-        _error = defs.Error;
-        _rows = defs.Data ?? [];
+        if (defs.Error is not null)
+            _error = defs.Error;
+        else
+        {
+            _error = null;
+            _rows = defs.Data ?? [];
+        }
     }
 
     private static string? Fmt(int? v) => v?.ToString();

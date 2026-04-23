@@ -82,8 +82,13 @@
         _summary = await tSummary.ConfigureAwait(false);
         var inst = await tInst.ConfigureAwait(false);
         _loading = false;
-        _error = inst.Error;
-        _rows = inst.Data ?? [];
+        if (inst.Error is not null)
+            _error = inst.Error;
+        else
+        {
+            _error = null;
+            _rows = inst.Data ?? [];
+        }
     }
 
     private static string? Fmt(int? v) => v?.ToString();

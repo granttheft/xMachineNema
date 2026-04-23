@@ -91,9 +91,20 @@
         var i = await Api.GetConnectorInstancesAsync().ConfigureAwait(false);
         _loadingDefs = false;
         _loadingInst = false;
-        _errDefs = d.Error;
-        _errInst = i.Error;
-        _defs = d.Data ?? [];
-        _inst = i.Data ?? [];
+        if (d.Error is not null)
+            _errDefs = d.Error;
+        else
+        {
+            _errDefs = null;
+            _defs = d.Data ?? [];
+        }
+
+        if (i.Error is not null)
+            _errInst = i.Error;
+        else
+        {
+            _errInst = null;
+            _inst = i.Data ?? [];
+        }
     }
 }

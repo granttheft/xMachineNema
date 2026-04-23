@@ -63,6 +63,9 @@
         if (res.Error is not null)
             _error = res.Error;
         else
+        {
+            _error = null;
             _rows = res.Data ?? [];
+        }
     }
 }
