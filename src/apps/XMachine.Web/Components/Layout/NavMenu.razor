@@ -1,48 +1,143 @@
-﻿<div class="nav-brand px-3 py-3 border-bottom xm-nav-brand-border">
-    <a class="text-decoration-none xm-nav-product" href="/dashboard">xMachine</a>
-    <div class="xm-nav-tagline">Operations console</div>
-</div>
+﻿@using Microsoft.AspNetCore.Components.Routing
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<nav class="shrink-0 flex flex-col h-screen bg-white border-r border-black/10 transition-[width] duration-300 @(_open ? "w-[280px]" : "w-16")"
+     style="min-height: 100vh;">
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler')?.click()">
-    <nav class="nav flex-column small xm-nav">
-        <div class="nav-section-title px-3 pt-3 pb-1">Overview</div>
-        <div class="nav-item px-2">
-            <NavLink class="nav-link xm-nav-link" href="/dashboard" Match="NavLinkMatch.Prefix">Dashboard</NavLink>
-        </div>
+    <!-- Header -->
+    <div class="flex items-center h-16 px-4 border-b border-black/10 shrink-0 @(_open ? "justify-between" : "justify-center")">
+        @if (_open)
+        {
+            <div class="min-w-0 pr-2">
+                <div class="text-[18px] font-semibold text-[#030213] leading-tight">xMachine</div>
+                <div class="text-xs text-[#717182]">Operations console</div>
+            </div>
+        }
+        <button type="button"
+                @onclick="Toggle"
+                class="p-2 rounded-lg hover:bg-slate-100 text-slate-600 shrink-0 @(_open ? "" : "")"
+                aria-expanded="@_open"
+                aria-label="@(_open ? "Collapse navigation" : "Expand navigation")">
+            @if (_open)
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            }
+            else
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            }
+        </button>
+    </div>
 
-        <div class="nav-section-title px-3 pt-3 pb-1">MES</div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/mes/orders">Production orders</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/mes/recipes">Recipes</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/mes/lots">Lots</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/mes/shifts">Shifts</NavLink></div>
+    <!-- Navigation -->
+    <div class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 min-h-0">
 
-        <div class="nav-section-title px-3 pt-3 pb-1">Quality</div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/quality/checks">Checks</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/quality/nonconformances">Nonconformances</NavLink></div>
+        @SectionHeader("OVERVIEW")
+        @NavItem("/dashboard", GridSvg, "Dashboard", NavLinkMatch.All)
 
-        <div class="nav-section-title px-3 pt-3 pb-1">Eventing</div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/eventing/alarms">Alarms</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/eventing/downtimes">Downtimes</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/eventing/oee">OEE snapshots</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/eventing/kpis">KPIs</NavLink></div>
+        @SectionHeader("MES")
+        @NavItem("/mes/orders", ClipboardSvg, "Production orders")
+        @NavItem("/mes/recipes", BookSvg, "Recipes")
+        @NavItem("/mes/lots", LayersSvg, "Lots")
+        @NavItem("/mes/shifts", ClockSvg, "Shifts")
 
-        <div class="nav-section-title px-3 pt-3 pb-1">Workflow</div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/workflow/definitions">Definitions</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/workflow/instances">Instances</NavLink></div>
+        @SectionHeader("QUALITY")
+        @NavItem("/quality/checks", CheckSvg, "Checks")
+        @NavItem("/quality/nonconformances", AlertSvg, "Nonconformances")
 
-        <div class="nav-section-title px-3 pt-3 pb-1">Integration</div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/integration/connectors">Connectors</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/integration/mappings">Mappings</NavLink></div>
-        <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/integration/health">Health</NavLink></div>
+        @SectionHeader("EVENTING")
+        @NavItem("/eventing/alarms", BellSvg, "Alarms")
+        @NavItem("/eventing/downtimes", PauseSvg, "Downtimes")
+        @NavItem("/eventing/oee", ActivitySvg, "OEE snapshots")
+        @NavItem("/eventing/kpis", TrendingSvg, "KPIs")
+
+        @SectionHeader("WORKFLOW")
+        @NavItem("/workflow/definitions", GitSvg, "Definitions")
+        @NavItem("/workflow/instances", PlaySvg, "Instances")
+
+        @SectionHeader("INTEGRATION")
+        @NavItem("/integration/connectors", PlugSvg, "Connectors")
+        @NavItem("/integration/mappings", ArrowSvg, "Mappings")
+        @NavItem("/integration/health", HeartPulseSvg, "Health")
 
         <AuthorizeView Policy="@AuthPolicies.AdminArea">
             <Authorized>
-                <div class="nav-section-title px-3 pt-3 pb-1">Admin</div>
-                <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/admin/tenants">Tenants</NavLink></div>
-                <div class="nav-item px-2"><NavLink class="nav-link xm-nav-link" href="/admin/licenses">Licenses</NavLink></div>
+                @SectionHeader("ADMIN")
+                @NavItem("/admin/tenants", BuildingSvg, "Tenants")
+                @NavItem("/admin/licenses", KeySvg, "Licenses")
             </Authorized>
         </AuthorizeView>
-    </nav>
-</div>
+    </div>
+</nav>
+
+@code {
+    private bool _open = true;
+
+    private void Toggle()
+    {
+        _open = !_open;
+    }
+
+    private RenderFragment SectionHeader(string title) => __builder =>
+    {
+        if (_open)
+        {
+            <div class="px-3 pt-3 pb-1">
+                <span class="text-[11px] font-semibold uppercase tracking-wider text-[#717182]">@title</span>
+            </div>
+        }
+    };
+
+    private RenderFragment NavItem(string href, string iconSvg, string label, NavLinkMatch match = NavLinkMatch.Prefix) => __builder =>
+    {
+        var row = _open
+            ? "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium border-l-2 border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 no-underline w-full text-left"
+            : "flex items-center justify-center px-2 py-2 rounded-md text-sm font-medium border-l-2 border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900 no-underline w-full";
+
+        <NavLink href="@href"
+                 Match="@match"
+                 class="@row"
+                 ActiveClass="bg-blue-50 text-blue-700 border-blue-500">
+            <span class="shrink-0 w-4 h-4 inline-flex items-center justify-center [&>svg]:block">@((MarkupString)iconSvg)</span>
+            @if (_open)
+            {
+                <span class="truncate">@label</span>
+            }
+        </NavLink>
+    };
+
+    private const string GridSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>""";
+
+    private const string ClipboardSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="15" y2="16"/></svg>""";
+
+    private const string BookSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>""";
+
+    private const string LayersSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>""";
+
+    private const string ClockSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>""";
+
+    private const string CheckSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>""";
+
+    private const string AlertSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>""";
+
+    private const string BellSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>""";
+
+    private const string PauseSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg>""";
+
+    private const string ActivitySvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>""";
+
+    private const string TrendingSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>""";
+
+    private const string GitSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>""";
+
+    private const string PlaySvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>""";
+
+    private const string PlugSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4Z"/></svg>""";
+
+    private const string ArrowSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>""";
+
+    private const string HeartPulseSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5-.5 1.5H22"/></svg>""";
+
+    private const string BuildingSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>""";
+
+    private const string KeySvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>""";
+}

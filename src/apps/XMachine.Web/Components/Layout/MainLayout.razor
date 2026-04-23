@@ -6,13 +6,11 @@
 @inject ApiConnectivityState ApiConnectivity
 @inject IWebHostEnvironment HostEnv
 
-<div class="page">
-    <div class="sidebar border-end border-dark border-opacity-25">
-        <NavMenu />
-    </div>
+<div class="flex h-screen overflow-hidden bg-slate-50">
+    <NavMenu />
 
-    <main>
-        <header class="top-bar xm-top-bar border-bottom px-3 px-lg-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+        <header class="top-bar xm-top-bar border-b px-3 px-lg-4 d-flex align-items-center justify-content-between flex-wrap gap-2 shrink-0">
             <div class="d-flex align-items-center gap-3 py-2">
                 <span class="xm-top-bar-product fw-semibold">xMachine</span>
                 <span class="xm-top-bar-tagline d-none d-sm-inline">Operations</span>
@@ -42,10 +40,10 @@
             </div>
         </header>
 
-        <article class="content px-3 px-lg-4 pb-5">
+        <main class="flex-1 overflow-y-auto bg-slate-50 p-3 p-lg-4 pb-5">
             @if (ApiConnectivity.HasResult && !ApiConnectivity.IsReachable)
             {
-                <div class="xm-api-banner alert d-flex flex-column flex-md-row gap-2 mt-3 mb-0" role="status">
+                <div class="xm-api-banner alert d-flex flex-column flex-md-row gap-2 mt-0 mb-3" role="status">
                     <div>
                         <strong>API not reachable.</strong>
                         Web could not complete <code>GET /health/live</code> on
@@ -57,8 +55,8 @@
                 </div>
             }
             @Body
-        </article>
-    </main>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
