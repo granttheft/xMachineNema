@@ -81,6 +81,29 @@ public static class LoginHandler
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
 
+                // Capture cookie value for Blazor circuit access
+                var cookieStore = ctx.RequestServices.GetRequiredService<UserCookieStore>();
+                var capturedUserId = user.Id;
+
+                ctx.Response.OnStarting(() =>
+                {
+                    var setCookieHeaders = ctx.Response.Headers["Set-Cookie"];
+                    foreach (var header in (IEnumerable<string>)setCookieHeaders)
+                    {
+                        if (header is null) continue;
+                        var prefix = XMachineAuthDefaults.CookieName + "=";
+                        if (header.StartsWith(prefix, StringComparison.Ordinal))
+                        {
+                            var rawValue = header.Split(';')[0].Substring(prefix.Length);
+                            if (!string.IsNullOrEmpty(rawValue))
+                                cookieStore.Set(capturedUserId, rawValue);
+                            break;
+                        }
+                    }
+
+                    return Task.CompletedTask;
+                });
+
                 await ctx.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     principal,
