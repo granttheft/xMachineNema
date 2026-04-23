@@ -25,22 +25,32 @@
         }
         else
         {
-            <div class="table-responsive xm-table-wrap">
-                <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Category</th><th>Direction</th><th>Record</th></tr></thead>
-                    <tbody>
-                    @foreach (var r in _defs)
-                    {
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
                         <tr>
-                            <td class="font-monospace small">@r.Code</td>
-                            <td>@r.Name</td>
-                            <td class="small">@UiLabels.HumanizeToken(r.Category)</td>
-                            <td><StatusBadge Text="@UiLabels.ConnectorDirection(r.Direction)" Tone="@UiLabels.ConnectorDirectionTone(r.Direction)" /></td>
-                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Code</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Name</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Category</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Direction</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                         </tr>
-                    }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _defs)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@r.Code</td>
+                                <td class="px-4 py-3 text-sm text-slate-700">@r.Name</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">@UiLabels.HumanizeToken(r.Category)</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><StatusBadge Text="@UiLabels.ConnectorDirection(r.Direction)" Tone="@UiLabels.ConnectorDirectionTone(r.Direction)" /></td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@r.Status" /></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </ApiStateDisplay>
@@ -55,22 +65,32 @@
         }
         else
         {
-            <div class="table-responsive xm-table-wrap">
-                <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Connector definition</th><th>Site ID</th><th>Record</th></tr></thead>
-                    <tbody>
-                    @foreach (var r in _inst)
-                    {
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
                         <tr>
-                            <td class="font-monospace small">@r.Code</td>
-                            <td>@r.Name</td>
-                            <td class="small font-monospace">@r.ConnectorDefinitionId</td>
-                            <td class="small font-monospace">@r.SiteId</td>
-                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Code</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Name</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Connector definition</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Site ID</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                         </tr>
-                    }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _inst)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@r.Code</td>
+                                <td class="px-4 py-3 text-sm text-slate-700">@r.Name</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.ConnectorDefinitionId</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.SiteId</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@r.Status" /></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </ApiStateDisplay>

@@ -52,23 +52,34 @@
         }
         else
         {
-            <div class="table-responsive xm-table-wrap">
-                <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light"><tr><th>NC code</th><th>Quality check</th><th>Severity</th><th>NC status</th><th>Description</th><th>Record</th></tr></thead>
-                    <tbody>
-                    @foreach (var r in _rows)
-                    {
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
                         <tr>
-                            <td class="font-monospace small">@r.NcCode</td>
-                            <td class="small font-monospace">@r.QualityCheckId</td>
-                            <td><StatusBadge Text="@UiLabels.NonconformanceSeverity(r.Severity)" Tone="@UiLabels.NonconformanceSeverityTone(r.Severity)" /></td>
-                            <td><StatusBadge Text="@UiLabels.NonconformanceStatus(r.NcStatus)" Tone="@UiLabels.NonconformanceStatusTone(r.NcStatus)" /></td>
-                            <td class="small">@r.Description</td>
-                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">NC code</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Quality check</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Severity</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">NC status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Description</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                         </tr>
-                    }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _rows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@r.NcCode</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.QualityCheckId</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><StatusBadge Text="@UiLabels.NonconformanceSeverity(r.Severity)" Tone="@UiLabels.NonconformanceSeverityTone(r.Severity)" /></td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><StatusBadge Text="@UiLabels.NonconformanceStatus(r.NcStatus)" Tone="@UiLabels.NonconformanceStatusTone(r.NcStatus)" /></td>
+                                <td class="max-w-xs truncate px-4 py-3 text-sm text-slate-700" title="@r.Description">@r.Description</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@r.Status" /></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </ApiStateDisplay>

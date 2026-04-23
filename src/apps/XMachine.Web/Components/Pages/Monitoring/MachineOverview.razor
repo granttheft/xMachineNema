@@ -1,0 +1,110 @@
+@page "/monitoring/machines"
+@rendermode InteractiveServer
+
+<PageTitle>Machine overview</PageTitle>
+
+<PageHeader Title="Machine overview"
+            Subtitle="Mock fleet view until PLC connectors are wired to live telemetry.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Monitoring</li>
+                <li class="breadcrumb-item active">Machines</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
+
+<ApiStateDisplay Loading="_loading" Error="@_error">
+    @if (_error is null && !_loading)
+    {
+        <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900">@_rows.Count</div>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Running</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-green-700">@_rows.Count(r => r.Status == "Running")</div>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Idle</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-amber-700">@_rows.Count(r => r.Status == "Idle")</div>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Down</div>
+                <div class="mt-1 text-2xl font-bold tabular-nums text-red-700">@_rows.Count(r => r.Status == "Down")</div>
+            </div>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100">
+                    <thead class="bg-slate-50">
+                    <tr>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Current order</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach (var r in _rows)
+                    {
+                        <tr class="transition-colors hover:bg-slate-50">
+                            <td class="px-4 py-3 text-sm font-medium text-slate-900">@r.Name</td>
+                            <td class="px-4 py-3 text-sm text-slate-700">
+                                <StatusBadge Text="@r.Status" Tone="@StatusTone(r.Status)" />
+                            </td>
+                            <td class="px-4 py-3 text-sm text-slate-600">@(r.CurrentOrder ?? "—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</ApiStateDisplay>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<MockMachineRow> _rows = [];
+
+    /// <summary>
+    /// Static mock machine row for the overview table.
+    /// </summary>
+    private sealed record MockMachineRow(string Name, string Status, string? CurrentOrder);
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await Task.CompletedTask;
+        _error = null;
+        _rows =
+        [
+            new MockMachineRow("CNC Assembly A", "Running", "PO-2847"),
+            new MockMachineRow("Press Line 2", "Idle", null),
+            new MockMachineRow("Packaging Cell B", "Running", "PO-2901"),
+            new MockMachineRow("Welding Station 4", "Down", "PO-2799"),
+            new MockMachineRow("Mixer Train 1", "Running", null),
+            new MockMachineRow("QC Buffer", "Idle", "PO-2910"),
+        ];
+        _loading = false;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Maps mock status strings to badge tones.
+    /// </summary>
+    private static StatusBadgeTone StatusTone(string status) => status switch
+    {
+        "Running" => StatusBadgeTone.Success,
+        "Idle" => StatusBadgeTone.Warning,
+        "Down" => StatusBadgeTone.Danger,
+        _ => StatusBadgeTone.Neutral,
+    };
+}

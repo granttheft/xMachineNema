@@ -29,22 +29,32 @@
         }
         else
         {
-            <div class="table-responsive xm-table-wrap">
-                <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light"><tr><th>Lot</th><th>Production order</th><th>Lot status</th><th>Good qty</th><th>Record</th></tr></thead>
-                    <tbody>
-                    @foreach (var r in _rows)
-                    {
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
                         <tr>
-                            <td class="font-monospace small">@r.LotNo</td>
-                            <td class="small font-monospace">@r.ProductionOrderId</td>
-                            <td><StatusBadge Text="@UiLabels.LotBatchStatus(r.LotStatus)" Tone="@UiLabels.LotBatchStatusTone(r.LotStatus)" /></td>
-                            <td>@r.QuantityGood</td>
-                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Lot</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Production order</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Lot status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Good qty</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                         </tr>
-                    }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _rows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@r.LotNo</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.ProductionOrderId</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><StatusBadge Text="@UiLabels.LotBatchStatus(r.LotStatus)" Tone="@UiLabels.LotBatchStatusTone(r.LotStatus)" /></td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm tabular-nums text-slate-700">@r.QuantityGood</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@r.Status" /></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </ApiStateDisplay>

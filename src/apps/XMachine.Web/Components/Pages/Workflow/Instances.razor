@@ -37,32 +37,34 @@
         }
         else
         {
-            <div class="table-responsive xm-table-wrap">
-                <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                    <tr>
-                        <th>Object type</th>
-                        <th>Object ID</th>
-                        <th>Workflow definition</th>
-                        <th>Status</th>
-                        <th>Started (UTC)</th>
-                        <th>Finished (UTC)</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    @foreach (var r in _rows)
-                    {
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
                         <tr>
-                            <td class="small">@UiLabels.HumanizeToken(r.ReferenceType)</td>
-                            <td class="font-monospace small">@r.ReferenceId</td>
-                            <td class="font-monospace small">@r.WorkflowDefinitionId</td>
-                            <td><StatusBadge Text="@UiLabels.WorkflowInstanceState(r.WorkflowState)" Tone="@UiLabels.WorkflowInstanceStateTone(r.WorkflowState)" /></td>
-                            <td class="small text-nowrap">@UiFormats.UtcMinute(r.StartedAt)</td>
-                            <td class="small text-nowrap">@UiFormats.UtcMinute(r.EndedAt)</td>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Object type</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Object ID</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Workflow definition</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Started (UTC)</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Finished (UTC)</th>
                         </tr>
-                    }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _rows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="px-4 py-3 text-sm text-slate-600">@UiLabels.HumanizeToken(r.ReferenceType)</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.ReferenceId</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.WorkflowDefinitionId</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><StatusBadge Text="@UiLabels.WorkflowInstanceState(r.WorkflowState)" Tone="@UiLabels.WorkflowInstanceStateTone(r.WorkflowState)" /></td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@UiFormats.UtcMinute(r.StartedAt)</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@UiFormats.UtcMinute(r.EndedAt)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </ApiStateDisplay>

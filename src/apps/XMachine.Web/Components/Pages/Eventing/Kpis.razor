@@ -27,22 +27,32 @@
             }
             else
             {
-                <div class="table-responsive xm-table-wrap">
-                    <table class="table table-sm table-hover mb-0 align-middle">
-                        <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Scope</th><th>Data source</th><th>Record</th></tr></thead>
-                        <tbody>
-                        @foreach (var d in _defs)
-                        {
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
                             <tr>
-                                <td class="font-monospace small">@d.Code</td>
-                                <td>@d.Name</td>
-                                <td class="small">@UiLabels.HumanizeToken(d.ScopeType)</td>
-                                <td class="small">@UiLabels.HumanizeToken(d.DataSourceType)</td>
-                                <td><EntityStatusBadge Status="@d.Status" /></td>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Code</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Name</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Scope</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Data source</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                             </tr>
-                        }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var d in _defs)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@d.Code</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700">@d.Name</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">@UiLabels.HumanizeToken(d.ScopeType)</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">@UiLabels.HumanizeToken(d.DataSourceType)</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@d.Status" /></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             }
         </DataPanel>
@@ -55,23 +65,34 @@
             }
             else
             {
-                <div class="table-responsive xm-table-wrap">
-                    <table class="table table-sm table-hover mb-0 align-middle">
-                        <thead class="table-light"><tr><th>KPI definition</th><th>Scope</th><th>Scope ID</th><th>Period start (UTC)</th><th>Value</th><th>Record</th></tr></thead>
-                        <tbody>
-                        @foreach (var r in _results)
-                        {
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
                             <tr>
-                                <td class="small font-monospace">@r.KpiDefinitionId</td>
-                                <td class="small">@UiLabels.HumanizeToken(r.ScopeType)</td>
-                                <td class="small font-monospace">@r.ScopeId</td>
-                                <td class="small text-nowrap">@UiFormats.UtcMinute(r.PeriodStart)</td>
-                                <td class="fw-semibold">@r.Value</td>
-                                <td><EntityStatusBadge Status="@r.Status" /></td>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">KPI definition</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Scope</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Scope ID</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Period start (UTC)</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Value</th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                             </tr>
-                        }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                            @foreach (var r in _results)
+                            {
+                                <tr class="transition-colors hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.KpiDefinitionId</td>
+                                    <td class="px-4 py-3 text-sm text-slate-600">@UiLabels.HumanizeToken(r.ScopeType)</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-600">@r.ScopeId</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@UiFormats.UtcMinute(r.PeriodStart)</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold tabular-nums text-slate-900">@r.Value</td>
+                                    <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@r.Status" /></td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             }
         </DataPanel>

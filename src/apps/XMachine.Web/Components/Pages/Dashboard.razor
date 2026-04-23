@@ -27,6 +27,32 @@
         </div>
     }
 
+    <!-- Executive summary (Figma KPI strip) -->
+    <section class="space-y-4">
+        <div>
+            <h2 class="text-base font-semibold uppercase tracking-wide text-slate-700">Executive summary</h2>
+            <p class="text-sm text-slate-500">Cross-cutting counts from MES, quality, eventing, and workflow.</p>
+        </div>
+        @if (_mes.Loading || _quality.Loading || _eventing.Loading || _workflow.Loading)
+        {
+            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                @for (var i = 0; i < 4; i++)
+                {
+                    <div class="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-100 shadow-sm" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                @MetricCard("Production orders", _mes.Error is null ? _mes.Data?.Orders : null, ClipboardSvg)
+                @MetricCard("Quality checks", _quality.Error is null ? _quality.Data?.Checks : null, CheckSvg)
+                @MetricCard("Alarms", _eventing.Error is null ? _eventing.Data?.Alarms : null, BellSvg, warn: true)
+                @MetricCard("Workflow instances", _workflow.Error is null ? _workflow.Data?.Instances : null, PlaySvg)
+            </div>
+        }
+    </section>
+
     <!-- MES -->
     <section class="space-y-4">
         <div>

@@ -25,24 +25,36 @@
         }
         else
         {
-            <div class="table-responsive xm-table-wrap">
-                <table class="table table-sm table-hover mb-0 align-middle">
-                    <thead class="table-light"><tr><th>Period</th><th>Period start (UTC)</th><th>Availability</th><th>Performance</th><th>Quality</th><th>OEE</th><th>Record</th></tr></thead>
-                    <tbody>
-                    @foreach (var r in _rows)
-                    {
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50">
                         <tr>
-                            <td><StatusBadge Text="@UiLabels.OeePeriodType(r.PeriodType)" Tone="@StatusBadgeTone.Neutral" /></td>
-                            <td class="small text-nowrap">@UiFormats.UtcMinute(r.PeriodStart)</td>
-                            <td>@r.Availability</td>
-                            <td>@r.Performance</td>
-                            <td>@r.Quality</td>
-                            <td class="fw-semibold">@r.OeeValue</td>
-                            <td><EntityStatusBadge Status="@r.Status" /></td>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Period</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Period start (UTC)</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Availability</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Performance</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Quality</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">OEE</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Record</th>
                         </tr>
-                    }
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _rows)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="px-4 py-3 text-sm text-slate-700"><StatusBadge Text="@UiLabels.OeePeriodType(r.PeriodType)" Tone="@StatusBadgeTone.Neutral" /></td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@UiFormats.UtcMinute(r.PeriodStart)</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm tabular-nums text-slate-700">@r.Availability</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm tabular-nums text-slate-700">@r.Performance</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm tabular-nums text-slate-700">@r.Quality</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm font-semibold tabular-nums text-slate-900">@r.OeeValue</td>
+                                <td class="px-4 py-3 text-sm text-slate-700"><EntityStatusBadge Status="@r.Status" /></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         }
     </ApiStateDisplay>

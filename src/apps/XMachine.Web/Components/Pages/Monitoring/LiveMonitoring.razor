@@ -1,0 +1,224 @@
+@page "/monitoring/live"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Live monitoring</PageTitle>
+
+<PageHeader Title="Live monitoring"
+            Subtitle="Machine cards derived from open alarms and production orders on shared lines.">
+    <TopSlot>
+        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
+            <ol class="breadcrumb small mb-0">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Monitoring</li>
+                <li class="breadcrumb-item active">Live</li>
+            </ol>
+        </nav>
+    </TopSlot>
+</PageHeader>
+
+<ApiStateDisplay Loading="_loading" Error="@_error">
+    @if (_error is null && !_loading && _cards.Count == 0)
+    {
+        <EmptyState Message="No machines could be inferred from alarms or production lines." />
+    }
+    else if (_error is null && !_loading)
+    {
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            @foreach (var c in _cards)
+            {
+                <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</div>
+                            <div class="mt-1 truncate text-sm font-semibold text-slate-900">@c.Title</div>
+                        </div>
+                        <StatusBadge Text="@c.StatusLabel" Tone="@c.StatusTone" />
+                    </div>
+                    @if (!string.IsNullOrEmpty(c.OrderHint))
+                    {
+                        <div class="mt-2 text-xs text-slate-500">Order <span class="font-mono text-slate-700">@c.OrderHint</span></div>
+                    }
+                    <div class="mt-4 space-y-1.5">
+                        <div class="flex items-center justify-between text-xs text-slate-500">
+                            <span>Progress</span>
+                            <span class="tabular-nums text-slate-700">@c.ProgressPct%</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div class="h-2 rounded-full bg-blue-600 transition-all" style="width: @(c.ProgressPct)%"></div>
+                        </div>
+                        <div class="flex items-center justify-between pt-1 text-xs text-slate-500">
+                            <span>Efficiency</span>
+                            <span class="tabular-nums font-medium text-slate-900">@c.EfficiencyPct%</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</ApiStateDisplay>
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private IReadOnlyList<LiveMachineCardVm> _cards = [];
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        var tAlarms = Api.GetAlarmsAsync();
+        var tOrders = Api.GetProductionOrdersAsync();
+        await Task.WhenAll(tAlarms, tOrders);
+        var alarmsRes = await tAlarms;
+        var ordersRes = await tOrders;
+        _loading = false;
+
+        if (alarmsRes.Error is not null && ordersRes.Error is not null)
+            _error = string.Join("; ", new[] { alarmsRes.Error, ordersRes.Error }.Where(s => !string.IsNullOrEmpty(s)));
+        else
+        {
+            _error = null;
+            _cards = BuildCards(alarmsRes.Data, ordersRes.Data);
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// View model for a single live machine card.
+    /// </summary>
+    private sealed record LiveMachineCardVm(
+        string Title,
+        string StatusLabel,
+        StatusBadgeTone StatusTone,
+        int EfficiencyPct,
+        int ProgressPct,
+        string? OrderHint);
+
+    /// <summary>
+    /// Derives machine cards from alarm and production order rows.
+    /// </summary>
+    private static IReadOnlyList<LiveMachineCardVm> BuildCards(
+        List<AlarmRowDto>? alarms,
+        List<ProductionOrderRowDto>? orders)
+    {
+        alarms ??= [];
+        orders ??= [];
+
+        var machineIds = alarms
+            .Where(a => a.MachineId.HasValue)
+            .Select(a => a.MachineId!.Value)
+            .Distinct()
+            .Take(10)
+            .ToList();
+
+        if (machineIds.Count > 0)
+        {
+            var list = new List<LiveMachineCardVm>();
+            foreach (var machineId in machineIds)
+            {
+                var lineId = alarms.FirstOrDefault(a => a.MachineId == machineId)?.LineId;
+                var openForMachine = alarms.Where(a => a.MachineId == machineId && a.EndTime is null).ToList();
+                var (label, tone) = ResolveMachineStatus(openForMachine);
+
+                var lineOrders = orders
+                    .Where(o => lineId is not null && o.LineId == lineId)
+                    .ToList();
+                if (lineOrders.Count == 0 && lineId is null)
+                {
+                    var siteId = alarms.FirstOrDefault(a => a.MachineId == machineId)?.SiteId;
+                    if (siteId is not null)
+                        lineOrders = orders.Where(o => o.SiteId == siteId).ToList();
+                }
+
+                var (progress, orderNo) = OrderProgress(lineOrders);
+                list.Add(new LiveMachineCardVm(
+                    $"Machine {machineId.ToString("N")[..8]}",
+                    label,
+                    tone,
+                    progress,
+                    progress,
+                    orderNo));
+            }
+
+            return list;
+        }
+
+        var lineIds = orders
+            .Where(o => o.LineId.HasValue)
+            .Select(o => o.LineId!.Value)
+            .Distinct()
+            .Take(8)
+            .ToList();
+
+        return lineIds
+            .Select(lineId =>
+            {
+                var lineOrders = orders.Where(o => o.LineId == lineId).ToList();
+                var (progress, orderNo) = OrderProgress(lineOrders);
+                var running = lineOrders.Any(o =>
+                    o.OrderStatus.Contains("Run", StringComparison.OrdinalIgnoreCase) ||
+                    o.OrderStatus.Contains("Progress", StringComparison.OrdinalIgnoreCase));
+                var label = running ? "Running" : "Idle";
+                var tone = running ? StatusBadgeTone.Success : StatusBadgeTone.Warning;
+                return new LiveMachineCardVm(
+                    $"Line {lineId.ToString("N")[..8]}",
+                    label,
+                    tone,
+                    progress,
+                    progress,
+                    orderNo);
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Maps open alarms for a machine to a coarse status label and badge tone.
+    /// </summary>
+    private static (string Label, StatusBadgeTone Tone) ResolveMachineStatus(IReadOnlyList<AlarmRowDto> openAlarms)
+    {
+        if (openAlarms.Count == 0)
+            return ("Running", StatusBadgeTone.Success);
+
+        if (openAlarms.Any(a => IsCriticalSeverity(a.Severity)))
+            return ("Down", StatusBadgeTone.Danger);
+
+        return ("Idle", StatusBadgeTone.Warning);
+    }
+
+    /// <summary>
+    /// Returns true when the alarm severity should be treated as down / critical.
+    /// </summary>
+    private static bool IsCriticalSeverity(string severity)
+    {
+        var s = severity.ToLowerInvariant();
+        return s.Contains("crit") || s.Contains("fatal") || s.Contains("high");
+    }
+
+    /// <summary>
+    /// Computes average completion ratio and picks a representative order number.
+    /// </summary>
+    private static (int ProgressPct, string? OrderNo) OrderProgress(IReadOnlyList<ProductionOrderRowDto> lineOrders)
+    {
+        if (lineOrders.Count == 0)
+            return (0, null);
+
+        decimal sum = 0;
+        var n = 0;
+        foreach (var o in lineOrders)
+        {
+            if (o.QuantityPlanned <= 0)
+                continue;
+            sum += decimal.Min(1m, o.QuantityCompleted / o.QuantityPlanned);
+            n++;
+        }
+
+        var pct = n == 0 ? 0 : (int)Math.Round((double)(sum / n) * 100.0);
+        pct = Math.Clamp(pct, 0, 100);
+        var order = lineOrders.FirstOrDefault()?.OrderNo;
+        return (pct, order);
+    }
+}

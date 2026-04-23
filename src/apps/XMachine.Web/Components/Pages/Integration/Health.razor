@@ -21,30 +21,26 @@
     <ApiStateDisplay Loading="_loading" Error="@_error">
         @if (_data is not null)
         {
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <div class="xm-health-tile">
-                        <div class="xm-health-tile-label">Definitions</div>
-                        <div class="xm-health-tile-value">@_data.Operational.Definitions</div>
+            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Definitions</div>
+                        <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900">@_data.Operational.Definitions</div>
+                    </div>
+                    <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Instances</div>
+                        <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900">@_data.Operational.Instances</div>
+                    </div>
+                    <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-4">
+                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Mapping profiles</div>
+                        <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900">@_data.Operational.Profiles</div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="xm-health-tile">
-                        <div class="xm-health-tile-label">Instances</div>
-                        <div class="xm-health-tile-value">@_data.Operational.Instances</div>
-                    </div>
+                <div class="mt-6 border-t border-slate-100 pt-5">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Runtime registry</div>
+                    <div class="mt-2 text-sm text-slate-600">Active health rows: <span class="font-semibold text-slate-900">@_data.Runtime.ActiveHealthRows</span></div>
+                    <div class="mt-2 break-all font-mono text-xs leading-relaxed text-slate-600">@string.Join(", ", _data.Runtime.RegistryCodes ?? [])</div>
                 </div>
-                <div class="col-md-4">
-                    <div class="xm-health-tile">
-                        <div class="xm-health-tile-label">Mapping profiles</div>
-                        <div class="xm-health-tile-value">@_data.Operational.Profiles</div>
-                    </div>
-                </div>
-            </div>
-            <div class="xm-health-runtime mt-4">
-                <div class="xm-health-tile-label mb-2">Runtime registry</div>
-                <div class="small text-body-secondary mb-2">Active health rows: <strong class="text-body">@_data.Runtime.ActiveHealthRows</strong></div>
-                <div class="font-monospace small xm-health-codes">@string.Join(", ", _data.Runtime.RegistryCodes ?? [])</div>
             </div>
         }
         else if (!_loading && _error is null)
