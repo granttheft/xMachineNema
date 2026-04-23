@@ -66,9 +66,11 @@
     private string? _error;
     private IReadOnlyList<DowntimeRowDto> _rows = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var res = await Api.GetDowntimesAsync().ConfigureAwait(false);
+        if (!firstRender) return;
+
+        var res = await Api.GetDowntimesAsync();
         _loading = false;
         if (res.Error is not null)
             _error = res.Error;
@@ -77,5 +79,7 @@
             _error = null;
             _rows = res.Data ?? [];
         }
+
+        StateHasChanged();
     }
 }

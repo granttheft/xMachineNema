@@ -74,13 +74,15 @@
     private ApiFetch<WorkflowSummaryDto> _summary = ApiFetch<WorkflowSummaryDto>.InProgress();
     private IReadOnlyList<WorkflowInstanceRowDto> _rows = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+
         var tSummary = Api.GetWorkflowSummaryAsync();
         var tInst = Api.GetWorkflowInstancesAsync();
-        await Task.WhenAll(tSummary, tInst).ConfigureAwait(false);
-        _summary = await tSummary.ConfigureAwait(false);
-        var inst = await tInst.ConfigureAwait(false);
+        await Task.WhenAll(tSummary, tInst);
+        _summary = await tSummary;
+        var inst = await tInst;
         _loading = false;
         if (inst.Error is not null)
             _error = inst.Error;
@@ -89,6 +91,8 @@
             _error = null;
             _rows = inst.Data ?? [];
         }
+
+        StateHasChanged();
     }
 
     private static string? Fmt(int? v) => v?.ToString();

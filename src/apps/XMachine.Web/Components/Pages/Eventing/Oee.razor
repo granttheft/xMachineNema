@@ -53,9 +53,11 @@
     private string? _error;
     private IReadOnlyList<OeeRowDto> _rows = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var res = await Api.GetOeeSnapshotsAsync().ConfigureAwait(false);
+        if (!firstRender) return;
+
+        var res = await Api.GetOeeSnapshotsAsync();
         _loading = false;
         if (res.Error is not null)
             _error = res.Error;
@@ -64,5 +66,7 @@
             _error = null;
             _rows = res.Data ?? [];
         }
+
+        StateHasChanged();
     }
 }

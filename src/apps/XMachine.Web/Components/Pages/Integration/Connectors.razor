@@ -85,10 +85,15 @@
     private IReadOnlyList<ConnectorDefinitionRowDto> _defs = [];
     private IReadOnlyList<ConnectorInstanceRowDto> _inst = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var d = await Api.GetConnectorDefinitionsAsync().ConfigureAwait(false);
-        var i = await Api.GetConnectorInstancesAsync().ConfigureAwait(false);
+        if (!firstRender) return;
+
+        var tDefs = Api.GetConnectorDefinitionsAsync();
+        var tInst = Api.GetConnectorInstancesAsync();
+        await Task.WhenAll(tDefs, tInst);
+        var d = await tDefs;
+        var i = await tInst;
         _loadingDefs = false;
         _loadingInst = false;
         if (d.Error is not null)
@@ -106,5 +111,7 @@
             _errInst = null;
             _inst = i.Data ?? [];
         }
+
+        StateHasChanged();
     }
 }

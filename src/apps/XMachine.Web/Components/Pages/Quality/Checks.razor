@@ -93,10 +93,12 @@
     private QualitySummaryDto? _summary;
     private IReadOnlyList<QualityCheckRowDto> _rows = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var sum = await Api.GetQualitySummaryAsync().ConfigureAwait(false);
-        var list = await Api.GetQualityChecksAsync().ConfigureAwait(false);
+        if (!firstRender) return;
+
+        var sum = await Api.GetQualitySummaryAsync();
+        var list = await Api.GetQualityChecksAsync();
         _loading = false;
         if (sum.Error is not null)
             _error = sum.Error;
@@ -110,5 +112,7 @@
 
         if (sum.Error is null && list.Error is null)
             _error = null;
+
+        StateHasChanged();
     }
 }

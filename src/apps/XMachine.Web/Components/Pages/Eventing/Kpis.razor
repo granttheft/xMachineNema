@@ -85,12 +85,21 @@
     private IReadOnlyList<KpiDefinitionRowDto> _defs = [];
     private IReadOnlyList<KpiResultRowDto> _results = [];
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var res = await Api.GetKpisAsync().ConfigureAwait(false);
+        if (!firstRender) return;
+
+        var res = await Api.GetKpisAsync();
         _loading = false;
-        if (res.Error is not null) { _error = res.Error; return; }
-        _defs = res.Data?.Definitions ?? [];
-        _results = res.Data?.Results ?? [];
+        if (res.Error is not null)
+            _error = res.Error;
+        else
+        {
+            _error = null;
+            _defs = res.Data?.Definitions ?? [];
+            _results = res.Data?.Results ?? [];
+        }
+
+        StateHasChanged();
     }
 }

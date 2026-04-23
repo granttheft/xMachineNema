@@ -70,22 +70,26 @@
     private ApiFetch<WorkflowSummaryDto> _workflow = ApiFetch<WorkflowSummaryDto>.InProgress();
     private string? _aggregateError;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender) return;
+
         var tMes = Api.GetMesSummaryAsync();
         var tQuality = Api.GetQualitySummaryAsync();
         var tEventing = Api.GetEventingSummaryAsync();
         var tInt = Api.GetIntegrationHealthAsync();
         var tWf = Api.GetWorkflowSummaryAsync();
-        await Task.WhenAll(tMes, tQuality, tEventing, tInt, tWf).ConfigureAwait(false);
-        _mes = await tMes.ConfigureAwait(false);
-        _quality = await tQuality.ConfigureAwait(false);
-        _eventing = await tEventing.ConfigureAwait(false);
-        _integration = await tInt.ConfigureAwait(false);
-        _workflow = await tWf.ConfigureAwait(false);
+        await Task.WhenAll(tMes, tQuality, tEventing, tInt, tWf);
+        _mes = await tMes;
+        _quality = await tQuality;
+        _eventing = await tEventing;
+        _integration = await tInt;
+        _workflow = await tWf;
 
         if (_mes.Error is not null && _quality.Error is not null && _eventing.Error is not null && _integration.Error is not null && _workflow.Error is not null)
             _aggregateError = "Could not reach the API. Check XMachine:Api:BaseUrl and that XMachine.Api is running.";
+
+        StateHasChanged();
     }
 
     private static string? Fmt(int? v) => v?.ToString();
