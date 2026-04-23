@@ -443,29 +443,13 @@ All TSX sources: `figma-reference/src/app/components/`
 - Myanmar/bilingual text removed, English-only UI
 - Paused to re-align project strategy (led to this doc rewrite)
 
-### 🚧 Sprint 3b — Engineering/Maintenance Module (CURRENT)
-**Goal:** First fully transactional module — new backend + real UI.
-
-**New module:** `XMachine.Module.Engineering`
-
-**New entities:**
-- `MaintenanceWorkOrder` — machine, type (Corrective/Preventive/MoldChange), priority (P1–P3), status, assigned user, reported/started/ended at, description
-- `MachineFault` — machine, fault code, description, reported by, reported at, optional work order link
-- `PreventiveMaintenanceSchedule` — machine, interval (hours/days), last done at, next due at, owner role
-- `Machine` extension: `OperationalStatus` enum (`Running | Idle | Down | PmDue | WaitingParts`)
-
-**API endpoints:**
-- `GET/POST /api/engineering/work-orders`
-- `GET/POST /api/engineering/faults`
-- `GET /api/engineering/pm-schedules`
-- `GET /api/engineering/machine-status`
-- `GET /api/engineering/summary`
-
-**UI pages:**
-- EngineeringDashboard.razor → switch mock to real API
-- Engineering.razor (from Engineering.tsx)
-- MachineCalendarView.razor (from MachineCalendarView.tsx)
-- MoldChangeRequests.razor (from MoldChangeRequests.tsx)
+### ✅ Sprint 3b — Engineering/Maintenance Module (TAMAMLANDI)
+- XMachine.Module.Engineering oluşturuldu (domain entities, EF config, migration)
+- Machine.OperationalStatus eklendi (Platform modülü)
+- API endpoints: machine-status, work-orders (GET/POST), faults, pm-schedules, summary
+- DevSeedHostedService engineering seed data eklendi
+- EngineeringDashboard.razor → mock'tan gerçek API'ye geçirildi
+- EngineeringApiDtos.cs + XMachineApiClient güncellemesi
 
 ### 📋 Sprint 4 — Production Control Module
 - `XMachine.Module.Production` backend
