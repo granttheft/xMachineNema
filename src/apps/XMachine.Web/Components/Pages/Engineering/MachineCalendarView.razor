@@ -1,0 +1,286 @@
+@page "/engineering/calendar"
+@rendermode InteractiveServer
+
+<PageTitle>Machine Maintenance Calendar · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <h1 class="text-2xl font-semibold text-slate-900">Machine Maintenance Calendar</h1>
+        <p class="text-sm text-slate-500 mt-1">PM Schedules · Work Orders · Machine Availability</p>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-3 bg-white border-b border-slate-200">
+        <div class="flex flex-wrap items-center gap-3">
+            <button type="button" @onclick="NavigatePrev" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-3 hover:bg-slate-50">&lt; Prev</button>
+            <button type="button" @onclick="NavigateNext" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-3 hover:bg-slate-50">&gt; Next</button>
+            <span class="text-sm font-medium text-slate-900 min-w-[10rem] text-center">@HeaderLabel</span>
+            <button type="button" @onclick="GoToToday" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-3 hover:bg-slate-50">Today</button>
+        </div>
+        <div class="flex rounded-md border border-slate-200 overflow-hidden">
+            <button type="button"
+                    @onclick='() => SetViewMode("month")'
+                    class="@(_viewMode == "month" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50") px-4 py-2 text-sm font-medium">
+                Month
+            </button>
+            <button type="button"
+                    @onclick='() => SetViewMode("day")'
+                    class="@(_viewMode == "day" ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-50") px-4 py-2 text-sm font-medium border-l border-slate-200">
+                Day
+            </button>
+        </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 px-6 py-2 bg-white border-b border-slate-100">
+        <span class="inline-flex items-center gap-1.5 text-xs text-slate-600"><span class="text-[10px] leading-none" aria-hidden="true">🟣</span>PM Scheduled</span>
+        <span class="inline-flex items-center gap-1.5 text-xs text-slate-600"><span class="text-[10px] leading-none" aria-hidden="true">🔴</span>Work Order - Down</span>
+        <span class="inline-flex items-center gap-1.5 text-xs text-slate-600"><span class="text-[10px] leading-none" aria-hidden="true">🟠</span>Work Order - In Progress</span>
+        <span class="inline-flex items-center gap-1.5 text-xs text-slate-600"><span class="text-[10px] leading-none" aria-hidden="true">🟢</span>Work Order - Done</span>
+        <span class="inline-flex items-center gap-1.5 text-xs text-slate-600"><span class="text-[10px] leading-none" aria-hidden="true">🔵</span>PM Overdue</span>
+    </div>
+
+    <div class="p-6">
+        @if (_viewMode == "month")
+        {
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+                    @foreach (var dow in new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" })
+                    {
+                        <div class="px-2 py-2 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">@dow</div>
+                    }
+                </div>
+                <div class="grid grid-cols-7 gap-1 p-2">
+                    @foreach (var date in GetMonthDays())
+                    {
+                        var todayLive = DateOnly.FromDateTime(DateTime.Today);
+                        var isToday = date == todayLive;
+                        var isSelected = date == _selectedDate;
+                        var inMonth = IsCurrentMonth(date);
+                        var dayEvents = GetEventsForDate(date).ToList();
+                        var cellClass = $"min-h-[100px] rounded-lg border p-1.5 text-left transition-colors {(inMonth ? "" : "opacity-40 ")}";
+                        cellClass += isToday ? "ring-2 ring-blue-500 " : "";
+                        cellClass += isSelected ? "bg-blue-50 border-blue-300 " : "border-slate-200 ";
+                        cellClass += "hover:bg-slate-50 cursor-pointer";
+
+                        <button type="button"
+                                @onclick="() => SelectDay(date)"
+                                class="@cellClass">
+                            <div class="text-sm font-semibold text-slate-900">@date.Day</div>
+                            <div class="mt-1 space-y-0.5">
+                                @foreach (var ev in dayEvents.Take(3))
+                                {
+                                    <div class="h-5 truncate rounded-sm px-1.5 text-xs @GetEventBgClass(ev.EventType)" title="@ev.Title">@ev.Title</div>
+                                }
+                                @if (dayEvents.Count > 3)
+                                {
+                                    <div class="text-xs text-slate-500 px-1">+@(dayEvents.Count - 3) more</div>
+                                }
+                            </div>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            var dayEvents = GetEventsForDate(_selectedDate).OrderBy(e => e.StartHour).ToList();
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="flex">
+                    <div class="w-16 shrink-0 border-r border-slate-200 bg-slate-50">
+                        @for (var h = 0; h < 24; h++)
+                        {
+                            <div class="h-16 border-b border-slate-100 flex items-start justify-end pr-2 pt-1 text-sm text-slate-500">@($"{h:00}:00")</div>
+                        }
+                    </div>
+                    <div class="flex-1 relative bg-slate-50" style="height: calc(24 * 4rem);">
+                        @for (var h = 0; h < 24; h++)
+                        {
+                            <div class="absolute left-0 right-0 h-16 border-b border-slate-100 bg-slate-50" style="top: calc(@h * 4rem);"></div>
+                        }
+                        @foreach (var ev in dayEvents)
+                        {
+                            var span = Math.Max(1, ev.EndHour - ev.StartHour);
+                            <div class="absolute left-20 right-4 rounded-lg border-2 px-3 py-2 text-sm shadow-sm @GetEventBlockBorderClass(ev.EventType)"
+                                 style="top: calc(@(ev.StartHour) * 4rem); height: calc(@(span) * 4rem);">
+                                <div class="font-semibold text-slate-900 truncate">@ev.Title</div>
+                                <div class="text-xs text-slate-600">@ev.MachineName</div>
+                                <div class="text-xs text-slate-500">@($"{ev.StartHour:00}:00") – @($"{ev.EndHour:00}:00")</div>
+                                <span class="mt-1 inline-flex rounded-md px-1.5 py-0.5 text-xs font-medium @GetEventBgClass(ev.EventType)">@GetEventLabel(ev.EventType)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                <h3 class="text-sm font-semibold text-slate-900 mb-3">Events Today</h3>
+                @if (dayEvents.Count == 0)
+                {
+                    <p class="text-sm text-slate-500">No events scheduled for this day.</p>
+                }
+                else
+                {
+                    <ul class="divide-y divide-slate-100">
+                        @foreach (var ev in dayEvents)
+                        {
+                            <li class="flex flex-wrap items-center gap-3 py-3 text-sm">
+                                <span class="h-2.5 w-2.5 shrink-0 rounded-full @GetEventDotClass(ev.EventType)"></span>
+                                <span class="font-medium text-slate-900 flex-1 min-w-0">@ev.Title</span>
+                                <span class="text-slate-600">@ev.MachineName</span>
+                                <span class="text-slate-500 tabular-nums">@($"{ev.StartHour:00}:00")–@($"{ev.EndHour:00}:00")</span>
+                                <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetEventBgClass(ev.EventType)">@GetEventLabel(ev.EventType)</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _viewMode = "month";
+    private DateOnly _selectedDate = DateOnly.FromDateTime(DateTime.Today);
+    private DateOnly _currentMonth = DateOnly.FromDateTime(DateTime.Today);
+
+    private static readonly IReadOnlyList<CalendarEvent> MockEvents = BuildMockEvents();
+
+    private static IReadOnlyList<CalendarEvent> BuildMockEvents()
+    {
+        var t = DateOnly.FromDateTime(DateTime.Today);
+        return
+        [
+            new("PM-001", "Monthly PM", "Machine M-101", "pm-overdue", t.AddDays(-15), 8, 12, null),
+            new("WO-001", "Hydraulic Oil Leak", "Machine M-101", "work-order-inprogress", t, 9, 15, null),
+            new("PM-002", "Weekly Lubrication", "Machine M-102", "pm-scheduled", t.AddDays(4), 13, 15, null),
+            new("WO-002", "Mold Inspection", "Machine M-201", "work-order-down", t.AddDays(-2), 10, 16, null),
+            new("WO-003", "Belt Tension Adj.", "Machine M-102", "work-order-done", t.AddDays(-1), 14, 16, null),
+            new("PM-003", "Quarterly Inspection", "Machine M-201", "pm-overdue", t.AddDays(-2), 8, 11, null),
+            new("PM-004", "Daily Tooling Check", "Machine M-202", "pm-scheduled", t.AddDays(1), 7, 8, null),
+            new("WO-004", "Electrical Fault", "Machine M-202", "work-order-inprogress", t.AddDays(3), 11, 14, null),
+            new("PM-005", "Monthly PM", "Machine M-102", "pm-scheduled", t.AddDays(10), 8, 12, null),
+            new("WO-005", "Sensor Replacement", "Machine M-101", "work-order-done", t.AddDays(-5), 9, 11, null),
+        ];
+    }
+
+    private string HeaderLabel =>
+        _viewMode == "month"
+            ? _currentMonth.ToString("MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture)
+            : _selectedDate.ToString("MMMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture);
+
+    private void SetViewMode(string mode)
+    {
+        _viewMode = mode;
+        StateHasChanged();
+    }
+
+    private void NavigatePrev()
+    {
+        if (_viewMode == "month")
+            _currentMonth = _currentMonth.AddMonths(-1);
+        else
+            _selectedDate = _selectedDate.AddDays(-1);
+        StateHasChanged();
+    }
+
+    private void NavigateNext()
+    {
+        if (_viewMode == "month")
+            _currentMonth = _currentMonth.AddMonths(1);
+        else
+            _selectedDate = _selectedDate.AddDays(1);
+        StateHasChanged();
+    }
+
+    private void GoToToday()
+    {
+        _selectedDate = DateOnly.FromDateTime(DateTime.Today);
+        _currentMonth = _selectedDate;
+        StateHasChanged();
+    }
+
+    private void SelectDay(DateOnly date)
+    {
+        _selectedDate = date;
+        _viewMode = "day";
+        StateHasChanged();
+    }
+
+    private IEnumerable<DateOnly> GetMonthDays()
+    {
+        var first = new DateOnly(_currentMonth.Year, _currentMonth.Month, 1);
+        var last = first.AddMonths(1).AddDays(-1);
+        var start = first.AddDays(-(int)first.DayOfWeek);
+        var end = last.AddDays(6 - (int)last.DayOfWeek);
+        for (var d = start; d <= end; d = d.AddDays(1))
+            yield return d;
+    }
+
+    private bool IsCurrentMonth(DateOnly date) =>
+        date.Month == _currentMonth.Month && date.Year == _currentMonth.Year;
+
+    private IEnumerable<CalendarEvent> GetEventsForDate(DateOnly date) =>
+        MockEvents.Where(e => e.EventDate == date);
+
+    private static string GetEventBgClass(string eventType) => eventType switch
+    {
+        "pm-scheduled" => "bg-purple-100 text-purple-800",
+        "work-order-down" => "bg-red-100 text-red-800",
+        "work-order-inprogress" => "bg-orange-100 text-orange-800",
+        "work-order-done" => "bg-green-100 text-green-800",
+        "pm-overdue" => "bg-blue-100 text-blue-800",
+        _ => "bg-slate-100 text-slate-600",
+    };
+
+    private static string GetEventBlockBorderClass(string eventType) => eventType switch
+    {
+        "pm-scheduled" => "border-purple-300 bg-purple-50/90",
+        "work-order-down" => "border-red-300 bg-red-50/90",
+        "work-order-inprogress" => "border-orange-300 bg-orange-50/90",
+        "work-order-done" => "border-green-300 bg-green-50/90",
+        "pm-overdue" => "border-blue-300 bg-blue-50/90",
+        _ => "border-slate-300 bg-white",
+    };
+
+    private static string GetEventLabel(string eventType) => eventType switch
+    {
+        "pm-scheduled" => "PM Scheduled",
+        "work-order-down" => "WO - Down",
+        "work-order-inprogress" => "WO - In Progress",
+        "work-order-done" => "WO - Done",
+        "pm-overdue" => "PM Overdue",
+        _ => eventType,
+    };
+
+    private static string GetEventDotClass(string eventType) => eventType switch
+    {
+        "pm-scheduled" => "bg-purple-400",
+        "work-order-down" => "bg-red-400",
+        "work-order-inprogress" => "bg-orange-400",
+        "work-order-done" => "bg-green-400",
+        "pm-overdue" => "bg-blue-400",
+        _ => "bg-slate-400",
+    };
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// A calendar entry for maintenance or work order display.
+    /// </summary>
+    private sealed record CalendarEvent(
+        string Id,
+        string Title,
+        string MachineName,
+        string EventType,
+        DateOnly EventDate,
+        int StartHour,
+        int EndHour,
+        string? Notes);
+}
