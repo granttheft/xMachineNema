@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Domain;
 using XMachine.Module.Commercial.Domain;
+using XMachine.Module.Engineering.Domain;
 using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
@@ -80,6 +81,11 @@ public sealed class XMachineDbContext : DbContext
     public DbSet<WorkflowStep> WorkflowSteps => Set<WorkflowStep>();
     public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
     public DbSet<WorkflowAction> WorkflowActions => Set<WorkflowAction>();
+
+    // engineering
+    public DbSet<MaintenanceWorkOrder> MaintenanceWorkOrders => Set<MaintenanceWorkOrder>();
+    public DbSet<MachineFault> MachineFaults => Set<MachineFault>();
+    public DbSet<PreventiveMaintenanceSchedule> PmSchedules => Set<PreventiveMaintenanceSchedule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

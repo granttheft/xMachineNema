@@ -20,12 +20,22 @@ internal sealed class MachineConfiguration : IEntityTypeConfiguration<Machine>
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(256).IsRequired();
         builder.Property(x => x.Status).HasColumnName("status").IsRequired();
 
+        builder.Property(x => x.OperationalStatus)
+            .HasColumnName("operational_status").IsRequired();
+
+        builder.Property(x => x.MachineType)
+            .HasColumnName("machine_type").HasMaxLength(128);
+
+        builder.Property(x => x.Location)
+            .HasColumnName("location").HasMaxLength(256);
+
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
         builder.Property(x => x.UpdatedBy).HasColumnName("updated_by");
 
         builder.HasIndex(x => new { x.TenantId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.TenantId, x.OperationalStatus });
         builder.HasIndex(x => x.LineId);
 
         builder.HasOne<Line>()

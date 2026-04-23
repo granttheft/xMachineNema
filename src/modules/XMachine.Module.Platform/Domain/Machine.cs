@@ -10,5 +10,9 @@ public sealed class Machine : TenantAuditableEntity
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public EntityStatus Status { get; set; } = EntityStatus.Active;
+
+    public MachineOperationalStatus OperationalStatus { get; set; } = MachineOperationalStatus.Idle;
+    public string? MachineType { get; set; }
+    public string? Location { get; set; }
 }
 
