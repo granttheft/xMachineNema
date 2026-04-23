@@ -16,7 +16,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900">Smart Factory Dashboard</h1>
-                    <p class="text-sm text-slate-600">စမတ်စက်ရုံ ထိန်းချုပ်ရေး</p>
+                    <p class="text-sm text-slate-600">Operations control center</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -33,7 +33,7 @@
             <div class="flex items-center gap-3">
                 <div class="text-right">
                     <div class="text-sm font-medium">Production Manager</div>
-                    <div class="text-xs text-slate-600">ထုတ်လုပ်ရေးမန်နေဂျာ</div>
+                    <div class="text-xs text-slate-600">On-site leadership</div>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 text-sm font-medium text-slate-700">PM</div>
                 <div class="flex items-center gap-1">
@@ -55,7 +55,7 @@
                     <div>
                         <h1 class="text-3xl font-semibold">Smart Plastic Factory</h1>
                         <h2 class="text-xl text-slate-300">Executive Dashboard</h2>
-                        <p class="text-sm text-slate-400 mt-1">@(_languageToggle == "en" ? "Executive Command Center" : "အမှုဆောင်ဒက်ရှ်ဘုတ်")</p>
+                        <p class="text-sm text-slate-400 mt-1">Executive Command Center</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
@@ -66,18 +66,15 @@
                     <div class="flex gap-2">
                         <button type="button" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            @(_languageToggle == "en" ? "Export PDF" : "PDF ထုတ်")
+                            Export PDF
                         </button>
                         <button type="button" @onclick="() => StateHasChanged()" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-                            @(_languageToggle == "en" ? "Refresh" : "ပြန်လည်စတင်")
+                            Refresh
                         </button>
                         <button type="button" @onclick="() => { _chatOpen = !_chatOpen; }" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-blue-600/20 border-blue-400/50 text-blue-200 hover:bg-blue-600/30">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            @(_languageToggle == "en" ? "AI Chat" : "AI ချတ်")
-                        </button>
-                        <button type="button" @onclick="ToggleLanguage" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 bg-white/10 border-white/20 text-white hover:bg-white/20">
-                            @(_languageToggle == "en" ? "မြန်မာ" : "EN")
+                            AI Chat
                         </button>
                     </div>
                 </div>
@@ -112,7 +109,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-green-100 text-sm font-medium">🟢 Running Machines</p>
-                            <p class="text-xs text-green-100">လည်ပတ်နေသောစက်များ</p>
+                            <p class="text-xs text-green-100">In production</p>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-100"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                     </div>
@@ -127,7 +124,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-yellow-100 text-sm font-medium">🟡 Idle Machines</p>
-                            <p class="text-xs text-yellow-100">အပတ်စဉ်စက်များ</p>
+                            <p class="text-xs text-yellow-100">Awaiting work</p>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-yellow-100"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
                     </div>
@@ -142,7 +139,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-red-100 text-sm font-medium">🔴 Blocked/Down</p>
-                            <p class="text-xs text-red-100">ပိတ်နေသောစက်များ</p>
+                            <p class="text-xs text-red-100">Stopped or blocked</p>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-red-100"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     </div>
@@ -157,7 +154,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-blue-100 text-sm font-medium">📦 Units Produced Today</p>
-                            <p class="text-xs text-blue-100">ယနေ့ထုတ်လုပ်မှု</p>
+                            <p class="text-xs text-blue-100">Daily throughput</p>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-100"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg>
                     </div>
@@ -175,7 +172,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-orange-100 text-sm font-medium">❌ Defects Today</p>
-                            <p class="text-xs text-orange-100">ယနေ့ချွတ်ယွင်းချက်များ</p>
+                            <p class="text-xs text-orange-100">Quality rejects</p>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-orange-100"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     </div>
@@ -194,7 +191,7 @@
                 <div class="p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-blue-100 mb-1">@(_languageToggle == "en" ? "Total Units Produced" : "စုစုပေါင်းထုတ်လုပ်မှု")</p>
+                            <p class="text-blue-100 mb-1">Total Units Produced</p>
                             <p class="text-3xl font-bold">@TodayKpiTotalUnits.ToString("N0")</p>
                             <p class="text-sm text-blue-100">pcs (Today)</p>
                         </div>
@@ -206,7 +203,7 @@
                 <div class="p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-orange-100 mb-1">@(_languageToggle == "en" ? "Defective Products" : "ချွတ်ယွင်းထုတ်ကုန်များ")</p>
+                            <p class="text-orange-100 mb-1">Defective Products</p>
                             <p class="text-3xl font-bold">@TodayKpiDefectiveProducts</p>
                             <p class="text-sm text-orange-100">pcs (3.4%)</p>
                         </div>
@@ -218,7 +215,7 @@
                 <div class="p-6">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-green-100 mb-1">@(_languageToggle == "en" ? "QR-Printed Finished Goods" : "QR ကုဒ်ပါထုတ်ကုန်များ")</p>
+                            <p class="text-green-100 mb-1">QR-Printed Finished Goods</p>
                             <p class="text-3xl font-bold">@TodayKpiQrPrinted.ToString("N0")</p>
                             <p class="text-sm text-green-100">pcs (93.6%)</p>
                         </div>
@@ -233,7 +230,7 @@
             <div class="flex flex-col space-y-1.5 p-6">
                 <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    @(_languageToggle == "en" ? "Live Machine Status Monitor" : "တိုက်ရိုက်စက်အခြေအနေစစ်ကြည့်မှု")
+                    Live Machine Status Monitor
                 </h3>
             </div>
             <div class="p-6 pt-0">
@@ -241,12 +238,12 @@
                     <table class="w-full">
                         <thead>
                             <tr class="border-b">
-                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Machine ID" : "စက်နံပါတ်")</th>
-                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Status" : "အခြေအနေ")</th>
-                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Product Name" : "ထုတ်ကုန်အမည်")</th>
-                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Target vs Done" : "ပစ်မှတ်နှင့်ပြီးစီး")</th>
-                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Progress" : "တိုးတက်မှု")</th>
-                                <th class="text-left p-3 font-medium">@(_languageToggle == "en" ? "Downtime Reason" : "ရပ်နားချိန်အကြောင်းရင်း")</th>
+                                <th class="text-left p-3 font-medium">Machine ID</th>
+                                <th class="text-left p-3 font-medium">Status</th>
+                                <th class="text-left p-3 font-medium">Product Name</th>
+                                <th class="text-left p-3 font-medium">Target vs Done</th>
+                                <th class="text-left p-3 font-medium">Progress</th>
+                                <th class="text-left p-3 font-medium">Downtime Reason</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -300,7 +297,7 @@
                     <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-10 5L2 8v12Z"/></svg>
                         <span>Live Machine Status</span>
-                        <span class="text-sm font-normal text-slate-600">တိုက်ရိုက်စက်အခြေအနေ</span>
+                        <span class="text-sm font-normal text-slate-600">Real-time equipment</span>
                     </h3>
                     <div class="flex items-center gap-2 text-sm text-slate-600">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
@@ -320,7 +317,7 @@
                                 <div class="flex items-center justify-between mb-3">
                                     <div>
                                         <h3 class="font-bold text-base">@machine.Name</h3>
-                                        <p class="text-xs text-slate-600">@machine.NameMyanmar</p>
+                                        <p class="text-xs text-slate-600">@machine.Id</p>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="w-3 h-3 rounded-full @GetFactoryStatusDotClass(machine.Status) @(machine.Status == "running" ? "animate-pulse" : "")"></div>
@@ -361,7 +358,7 @@
                                         <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-medium text-blue-700">@op.Id</div>
                                         <div>
                                             <p class="text-sm font-medium">@op.Name</p>
-                                            <p class="text-xs text-slate-600">@op.NameMyanmar • Shift @op.Shift</p>
+                                            <p class="text-xs text-slate-600">Shift @op.Shift</p>
                                         </div>
                                     </div>
                                 }
@@ -434,7 +431,7 @@
             <div class="flex flex-col space-y-1.5 p-6">
                 <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    @(_languageToggle == "en" ? "Operator Assignment" : "အလုပ်သမားတာဝန်ခွဲဝေမှု")
+                    Operator Assignment
                 </h3>
             </div>
             <div class="p-6 pt-0">
@@ -469,7 +466,7 @@
                 <div class="flex flex-col space-y-1.5 p-6">
                     <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                        @(_languageToggle == "en" ? "Production Output (Today)" : "ထုတ်လုပ်မှုပမာဏ (ဒီနေ့)")
+                        Production Output (Today)
                     </h3>
                 </div>
                 <div class="p-6 pt-0">
@@ -502,7 +499,7 @@
                 <div class="flex flex-col space-y-1.5 p-6">
                     <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-                        @(_languageToggle == "en" ? "Top Performers" : "အကောင်းဆုံးစွမ်းဆောင်သူများ")
+                        Top Performers
                     </h3>
                 </div>
                 <div class="p-6 pt-0">
@@ -530,7 +527,7 @@
             <div class="flex flex-col space-y-1.5 p-6">
                 <h3 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    @(_languageToggle == "en" ? "Machine Downtime Analysis (Top 5 Reasons)" : "စက်ရပ်နားချိန်ခွဲခြမ်းစိတ်ဖြာမှု")
+                    Machine Downtime Analysis (Top 5 Reasons)
                 </h3>
             </div>
             <div class="p-6 pt-0">
@@ -836,21 +833,21 @@
 
     private static readonly IReadOnlyList<FactoryOp> _factoryOperators =
     [
-        new("OP001", "Ko Aung", "ကိုအောင်", "/api/placeholder/40/40", "A", 4.8m),
-        new("OP002", "Ma Suu", "မစု", "/api/placeholder/40/40", "A", 4.6m),
-        new("OP003", "Ko Thant", "ကိုသန့်", "/api/placeholder/40/40", "A", 4.9m),
-        new("OP004", "Ma Phyu", "မဖြူ", "/api/placeholder/40/40", "A", 4.5m),
-        new("OP005", "Ko Zaw", "ကိုဇော်", "/api/placeholder/40/40", "A", 4.7m),
+        new("OP001", "Ko Aung", "/api/placeholder/40/40", "A", 4.8m),
+        new("OP002", "Ma Suu", "/api/placeholder/40/40", "A", 4.6m),
+        new("OP003", "Ko Thant", "/api/placeholder/40/40", "A", 4.9m),
+        new("OP004", "Ma Phyu", "/api/placeholder/40/40", "A", 4.5m),
+        new("OP005", "Ko Zaw", "/api/placeholder/40/40", "A", 4.7m),
     ];
 
     private static readonly IReadOnlyList<FactoryMachineRow> _factoryMachines =
     [
-        new("INJ-M001", "Injection Machine 1", "ထိုးစက် ၁", "running", "OP001", "P001", "JOB001", 5000, 3400, "09:00", "14:30", "WO-2025-001", 92, ["Material Low"]),
-        new("INJ-M002", "Injection Machine 2", "ထိုးစက် ၂", "idle", "OP002", null, null, 0, 0, null, null, null, 0, []),
-        new("INJ-M003", "Injection Machine 3", "ထိုးစက် ၃", "blocked", "OP003", "P002", "JOB003", 3000, 1200, "08:00", "16:00", "WO-2025-003", 65, ["Mold Jam", "Maintenance Required"]),
-        new("INJ-M004", "Injection Machine 4", "ထိုးစက် ၄", "running", "OP004", "P003", "JOB004", 2000, 1800, "07:00", "15:00", "WO-2025-004", 98, []),
-        new("INJ-M005", "Injection Machine 5", "ထိုးစက် ၅", "maintenance", null, null, null, 0, 0, null, null, null, 0, ["Scheduled Maintenance"]),
-        new("INJ-M006", "Injection Machine 6", "ထိုးစက် ၆", "scheduled", "OP005", "P004", "JOB006", 8000, 0, "15:00", "23:00", "WO-2025-006", 0, []),
+        new("INJ-M001", "Injection Machine 1", "running", "OP001", "P001", "JOB001", 5000, 3400, "09:00", "14:30", "WO-2025-001", 92, ["Material Low"]),
+        new("INJ-M002", "Injection Machine 2", "idle", "OP002", null, null, 0, 0, null, null, null, 0, []),
+        new("INJ-M003", "Injection Machine 3", "blocked", "OP003", "P002", "JOB003", 3000, 1200, "08:00", "16:00", "WO-2025-003", 65, ["Mold Jam", "Maintenance Required"]),
+        new("INJ-M004", "Injection Machine 4", "running", "OP004", "P003", "JOB004", 2000, 1800, "07:00", "15:00", "WO-2025-004", 98, []),
+        new("INJ-M005", "Injection Machine 5", "maintenance", null, null, null, 0, 0, null, null, null, 0, ["Scheduled Maintenance"]),
+        new("INJ-M006", "Injection Machine 6", "scheduled", "OP005", "P004", "JOB006", 8000, 0, "15:00", "23:00", "WO-2025-006", 0, []),
     ];
 
     private static readonly string[] _chatSuggestions = ["Today's Output", "Top Downtime", "Who's on MCH-02?"];
@@ -861,7 +858,6 @@
         new(2, "Production target missed by 20% today", "warning", "09:15 AM"),
     ];
 
-    private string _languageToggle = "en";
     private bool _chatOpen;
     private string _chatMessage = "";
     private DateTime _selectedDate = DateTime.Today;
@@ -877,8 +873,8 @@
     private sealed record DowntimeSlice(string Name, int Value, string Color);
     private sealed record OpRank(string Name, int Efficiency, string Badge);
     private sealed record FactoryProduct(string Id, string Name, string Color);
-    private sealed record FactoryOp(string Id, string Name, string NameMyanmar, string Photo, string Shift, decimal Rating);
-    private sealed record FactoryMachineRow(string Id, string Name, string NameMyanmar, string Status, string? OperatorId, string? ProductId, string? JobId, int TargetQty, int CompletedQty, string? StartTime, string? EstimatedFinish, string? WorkOrderNo, int Efficiency, string[] Alerts);
+    private sealed record FactoryOp(string Id, string Name, string Photo, string Shift, decimal Rating);
+    private sealed record FactoryMachineRow(string Id, string Name, string Status, string? OperatorId, string? ProductId, string? JobId, int TargetQty, int CompletedQty, string? StartTime, string? EstimatedFinish, string? WorkOrderNo, int Efficiency, string[] Alerts);
 
     // --- Existing API state ---
     private ApiFetch<MesSummaryDto> _mes = ApiFetch<MesSummaryDto>.InProgress();
@@ -929,11 +925,6 @@
     {
         _clockTimer?.Dispose();
         _clockTimer = null;
-    }
-
-    private void ToggleLanguage()
-    {
-        _languageToggle = _languageToggle == "en" ? "mm" : "en";
     }
 
     private void DismissAlert(int id)
