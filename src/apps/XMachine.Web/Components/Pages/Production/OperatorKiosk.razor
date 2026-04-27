@@ -1,0 +1,391 @@
+@page "/production/kiosk"
+@rendermode InteractiveServer
+@implements IDisposable
+@using System.Globalization
+@using System.Threading
+
+<PageTitle>Operator Kiosk · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-100 flex flex-col">
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-blue-100 rounded-lg shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-8-5-8 5v12Z"/><path d="M6 18V10"/><path d="m10 18-2-8"/><path d="m14 18 2-8"/><path d="M18 18v-4"/></svg>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900">Smart Factory Operator Kiosk</h1>
+        </div>
+        <div class="text-right">
+            <div class="text-2xl font-mono font-bold text-slate-900">@_currentTime.ToString("HH:mm:ss", CultureInfo.InvariantCulture)</div>
+            <div class="text-sm text-slate-600">@_currentTime.ToString("dddd, MMMM d, yyyy", CultureInfo.InvariantCulture)</div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4">
+        <div class="min-w-[1200px] mx-auto space-y-4">
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                @if (_operatorStatus == "logged-out")
+                {
+                    <div class="rounded-xl border-2 border-blue-200 bg-blue-50 p-8 text-center">
+                        <div class="inline-flex p-4 rounded-full bg-blue-100 mb-4 animate-pulse">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect width="7" height="5" x="7" y="7" rx="1"/><rect width="5" height="7" x="10" y="12" rx="1"/></svg>
+                        </div>
+                        <p class="text-xl font-semibold text-blue-900 mb-4">Tap RFID Card to Login</p>
+                        <button type="button" @onclick="DemoLogin" class="inline-flex items-center justify-center rounded-lg text-lg font-medium bg-blue-600 text-white h-12 px-8 hover:bg-blue-700">Demo Login</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="rounded-xl border-2 border-green-200 bg-green-50 p-6 flex flex-wrap items-center gap-6">
+                        <div class="h-16 w-16 rounded-full bg-green-600 text-white flex items-center justify-center text-2xl font-bold shrink-0">JD</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-2xl font-bold text-slate-900">John Doe</p>
+                            <p class="text-slate-600">ID: EMP001 · Shift: Day Shift</p>
+                        </div>
+                        <span class="inline-flex items-center gap-2 rounded-full bg-white border border-green-300 px-4 py-2 text-sm font-medium text-green-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                            RFID Connected
+                        </span>
+                    </div>
+                }
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                <div class="flex flex-wrap items-start justify-between gap-6">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500">Product</p>
+                        <p class="text-3xl font-bold text-slate-900">@_productCode</p>
+                        <p class="text-xl text-slate-700 mt-1">@_productName</p>
+                        <p class="text-sm text-slate-600 mt-2">Code: @_productCode</p>
+                    </div>
+                    <div class="flex-1 min-w-[240px] max-w-md">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-slate-600">Progress</span>
+                            <span class="font-bold text-slate-900">@ProgressPct.ToString("F0", CultureInfo.InvariantCulture)%</span>
+                        </div>
+                        <div class="h-4 rounded-full bg-slate-200 overflow-hidden mb-4">
+                            <div class="h-4 rounded-full bg-blue-600 transition-all" style="width:@(Math.Clamp(ProgressPct, 0, 100))%"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="rounded-lg border border-slate-200 p-4 text-center">
+                                <p class="text-xs text-slate-500 uppercase">Target</p>
+                                <p class="text-2xl font-bold text-slate-900">@_targetQty</p>
+                            </div>
+                            <div class="rounded-lg border border-slate-200 p-4 text-center">
+                                <p class="text-xs text-slate-500 uppercase">Completed</p>
+                                <p class="text-2xl font-bold text-green-700">@_producedQty</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                @if (_producedQty >= _targetQty && _showQcApproval)
+                {
+                    <div class="text-center py-8">
+                        <div class="inline-flex mb-4 animate-bounce">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-600"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <h2 class="text-3xl font-bold text-green-700 mb-4">TARGET REACHED!</h2>
+                        <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 text-left max-w-lg mx-auto mb-6">
+                            QC Approval Required — notify quality before continuing production.
+                        </div>
+                        <button type="button" @onclick="QcApprovedContinue" class="inline-flex items-center justify-center rounded-lg text-lg font-medium bg-amber-500 text-white h-14 px-8 hover:bg-amber-600">QC Approved - Continue</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex flex-wrap gap-8 items-start">
+                        <div class="flex-1 min-w-[200px]">
+                            <p class="text-sm font-medium text-slate-500 mb-2">Pieces this entry</p>
+                            <div class="text-6xl font-bold text-slate-900 tabular-nums">@_entryQuantity</div>
+                            <div class="flex gap-3 mt-4">
+                                <button type="button" disabled="@(!CanAdjustQuantity)" @onclick="() => AdjustEntry(-1)" class="flex-1 h-16 rounded-xl border-2 border-red-400 text-red-700 text-2xl font-bold hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed">−1</button>
+                                <button type="button" disabled="@(!CanAdjustQuantity)" @onclick="() => AdjustEntry(1)" class="flex-1 h-16 rounded-xl bg-green-600 text-white text-2xl font-bold hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed">+1</button>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-[220px] space-y-4">
+                            <div class="flex gap-2">
+                                <button type="button" disabled="@(!CanAdjustQuantity)" @onclick="() => AdjustEntry(5)" class="flex-1 h-12 rounded-lg border border-slate-300 text-slate-800 font-semibold hover:bg-slate-50 disabled:opacity-40">+5</button>
+                                <button type="button" disabled="@(!CanAdjustQuantity)" @onclick="() => AdjustEntry(10)" class="flex-1 h-12 rounded-lg border border-slate-300 text-slate-800 font-semibold hover:bg-slate-50 disabled:opacity-40">+10</button>
+                                <button type="button" disabled="@(!CanAdjustQuantity)" @onclick="() => AdjustEntry(25)" class="flex-1 h-12 rounded-lg border border-slate-300 text-slate-800 font-semibold hover:bg-slate-50 disabled:opacity-40">+25</button>
+                            </div>
+                            <button type="button" disabled="@(!CanSubmitEntry)" @onclick="SubmitEntry" class="w-full h-16 rounded-xl bg-blue-600 text-white text-xl font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">Submit</button>
+                            @if (_machineStatus != "running")
+                            {
+                                <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Machine is not running — piece entry is disabled.</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                        <div class="rounded-xl p-4 text-center text-white font-bold text-xl mb-4 @MachineStatusBannerClass">
+                            @MachineStatusLabel
+                        </div>
+                        <p class="text-center text-sm text-slate-500 mb-1">Elapsed</p>
+                        <p class="text-center text-4xl font-mono font-bold text-slate-900">@GetTimerDisplay()</p>
+                    </div>
+                    <div class="space-y-4">
+                        @if (_machineStatus == "down")
+                        {
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Breakdown reason</label>
+                                <select @bind="_selectedBreakdownReason" class="w-full h-11 rounded-lg border border-slate-300 px-3 text-sm">
+                                    <option value="">Select reason</option>
+                                    @foreach (var r in BreakdownReasons)
+                                    {
+                                        <option value="@r">@r</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        @if (_operatorStatus == "on-break")
+                        {
+                            <button type="button" @onclick="ResumeFromBreak" class="w-full h-14 rounded-xl bg-blue-600 text-white text-lg font-semibold hover:bg-blue-700">Resume</button>
+                        }
+                        else if (_operatorStatus != "logged-out" && _machineStatus != "down")
+                        {
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button type="button" @onclick="StartBreak" class="flex-1 h-14 rounded-xl bg-yellow-400 text-yellow-950 text-lg font-semibold hover:bg-yellow-500">Break</button>
+                                <button type="button" @onclick="OpenMachineDownModal" class="flex-1 h-14 rounded-xl bg-red-600 text-white text-lg font-semibold hover:bg-red-700">Report Down</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                <div class="flex flex-wrap items-center justify-between gap-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                        <div class="rounded-lg border border-slate-200 p-4 text-center">
+                            <p class="text-xs text-slate-500 uppercase">Completed</p>
+                            <p class="text-2xl font-bold text-slate-900">@_producedQty</p>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 p-4 text-center">
+                            <p class="text-xs text-slate-500 uppercase">Defects</p>
+                            <p class="text-2xl font-bold text-red-700">@_defectQty</p>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 p-4 text-center">
+                            <p class="text-xs text-slate-500 uppercase">Leftover Material (kg)</p>
+                            <p class="text-2xl font-bold text-slate-900">@_leftoverMaterial</p>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 p-4 text-center">
+                            <p class="text-xs text-slate-500 uppercase">Work Time</p>
+                            <p class="text-2xl font-bold text-slate-900">@FormatTime(GetSessionTime())</p>
+                        </div>
+                    </div>
+                    <button type="button" @onclick="ConfirmLogout" class="shrink-0 h-16 px-8 rounded-xl bg-rose-600 text-white text-lg font-bold hover:bg-rose-700">Confirm &amp; Logout</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+@if (_showMachineDownModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseMachineDownModal">
+        <div class="max-w-md w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Report machine down</h2>
+            <label class="block text-sm font-medium text-slate-900 mb-1">Breakdown reason</label>
+            <select @bind="_modalBreakdownReason" class="w-full h-11 rounded-lg border border-slate-300 px-3 text-sm mb-6">
+                <option value="">Select reason</option>
+                @foreach (var r in BreakdownReasons)
+                {
+                    <option value="@r">@r</option>
+                }
+            </select>
+            <div class="flex justify-end gap-2">
+                <button type="button" @onclick="CloseMachineDownModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="ConfirmMachineDown" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Report Down</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Shop-floor kiosk (mock); live clock via <see cref="Timer"/>.</summary>
+    private string _operatorStatus = "logged-in";
+    private string _machineStatus = "running";
+    private DateTime _currentTime = DateTime.Now;
+    private DateTime _sessionStartTime;
+    private DateTime? _breakStartTime;
+    private DateTime? _machineDownTime;
+    private int _entryQuantity;
+    private string _selectedBreakdownReason = string.Empty;
+    private string _modalBreakdownReason = string.Empty;
+    private bool _showMachineDownModal;
+    private bool _showQcApproval;
+    private Timer? _timer;
+    private bool _initialized;
+
+    private string _productCode = "PC-001";
+    private string _productName = "Plastic Container 500ml";
+    private int _targetQty = 500;
+    private int _producedQty = 347;
+    private int _defectQty = 3;
+    private int _leftoverMaterial = 25;
+
+    private static readonly string[] BreakdownReasons =
+    {
+        "Mold Jam", "Power Failure", "Material Shortage",
+        "Temperature Issue", "Mechanical Fault", "Other Issue"
+    };
+
+    private bool CanAdjustQuantity => _machineStatus == "running" && _operatorStatus == "logged-in";
+    private bool CanSubmitEntry => _entryQuantity > 0 && _machineStatus == "running" && _operatorStatus == "logged-in";
+
+    private double ProgressPct => _targetQty > 0 ? (double)_producedQty / _targetQty * 100 : 0;
+
+    private string MachineStatusLabel => _machineStatus switch
+    {
+        "running" => "🟢 RUNNING",
+        "idle" => "🟡 IDLE",
+        "down" => "🔴 DOWN",
+        _ => _machineStatus
+    };
+
+    private string MachineStatusBannerClass => _machineStatus switch
+    {
+        "running" => "bg-green-500",
+        "idle" => "bg-yellow-500",
+        "down" => "bg-red-500",
+        _ => "bg-slate-500"
+    };
+
+    /// <summary>Stops the live clock timer.</summary>
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    /// <summary>Starts the 1-second UI clock timer once.</summary>
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return Task.CompletedTask;
+
+        _initialized = true;
+        _sessionStartTime = DateTime.Now.AddHours(-4);
+        _timer = new Timer(_ =>
+        {
+            _ = InvokeAsync(() =>
+            {
+                _currentTime = DateTime.Now;
+                StateHasChanged();
+            });
+        }, null, 0, 1000);
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private static string FormatTime(TimeSpan ts)
+    {
+        if (ts < TimeSpan.Zero)
+            ts = TimeSpan.Zero;
+        var totalHours = (int)ts.TotalHours;
+        return $"{totalHours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+    }
+
+    private TimeSpan GetSessionTime() => DateTime.Now - _sessionStartTime;
+
+    private TimeSpan GetBreakTime() =>
+        _breakStartTime.HasValue ? DateTime.Now - _breakStartTime.Value : TimeSpan.Zero;
+
+    private TimeSpan GetDownTime() =>
+        _machineDownTime.HasValue ? DateTime.Now - _machineDownTime.Value : TimeSpan.Zero;
+
+    private string GetTimerDisplay()
+    {
+        if (_machineStatus == "down" && _machineDownTime.HasValue)
+            return FormatTime(GetDownTime());
+        if (_operatorStatus == "on-break" && _breakStartTime.HasValue)
+            return FormatTime(GetBreakTime());
+        return FormatTime(GetSessionTime());
+    }
+
+    private void DemoLogin()
+    {
+        _operatorStatus = "logged-in";
+        StateHasChanged();
+    }
+
+    private void AdjustEntry(int delta)
+    {
+        _entryQuantity = Math.Max(0, _entryQuantity + delta);
+        StateHasChanged();
+    }
+
+    private void SubmitEntry()
+    {
+        if (!CanSubmitEntry)
+            return;
+
+        _producedQty += _entryQuantity;
+        var hitTarget = _producedQty >= _targetQty;
+        _entryQuantity = 0;
+        if (hitTarget)
+            _showQcApproval = true;
+
+        StateHasChanged();
+    }
+
+    private void QcApprovedContinue()
+    {
+        _showQcApproval = false;
+        StateHasChanged();
+    }
+
+    private void StartBreak()
+    {
+        _operatorStatus = "on-break";
+        _breakStartTime = DateTime.Now;
+        _machineStatus = "idle";
+        StateHasChanged();
+    }
+
+    private void ResumeFromBreak()
+    {
+        _operatorStatus = "logged-in";
+        _breakStartTime = null;
+        _machineStatus = "running";
+        StateHasChanged();
+    }
+
+    private void OpenMachineDownModal()
+    {
+        _modalBreakdownReason = _selectedBreakdownReason;
+        _showMachineDownModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseMachineDownModal()
+    {
+        _showMachineDownModal = false;
+        StateHasChanged();
+    }
+
+    private void ConfirmMachineDown()
+    {
+        if (string.IsNullOrWhiteSpace(_modalBreakdownReason))
+            return;
+
+        _selectedBreakdownReason = _modalBreakdownReason;
+        _machineStatus = "down";
+        _machineDownTime = DateTime.Now;
+        _showMachineDownModal = false;
+        StateHasChanged();
+    }
+
+    private void ConfirmLogout()
+    {
+        _operatorStatus = "logged-out";
+        StateHasChanged();
+    }
+}

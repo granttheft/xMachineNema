@@ -1,0 +1,491 @@
+@page "/production/operator"
+@rendermode InteractiveServer
+@implements IDisposable
+@using System.Globalization
+@using System.Threading
+
+<PageTitle>Operator Dashboard · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50 flex flex-col">
+    <header class="bg-white border-b border-slate-200 px-6 py-4 shrink-0">
+        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900">Operator Dashboard</h1>
+                <p class="text-sm text-slate-500 mt-1">Real-time operator assignment management</p>
+            </div>
+            <button type="button" @onclick="OnExportLog" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 text-slate-700 hover:bg-slate-50">
+                <svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Log
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">@_successMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(_calendarMessage))
+        {
+            <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-800">@_calendarMessage</div>
+        }
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                <p class="text-xs font-medium text-slate-500 uppercase">Available</p>
+                <p class="text-2xl font-bold text-green-600 mt-1">@AvailableOperators</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                <p class="text-xs font-medium text-slate-500 uppercase">Busy</p>
+                <p class="text-2xl font-bold text-amber-600 mt-1">@BusyOperators</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                <p class="text-xs font-medium text-slate-500 uppercase">Absent</p>
+                <p class="text-2xl font-bold text-red-600 mt-1">@AbsentOperators</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                <p class="text-xs font-medium text-slate-500 uppercase">Reassignments Today</p>
+                <p class="text-2xl font-bold text-slate-900 mt-1">@_reassignmentsToday</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Department</label>
+                <select @bind="_filterDept" class="h-10 rounded-md border border-slate-200 px-3 text-sm min-w-[140px]">
+                    <option value="all">All</option>
+                    <option value="Injection">Injection</option>
+                    <option value="Extrusion">Extrusion</option>
+                    <option value="Assembly">Assembly</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Shift</label>
+                <select @bind="_filterShift" class="h-10 rounded-md border border-slate-200 px-3 text-sm min-w-[160px]">
+                    <option value="all">All Shifts</option>
+                    <option value="Day Shift">Day Shift</option>
+                    <option value="Night Shift">Night Shift</option>
+                </select>
+            </div>
+            <button type="button" @onclick="ShowCalendarStub" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 text-slate-700 hover:bg-slate-50">
+                <svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Assignment Calendar
+            </button>
+            <div class="flex rounded-lg border border-slate-200 overflow-hidden">
+                <button type="button" @onclick='() => SetMode("immediate")' class="px-4 py-2 text-sm font-medium @(_assignMode == "immediate" ? "bg-slate-900 text-white" : "bg-white text-slate-700 hover:bg-slate-50")">Immediate</button>
+                <button type="button" @onclick='() => SetMode("scheduled")' class="px-4 py-2 text-sm font-medium border-l border-slate-200 @(_assignMode == "scheduled" ? "bg-slate-900 text-white" : "bg-white text-slate-700 hover:bg-slate-50")">Scheduled</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 min-h-0">
+        <div class="flex-1 p-6 overflow-y-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                @foreach (var m in _machines)
+                {
+                    <div class="rounded-lg border-2 bg-white shadow-sm overflow-hidden @GetMachineCardBorderClass(m.Status)">
+                        <div class="px-4 py-3 flex items-center justify-between gap-2 @GetMachineHeaderClass(m.Status)">
+                            <div class="min-w-0">
+                                <p class="font-mono text-sm font-semibold text-slate-800">@m.Id</p>
+                                <p class="text-sm text-slate-700 truncate">@m.Name</p>
+                            </div>
+                            <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium shrink-0 @GetStatusBadgeClass(m.Status)">@m.Status</span>
+                        </div>
+                        <div class="p-4 space-y-4 text-sm">
+                            @if (!string.IsNullOrEmpty(m.JobId) && !string.IsNullOrEmpty(m.ProductName))
+                            {
+                                <div>
+                                    <p class="font-medium text-slate-900">@m.ProductName</p>
+                                    <p class="text-xs text-slate-500 font-mono">@m.JobId</p>
+                                    <div class="mt-2 h-2 rounded-full bg-slate-200 overflow-hidden">
+                                        <div class="h-2 rounded-full bg-blue-600" style="width:@(m.TargetQty > 0 ? Math.Min(100, m.CurrentQty * 100.0 / m.TargetQty) : 0)%"></div>
+                                    </div>
+                                    <p class="text-xs text-slate-600 mt-1">@m.CurrentQty / @m.TargetQty</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-6 text-center text-slate-500">No Job Assigned</div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(m.OperatorId))
+                            {
+                                <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 flex items-start justify-between gap-2">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">@GetInitials(m.OperatorName)</div>
+                                        <div class="min-w-0">
+                                            <p class="font-medium text-slate-900 truncate">@m.OperatorName</p>
+                                            <p class="text-xs text-slate-600 font-mono">@m.OperatorId</p>
+                                            <p class="text-xs text-slate-600">@m.OperatorDept · @m.OperatorShift</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" @onclick="() => Unassign(m.Id)" class="shrink-0 inline-flex items-center justify-center rounded-md border border-red-200 bg-white text-red-700 h-8 w-8 hover:bg-red-50" title="Unassign">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="rounded-lg border border-dashed border-slate-300 p-4 text-center space-y-2">
+                                    <p class="text-slate-500 text-sm">Assign Operator</p>
+                                    <button type="button" @onclick="() => OpenAssignModal(m.Id)" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">Assign</button>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <aside class="w-80 shrink-0 border-l border-slate-200 bg-white flex flex-col min-h-0">
+            <div class="p-4 border-b border-slate-100 shrink-0">
+                <h2 class="text-lg font-semibold text-slate-900 mb-3">Operator List</h2>
+                <div class="relative">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="text" @bind="_searchTerm" @bind:event="oninput" placeholder="Search…" class="w-full h-10 rounded-md border border-slate-200 pl-10 pr-3 text-sm" />
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                @foreach (var o in FilteredOperators())
+                {
+                    <div class="rounded-lg border border-slate-200 p-3 @(o.Status == "absent" ? "opacity-50" : "")">
+                        <div class="flex items-start gap-3">
+                            <div class="h-10 w-10 rounded-full @GetAvatarColor(o.Id) text-white flex items-center justify-center text-sm font-bold shrink-0">@GetInitials(o.Name)</div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-slate-900 truncate">@o.Name</p>
+                                <p class="text-xs text-slate-500 font-mono">@o.Id</p>
+                                <p class="text-xs text-slate-600">@o.Department · @o.Shift</p>
+                                <span class="inline-flex mt-1 rounded-md px-2 py-0.5 text-xs font-medium @GetOperatorStatusBadgeClass(o.Status)">@o.Status</span>
+                                @if (o.Status == "busy" && !string.IsNullOrEmpty(o.CurrentMachineId))
+                                {
+                                    <p class="text-xs text-slate-600 mt-1">📍 @o.CurrentMachineId</p>
+                                }
+                                <p class="text-xs text-slate-500 mt-2">@o.SkillLevel · @o.Experience</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </aside>
+    </div>
+</div>
+
+@if (_showAssignModal)
+{
+    var machine = _machines.FirstOrDefault(x => x.Id == _assigningMachineId);
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseAssignModal">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Assign operator</h2>
+            @if (machine is not null)
+            {
+                <p class="text-sm text-slate-600 mb-4">Machine: <span class="font-semibold text-slate-900">@machine.Name (@machine.Id)</span></p>
+            }
+            <label class="block text-sm font-medium text-slate-900 mb-1">Operator</label>
+            <select @bind="_selectedOperatorId" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm mb-4">
+                <option value="">Select operator</option>
+                @foreach (var o in _operators.Where(x => x.Status == "free"))
+                {
+                    <option value="@o.Id">@o.Name (@o.Department)</option>
+                }
+            </select>
+            <label class="block text-sm font-medium text-slate-900 mb-1">Note (optional)</label>
+            <textarea @bind="_assignNote" rows="3" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm mb-6"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" @onclick="CloseAssignModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="ConfirmAssign" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Operator-to-machine assignment dashboard (mock; button assignment only).</summary>
+    private List<MachineRow> _machines = new();
+    private List<OperatorRow> _operators = new();
+
+    private string _searchTerm = string.Empty;
+    private string _filterDept = "all";
+    private string _filterShift = "all";
+    private string _assignMode = "immediate";
+
+    private bool _showAssignModal;
+    private string _assigningMachineId = string.Empty;
+    private string _selectedOperatorId = string.Empty;
+    private string _assignNote = string.Empty;
+
+    private string? _successMessage;
+    private string? _calendarMessage;
+    private Timer? _bannerTimer;
+    private CancellationTokenSource? _bannerCts;
+
+    private int _reassignmentsToday;
+    private bool _initialized;
+
+    private int AvailableOperators => _operators.Count(o => o.Status == "free");
+    private int BusyOperators => _operators.Count(o => o.Status == "busy");
+    private int AbsentOperators => _operators.Count(o => o.Status == "absent");
+
+    /// <summary>Releases success-banner timer resources.</summary>
+    public void Dispose()
+    {
+        _bannerTimer?.Dispose();
+        _bannerTimer = null;
+        _bannerCts?.Cancel();
+        _bannerCts?.Dispose();
+        _bannerCts = null;
+    }
+
+    /// <summary>Seeds mock machines and operators once.</summary>
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return Task.CompletedTask;
+
+        _initialized = true;
+        _machines = new List<MachineRow>
+        {
+            new("MCH-01", "Injection Machine 1", "running", "Plastic Bottle 500ml", "JOB-2024-001", 7500, 10000, "OP-001", "Ko Thant", "Injection", "Day Shift"),
+            new("MCH-02", "Injection Machine 2", "idle", "Plastic Cup 250ml", "JOB-2024-002", 8000, 8000, "OP-002", "Ma Hla", "Injection", "Day Shift"),
+            new("MCH-03", "Injection Machine 3", "down", null, null, 0, 0, null, null, null, null),
+            new("MCH-04", "Injection Machine 4", "unassigned", "Plastic Container 1L", "JOB-2024-004", 0, 5000, null, null, null, null),
+            new("MCH-05", "Injection Machine 5", "running", "Plastic Tray 300x200mm", "JOB-2024-005", 1800, 3000, "OP-003", "Ko Aung", "Injection", "Day Shift"),
+            new("MCH-06", "Injection Machine 6", "unassigned", null, null, 0, 0, null, null, null, null),
+        };
+        _operators = new List<OperatorRow>
+        {
+            new("OP-001", "Ko Thant", "busy", "Injection", "Day Shift", "MCH-01", "Expert", "5 years"),
+            new("OP-002", "Ma Hla", "busy", "Injection", "Day Shift", "MCH-02", "Advanced", "3 years"),
+            new("OP-003", "Ko Aung", "busy", "Injection", "Day Shift", "MCH-05", "Intermediate", "2 years"),
+            new("OP-004", "Ma Su", "free", "Injection", "Day Shift", null, "Advanced", "4 years"),
+            new("OP-005", "Ko Zaw", "free", "Injection", "Day Shift", null, "Expert", "6 years"),
+            new("OP-006", "Ma Aye", "absent", "Injection", "Day Shift", null, "Intermediate", "1.5 years"),
+            new("OP-007", "Ko Min", "free", "Extrusion", "Day Shift", null, "Advanced", "3.5 years"),
+        };
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private IEnumerable<OperatorRow> FilteredOperators()
+    {
+        IEnumerable<OperatorRow> q = _operators;
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var s = _searchTerm.Trim();
+            q = q.Where(o =>
+                o.Name.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                o.Id.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.Equals(_filterDept, "all", StringComparison.OrdinalIgnoreCase))
+            q = q.Where(o => string.Equals(o.Department, _filterDept, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.Equals(_filterShift, "all", StringComparison.OrdinalIgnoreCase))
+            q = q.Where(o => string.Equals(o.Shift, _filterShift, StringComparison.OrdinalIgnoreCase));
+
+        return q.ToList();
+    }
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        "running" => "bg-green-100 text-green-800",
+        "idle" => "bg-yellow-100 text-yellow-800",
+        "down" => "bg-red-100 text-red-800",
+        "unassigned" => "bg-slate-100 text-slate-700",
+        _ => "bg-slate-100 text-slate-700",
+    };
+
+    private static string GetMachineCardBorderClass(string status) => status switch
+    {
+        "running" => "border-green-300",
+        "idle" => "border-yellow-300",
+        "down" => "border-red-300",
+        "unassigned" => "border-slate-300",
+        _ => "border-slate-300",
+    };
+
+    private static string GetMachineHeaderClass(string status) => status switch
+    {
+        "running" => "bg-green-50",
+        "idle" => "bg-yellow-50",
+        "down" => "bg-red-50",
+        "unassigned" => "bg-slate-50",
+        _ => "bg-slate-50",
+    };
+
+    private static string GetOperatorStatusBadgeClass(string status) => status switch
+    {
+        "free" => "bg-green-100 text-green-800",
+        "busy" => "bg-yellow-100 text-yellow-800",
+        "absent" => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-700",
+    };
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+            return string.Concat(parts[0][0], parts[^1][0]).ToUpperInvariant();
+        return name.Length >= 2 ? name[..2].ToUpperInvariant() : name.ToUpperInvariant();
+    }
+
+    private static string GetAvatarColor(string id) => id switch
+    {
+        "OP-001" => "bg-blue-600",
+        "OP-002" => "bg-violet-600",
+        "OP-003" => "bg-emerald-600",
+        "OP-004" => "bg-cyan-600",
+        "OP-005" => "bg-indigo-600",
+        "OP-006" => "bg-slate-500",
+        "OP-007" => "bg-orange-600",
+        _ => "bg-slate-600",
+    };
+
+    private void SetMode(string mode)
+    {
+        _assignMode = mode;
+        StateHasChanged();
+    }
+
+    private void ShowCalendarStub()
+    {
+        _calendarMessage = "Calendar view coming soon";
+        StateHasChanged();
+    }
+
+    private void OnExportLog()
+    {
+        _successMessage = "Export log (mock) — check downloads.";
+        StateHasChanged();
+        ScheduleClearSuccess();
+    }
+
+    private void OpenAssignModal(string machineId)
+    {
+        _assigningMachineId = machineId;
+        _selectedOperatorId = string.Empty;
+        _assignNote = string.Empty;
+        _showAssignModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseAssignModal()
+    {
+        _showAssignModal = false;
+        StateHasChanged();
+    }
+
+    private void ConfirmAssign()
+    {
+        if (string.IsNullOrEmpty(_selectedOperatorId) || string.IsNullOrEmpty(_assigningMachineId))
+            return;
+
+        var op = _operators.FirstOrDefault(x => x.Id == _selectedOperatorId);
+        var mi = _machines.FindIndex(x => x.Id == _assigningMachineId);
+        if (op is null || mi < 0)
+            return;
+
+        var m = _machines[mi];
+        var newMachineStatus = string.Equals(m.Status, "unassigned", StringComparison.OrdinalIgnoreCase) ? "idle" : m.Status;
+        _machines[mi] = m with
+        {
+            Status = newMachineStatus,
+            OperatorId = op.Id,
+            OperatorName = op.Name,
+            OperatorDept = op.Department,
+            OperatorShift = op.Shift
+        };
+
+        var oi = _operators.FindIndex(x => x.Id == _selectedOperatorId);
+        if (oi >= 0)
+        {
+            var o = _operators[oi];
+            _operators[oi] = o with { Status = "busy", CurrentMachineId = _assigningMachineId };
+        }
+
+        _reassignmentsToday++;
+        _successMessage = $"Assigned {op.Name} to {_assigningMachineId}.";
+        _showAssignModal = false;
+        StateHasChanged();
+        ScheduleClearSuccess();
+    }
+
+    private void Unassign(string machineId)
+    {
+        var mi = _machines.FindIndex(x => x.Id == machineId);
+        if (mi < 0)
+            return;
+
+        var m = _machines[mi];
+        var opId = m.OperatorId;
+        if (string.IsNullOrEmpty(opId))
+            return;
+
+        var newMachineStatus = string.Equals(m.Status, "running", StringComparison.OrdinalIgnoreCase) ? "idle" : m.Status;
+        _machines[mi] = m with
+        {
+            Status = newMachineStatus,
+            OperatorId = null,
+            OperatorName = null,
+            OperatorDept = null,
+            OperatorShift = null
+        };
+
+        var oi = _operators.FindIndex(x => x.Id == opId);
+        if (oi >= 0)
+        {
+            var o = _operators[oi];
+            _operators[oi] = o with { Status = "free", CurrentMachineId = null };
+        }
+
+        _successMessage = $"Unassigned operator from {machineId}.";
+        StateHasChanged();
+        ScheduleClearSuccess();
+    }
+
+    private void ScheduleClearSuccess()
+    {
+        _bannerTimer?.Dispose();
+        _bannerTimer = null;
+        _bannerCts?.Cancel();
+        _bannerCts?.Dispose();
+        _bannerCts = new CancellationTokenSource();
+        var token = _bannerCts.Token;
+        _bannerTimer = new Timer(_ =>
+        {
+            _ = InvokeAsync(() =>
+            {
+                if (!token.IsCancellationRequested)
+                {
+                    _successMessage = null;
+                    StateHasChanged();
+                }
+            });
+        }, null, 3000, Timeout.Infinite);
+    }
+
+    /// <summary>Machine card row for the operator dashboard grid.</summary>
+    private sealed record MachineRow(
+        string Id,
+        string Name,
+        string Status,
+        string? ProductName,
+        string? JobId,
+        int CurrentQty,
+        int TargetQty,
+        string? OperatorId,
+        string? OperatorName,
+        string? OperatorDept,
+        string? OperatorShift);
+
+    /// <summary>Operator sidebar row.</summary>
+    private sealed record OperatorRow(
+        string Id,
+        string Name,
+        string Status,
+        string Department,
+        string Shift,
+        string? CurrentMachineId,
+        string SkillLevel,
+        string Experience);
+}
