@@ -1,0 +1,950 @@
+@page "/production/mcr"
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Mold Change Requests · xMachine</PageTitle>
+
+<div class="p-6 bg-slate-50 min-h-screen">
+    <div class="max-w-7xl mx-auto space-y-6">
+        @if (UrgentPendingCount > 0)
+        {
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <svg class="h-5 w-5 text-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-medium text-red-800">@UrgentPendingCount Urgent MCR@(UrgentPendingCount > 1 ? "s" : "") Require Attention</h3>
+                        <p class="text-sm text-red-600 mt-1">@string.Join(", ", UrgentPendingIds) — Please review and approve immediately.</p>
+                    </div>
+                    <button type="button" @onclick="ReviewUrgentNow" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700 shrink-0">Review Now</button>
+                </div>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">@_successMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">@_errorMessage</div>
+        }
+
+        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+                <div>
+                    <h1 class="text-2xl font-semibold text-slate-900 mb-2">Mold Change Requests</h1>
+                    <p class="text-slate-600">Manage mold changeover requests and workflows</p>
+                </div>
+                <div class="flex flex-wrap gap-2 shrink-0">
+                    <button type="button" @onclick="OnRefresh" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white text-slate-600 h-9 px-4 hover:bg-slate-50">
+                        <svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                        Refresh
+                    </button>
+                    <button type="button" @onclick="OnExport" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white text-slate-600 h-9 px-4 hover:bg-slate-50">
+                        <svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Export
+                    </button>
+                    <button type="button" @onclick="OpenNewMcrModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">
+                        <svg class="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                        New MCR
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Search Job ID / MCR ID</label>
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" @bind="_searchTerm" @bind:event="oninput" placeholder="Search…" class="w-full h-10 rounded-md border border-slate-200 pl-10 pr-3 text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Machine</label>
+                    <select @bind="_machineFilter" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="all">All</option>
+                        <option value="INJ-M001">INJ-M001</option>
+                        <option value="INJ-M002">INJ-M002</option>
+                        <option value="INJ-M003">INJ-M003</option>
+                        <option value="INJ-M004">INJ-M004</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Status</label>
+                    <select @bind="_statusFilter" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="all">All</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Retry Required">Retry Required</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Date Range</label>
+                    <select @bind="_dateFilter" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">@CountByStatus("Pending")</div>
+                <div class="text-sm text-slate-600">Pending</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-green-600">@CountByStatus("Approved")</div>
+                <div class="text-sm text-slate-600">Approved</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-orange-600">@CountByStatus("In Progress")</div>
+                <div class="text-sm text-slate-600">In Progress</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-emerald-600">@CountByStatus("Completed")</div>
+                <div class="text-sm text-slate-600">Completed</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-red-600">@CountByStatus("Rejected")</div>
+                <div class="text-sm text-slate-600">Rejected</div>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 text-center">
+                <div class="text-2xl font-bold text-yellow-600">@CountByStatus("Retry Required")</div>
+                <div class="text-sm text-slate-600">Retry Required</div>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                <svg class="h-5 w-5 text-slate-700" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                <h2 class="text-lg font-semibold text-slate-900">Mold Change Requests</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead class="bg-slate-50">
+                    <tr>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">MCR ID</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job ID</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Current Mold</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Required Mold</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Est. Time</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Planned Start</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Technician</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach (var m in FilteredMcrs())
+                    {
+                        <tr class="cursor-pointer transition-colors hover:bg-slate-50" @onclick="() => OpenDetailModal(m)">
+                            <td class="px-4 py-3 font-medium text-slate-900">
+                                <div class="flex items-center gap-2">
+                                    @if (m.Priority == "Critical")
+                                    {
+                                        <svg class="h-4 w-4 text-red-500 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    }
+                                    else if (m.Priority == "High")
+                                    {
+                                        <svg class="h-4 w-4 text-orange-500 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    }
+                                    @m.Id
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex flex-wrap items-center gap-1">
+                                    <span class="text-slate-800">@m.JobId</span>
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetPriorityClass(m.Priority)">@m.Priority</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 font-medium">@m.Machine</td>
+                            <td class="px-4 py-3 max-w-[8rem] truncate" title="@m.CurrentMold">@m.CurrentMold</td>
+                            <td class="px-4 py-3 max-w-[8rem] truncate" title="@m.RequiredMold">@m.RequiredMold</td>
+                            <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetTypeClass(m.Type)">@m.Type</span></td>
+                            <td class="whitespace-nowrap px-4 py-3 text-slate-700">
+                                <span class="inline-flex items-center gap-1">
+                                    <svg class="h-3 w-3 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    @m.EstimatedTime min
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStatusClass(m.Status)">@m.Status</span>
+                                    @if (m.Status == "In Progress")
+                                    {
+                                        <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse" aria-hidden="true"></span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">
+                                <div>@m.PlannedStart</div>
+                                @if (!string.IsNullOrEmpty(m.ActualStart))
+                                {
+                                    <div class="text-xs text-green-600">Started: @m.ActualStart</div>
+                                }
+                            </td>
+                            <td class="px-4 py-3">@(m.Technician ?? "—")</td>
+                            <td class="px-4 py-3" @onclick:stopPropagation="true">
+                                <div class="flex flex-wrap gap-1">
+                                    <button type="button" @onclick="() => OpenDetailModal(m)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 w-8 p-0 hover:bg-slate-50" title="View">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </button>
+                                    @if (m.Status == "Pending")
+                                    {
+                                        <button type="button" @onclick="() => ApproveMcr(m.Id)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 w-8 p-0 hover:bg-green-50">✓</button>
+                                        <button type="button" @onclick="() => OpenRejectModal(m.Id)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-red-600 text-red-600 h-8 w-8 p-0 hover:bg-red-50">✗</button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_showDetailModal && _selectedMcr is not null)
+{
+    var s = _selectedMcr;
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" @onclick="CloseDetailModal">
+        <div class="max-w-5xl w-full rounded-lg border border-slate-200 bg-white shadow-lg my-8 max-h-[90vh] overflow-y-auto" @onclick:stopPropagation="true">
+            <div class="p-6 border-b border-slate-100">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                    MCR Details: @s.Id
+                </h2>
+                <p class="text-sm text-slate-500 mt-1">Mold change request details and configuration</p>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Previous Job</div>
+                        <div class="p-4 space-y-3 text-sm">
+                            @if (s.PreviousJob is not null)
+                            {
+                                <div><p class="text-xs text-slate-600">Product</p><p class="font-medium">@s.PreviousJob.Product</p></div>
+                                <div><p class="text-xs text-slate-600">Mold</p><p class="font-medium">@s.PreviousJob.Mold</p></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><p class="text-xs text-slate-600">Material</p><p class="font-medium">@s.PreviousJob.Material</p></div>
+                                    <div><p class="text-xs text-slate-600">Color</p><p class="font-medium">@s.PreviousJob.Color</p></div>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-slate-500">—</p>
+                            }
+                        </div>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Next Job</div>
+                        <div class="p-4 space-y-3 text-sm">
+                            @if (s.NextJob is not null)
+                            {
+                                <div><p class="text-xs text-slate-600">Product</p><p class="font-medium">@s.NextJob.Product</p></div>
+                                <div><p class="text-xs text-slate-600">Mold</p><p class="font-medium">@s.NextJob.Mold</p></div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div><p class="text-xs text-slate-600">Material</p><p class="font-medium">@s.NextJob.Material</p></div>
+                                    <div><p class="text-xs text-slate-600">Color</p><p class="font-medium">@s.NextJob.Color</p></div>
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-slate-500">—</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Changeover Configuration</div>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Mold to Install *</label>
+                                <select @bind="_detailMoldToInstall" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                                    <option value="">Select mold</option>
+                                    @foreach (var mold in AvailableMolds)
+                                    {
+                                        <option value="@mold.Id">@mold.Name — @mold.Status (@mold.Location)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Tool Location</label>
+                                <input type="text" @bind="_detailToolLocation" placeholder="e.g. Rack A-01" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Estimated Time (minutes)</label>
+                                <input type="number" min="0" @bind="_detailEstMinutes" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Changeover Type</label>
+                                <div class="p-3 bg-slate-50 rounded-lg">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetTypeClass(s.Type)">@s.Type Changeover</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Planned Start</label>
+                                <input type="datetime-local" value="@_detailPlannedStartLocal" @onchange="OnDetailPlannedStartChange" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Planned End</label>
+                                <input type="datetime-local" value="@_detailPlannedEndLocal" @onchange="OnDetailPlannedEndChange" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Required Equipment</div>
+                    <div class="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                        @foreach (var eq in RequiredEquipmentNames)
+                        {
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded border-slate-300" checked="@GetEquipmentChecked(eq)" @onchange="e => ToggleEquipment(eq, (bool)(e.Value ?? false))" />
+                                <span>@eq</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Assigned Technicians</div>
+                    <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        @foreach (var tech in Technicians)
+                        {
+                            <div class="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
+                                <label class="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                                    <input type="checkbox" class="rounded border-slate-300 shrink-0" checked="@_assignedTechnicians.Contains(tech.Name)" @onchange="e => ToggleTechnician(tech.Name, (bool)(e.Value ?? false))" />
+                                    <span>
+                                        <span class="font-medium text-slate-900">@tech.Name</span>
+                                        <span class="block text-sm text-slate-600">@tech.Department</span>
+                                    </span>
+                                </label>
+                                <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium border border-slate-200 shrink-0">@tech.Experience</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Technician Checklist</div>
+                    <div class="p-4 space-y-3 text-sm">
+                        @foreach (var key in TechnicianChecklistKeys)
+                        {
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" class="rounded border-slate-300" checked="@GetTechChecklist(key)" @onchange="e => ToggleTechChecklist(key, (bool)(e.Value ?? false))" />
+                                <span>@key</span>
+                            </label>
+                        }
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-4 py-3 font-semibold text-slate-900">Notes</div>
+                    <div class="p-4">
+                        <textarea @bind="_detailNotes" rows="4" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm" placeholder="Additional notes or instructions…"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button type="button" @onclick="CloseDetailModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                    <button type="button" @onclick="SaveDraft" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Save Draft</button>
+                    @if (s.Status == "Pending")
+                    {
+                        <button type="button" @onclick="OpenRejectFromDetail" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-red-600 text-red-600 h-9 px-4 hover:bg-red-50">Reject</button>
+                        <button type="button" @onclick="() => ApproveFromDetail(s.Id)" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-green-600 text-white h-9 px-4 hover:bg-green-700">Approve</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showRejectModal)
+{
+    <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" @onclick="CloseRejectModal">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-2">Reject MCR</h2>
+            <p class="text-sm text-slate-600 mb-4">MCR ID: <span class="font-mono font-medium">@_rejectTargetId</span></p>
+            <label class="block text-sm font-medium text-slate-900 mb-1">Reason</label>
+            <textarea @bind="_rejectReason" rows="4" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" @onclick="CloseRejectModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="ConfirmReject" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showNewMcrModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" @onclick="CloseNewMcrModal">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg my-8" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">New Mold Change Request</h2>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Machine *</label>
+                    <select @bind="_newMachine" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="">Select</option>
+                        <option value="INJ-M001">INJ-M001</option>
+                        <option value="INJ-M002">INJ-M002</option>
+                        <option value="INJ-M003">INJ-M003</option>
+                        <option value="INJ-M004">INJ-M004</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Job ID *</label>
+                    <input type="text" @bind="_newJobId" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Type *</label>
+                    <select @bind="_newType" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="Planned">Planned</option>
+                        <option value="Emergency">Emergency</option>
+                        <option value="Maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Priority *</label>
+                    <select @bind="_newPriority" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Current Mold *</label>
+                    <input type="text" @bind="_newCurrentMold" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Required Mold *</label>
+                    <input type="text" @bind="_newRequiredMold" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Planned Start *</label>
+                    <input type="datetime-local" value="@_newPlannedStartLocal" @onchange="OnNewPlannedStartChange" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Technician *</label>
+                    <select @bind="_newTechnician" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                        <option value="">Select</option>
+                        @foreach (var tech in Technicians)
+                        {
+                            <option value="@tech.Name">@tech.Name</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Notes</label>
+                    <textarea @bind="_newNotes" rows="3" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"></textarea>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" @onclick="CloseNewMcrModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="SaveNewMcr" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">Save</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _initialized;
+    private List<McrRow> _mcrs = new();
+
+    private string _searchTerm = string.Empty;
+    private string _statusFilter = "all";
+    private string _machineFilter = "all";
+    private string _dateFilter = "today";
+
+    private McrRow? _selectedMcr;
+    private bool _showDetailModal;
+    private bool _showRejectModal;
+    private bool _showNewMcrModal;
+    private string _rejectTargetId = string.Empty;
+    private string _rejectReason = string.Empty;
+
+    private string? _successMessage;
+    private string? _errorMessage;
+
+    private string _detailMoldToInstall = string.Empty;
+    private string _detailToolLocation = string.Empty;
+    private int _detailEstMinutes;
+    private string _detailPlannedStartLocal = string.Empty;
+    private string _detailPlannedEndLocal = string.Empty;
+    private string _detailNotes = string.Empty;
+
+    private readonly Dictionary<string, bool> _equipmentChecks = new();
+    private readonly Dictionary<string, bool> _technicianChecklist = new();
+    private readonly List<string> _assignedTechnicians = new();
+
+    private string _newMachine = string.Empty;
+    private string _newJobId = string.Empty;
+    private string _newType = "Planned";
+    private string _newPriority = "Medium";
+    private string _newCurrentMold = string.Empty;
+    private string _newRequiredMold = string.Empty;
+    private string _newPlannedStartLocal = string.Empty;
+    private string _newTechnician = string.Empty;
+    private string _newNotes = string.Empty;
+
+    private int _mcrSeq = 4;
+
+    private static readonly DateTime MockCalendarDay = new(2025, 9, 3);
+
+    private static readonly IReadOnlyList<string> RequiredEquipmentNames = new[]
+    {
+        "Crane Operator", "Mold Cart", "Alignment Tools", "Safety Equipment",
+        "Cleaning Supplies", "Torque Wrench Set", "Temperature Gun"
+    };
+
+    private static readonly IReadOnlyList<string> TechnicianChecklistKeys = new[]
+    {
+        "Clamp Mechanism Inspection",
+        "Cooling Line Connection",
+        "Hot Runner Setup",
+        "Sensor Calibration",
+        "First Shot Sample Check"
+    };
+
+    private static readonly IReadOnlyList<AvailableMoldDto> AvailableMolds = new AvailableMoldDto[]
+    {
+        new("M-001-500ML-BTL", "500ml Bottle Mold", "Available", "Rack A-01"),
+        new("M-002-1L-CONT", "1L Container Mold", "Available", "Rack A-02"),
+        new("M-003-250ML-CUP", "250ml Cup Mold", "In Use", "INJ-M002"),
+        new("M-004-TRAY-LG", "Large Tray Mold", "Maintenance", "Workshop"),
+        new("M-005-BOTTLE-1L", "1L Bottle Mold", "In Use", "INJ-M003"),
+        new("M-006-CONTAINER-2L", "2L Container Mold", "Available", "Rack B-01"),
+    };
+
+    private static readonly IReadOnlyList<TechnicianDto> Technicians = new TechnicianDto[]
+    {
+        new("T001", "Ko Thant", "Mold Tech", "Senior"),
+        new("T002", "Ma Phyu", "Mold Tech", "Senior"),
+        new("T003", "Ko Aung", "Mold Tech", "Expert"),
+        new("T004", "Ma Soe", "Mold Tech", "Junior"),
+    };
+
+    /// <summary>Initializes mock MCR rows (English only).</summary>
+    public ProductionControlMCR()
+    {
+        _mcrs = new List<McrRow>
+        {
+            new("MCR-20250903-001", "JOB-20250903-001", "INJ-M001", "M-001-500ML-BTL", "M-002-1L-CONT", "Planned", 45, "Pending", "2025-09-03 14:00", null, null, "Ko Thant", "Medium", "Production Supervisor", "2025-09-03 09:30", "Standard changeover between bottle and container production",
+                new McrJobInfo("JOB-20250903-001", "Plastic Bottle 500ml", "M-001-500ML-BTL", "PET Clear", "Clear"),
+                new McrJobInfo("JOB-20250903-002", "Plastic Container 1L", "M-002-1L-CONT", "PP White", "White")),
+            new("MCR-20250903-002", "JOB-20250903-003", "INJ-M002", "M-003-250ML-CUP", "M-004-TRAY-LG", "Emergency", 60, "Approved", "2025-09-03 16:30", null, null, "Ma Phyu", "High", "Production Manager", "2025-09-03 11:15", "Urgent changeover due to customer demand",
+                new McrJobInfo("JOB-20250903-003", "Plastic Cup 250ml", "M-003-250ML-CUP", "PP Blue", "Blue"),
+                new McrJobInfo("JOB-20250903-004", "Large Tray", "M-004-TRAY-LG", "ABS Black", "Black")),
+            new("MCR-20250903-003", "JOB-20250903-005", "INJ-M003", "M-005-BOTTLE-1L", "M-006-CONTAINER-2L", "Maintenance", 90, "In Progress", "2025-09-03 10:00", "2025-09-03 10:15", null, "Ko Aung", "Critical", "Maintenance Supervisor", "2025-09-02 16:45", "Mold maintenance required during changeover", null, null),
+        };
+    }
+
+    private int UrgentPendingCount => _mcrs.Count(m =>
+        m.Status == "Pending" && (m.Priority == "Critical" || m.Priority == "High"));
+
+    private IEnumerable<string> UrgentPendingIds =>
+        _mcrs.Where(m => m.Status == "Pending" && (m.Priority == "Critical" || m.Priority == "High")).Select(m => m.Id);
+
+    private int CountByStatus(string status) => _mcrs.Count(m => m.Status == status);
+
+    /// <inheritdoc />
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return Task.CompletedTask;
+
+        _initialized = true;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Client-side filtered view of MCR rows.</summary>
+    private IEnumerable<McrRow> FilteredMcrs()
+    {
+        IEnumerable<McrRow> q = _mcrs;
+
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var s = _searchTerm.Trim();
+            q = q.Where(m =>
+                m.Id.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                m.JobId.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                m.Machine.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.Equals(_statusFilter, "all", StringComparison.OrdinalIgnoreCase))
+            q = q.Where(m => string.Equals(m.Status, _statusFilter, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.Equals(_machineFilter, "all", StringComparison.OrdinalIgnoreCase))
+            q = q.Where(m => string.Equals(m.Machine, _machineFilter, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.Equals(_dateFilter, "custom", StringComparison.OrdinalIgnoreCase))
+        {
+            q = _dateFilter switch
+            {
+                "today" => q.Where(m =>
+                {
+                    var d = ParsePlannedDate(m.PlannedStart) ?? ParseCreatedDate(m.CreatedAt);
+                    return d is { } x && x.Date == MockCalendarDay.Date;
+                }),
+                "week" => q.Where(m =>
+                {
+                    var d = ParsePlannedDate(m.PlannedStart) ?? ParseCreatedDate(m.CreatedAt);
+                    return d is { } x && x >= MockCalendarDay.AddDays(-2) && x <= MockCalendarDay.AddDays(4);
+                }),
+                "month" => q.Where(m =>
+                {
+                    var d = ParsePlannedDate(m.PlannedStart) ?? ParseCreatedDate(m.CreatedAt);
+                    return d is { } x && x.Year == 2025 && x.Month == 9;
+                }),
+                _ => q
+            };
+        }
+
+        return q;
+    }
+
+    private static DateTime? ParsePlannedDate(string value) =>
+        DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt : null;
+
+    private static DateTime? ParseCreatedDate(string value) =>
+        DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt) ? dt : null;
+
+    private void ReviewUrgentNow()
+    {
+        _statusFilter = "Pending";
+        StateHasChanged();
+    }
+
+    private void OnRefresh()
+    {
+        ClearMessages();
+        _successMessage = "Data refreshed (mock).";
+        StateHasChanged();
+    }
+
+    private void OnExport()
+    {
+        ClearMessages();
+        _successMessage = "Export started (mock).";
+        StateHasChanged();
+    }
+
+    private void OpenNewMcrModal()
+    {
+        ClearMessages();
+        _newMachine = string.Empty;
+        _newJobId = string.Empty;
+        _newType = "Planned";
+        _newPriority = "Medium";
+        _newCurrentMold = string.Empty;
+        _newRequiredMold = string.Empty;
+        _newPlannedStartLocal = string.Empty;
+        _newTechnician = string.Empty;
+        _newNotes = string.Empty;
+        _showNewMcrModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseNewMcrModal()
+    {
+        _showNewMcrModal = false;
+        StateHasChanged();
+    }
+
+    private void OpenDetailModal(McrRow mcr)
+    {
+        ClearMessages();
+        _selectedMcr = mcr;
+        _detailMoldToInstall = mcr.RequiredMold;
+        _detailToolLocation = AvailableMolds.FirstOrDefault(x => x.Id == mcr.RequiredMold)?.Location ?? string.Empty;
+        _detailEstMinutes = mcr.EstimatedTime;
+        _detailPlannedStartLocal = ToDateTimeLocalValue(mcr.PlannedStart);
+        _detailPlannedEndLocal = string.Empty;
+        _detailNotes = mcr.Notes ?? string.Empty;
+
+        _assignedTechnicians.Clear();
+        if (!string.IsNullOrEmpty(mcr.Technician))
+            _assignedTechnicians.Add(mcr.Technician);
+
+        foreach (var eq in RequiredEquipmentNames)
+            _equipmentChecks[eq] = false;
+        foreach (var key in TechnicianChecklistKeys)
+            _technicianChecklist[key] = false;
+
+        _showDetailModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseDetailModal()
+    {
+        _showDetailModal = false;
+        _selectedMcr = null;
+        StateHasChanged();
+    }
+
+    private static string ToDateTimeLocalValue(string display)
+    {
+        if (DateTime.TryParse(display, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            return dt.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+        return string.Empty;
+    }
+
+    private static string FromDateTimeLocalValue(string? local)
+    {
+        if (string.IsNullOrWhiteSpace(local))
+            return string.Empty;
+        return DateTime.TryParse(local, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt)
+            ? dt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)
+            : local.Replace('T', ' ');
+    }
+
+    private void OnDetailPlannedStartChange(ChangeEventArgs e)
+    {
+        _detailPlannedStartLocal = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void OnDetailPlannedEndChange(ChangeEventArgs e)
+    {
+        _detailPlannedEndLocal = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private void OnNewPlannedStartChange(ChangeEventArgs e)
+    {
+        _newPlannedStartLocal = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private bool GetEquipmentChecked(string key) => _equipmentChecks.GetValueOrDefault(key);
+
+    private void ToggleEquipment(string key, bool value)
+    {
+        _equipmentChecks[key] = value;
+        StateHasChanged();
+    }
+
+    private bool GetTechChecklist(string key) => _technicianChecklist.GetValueOrDefault(key);
+
+    private void ToggleTechChecklist(string key, bool value)
+    {
+        _technicianChecklist[key] = value;
+        StateHasChanged();
+    }
+
+    private void ToggleTechnician(string name, bool add)
+    {
+        if (add)
+        {
+            if (!_assignedTechnicians.Contains(name))
+                _assignedTechnicians.Add(name);
+        }
+        else
+        {
+            _assignedTechnicians.Remove(name);
+        }
+
+        StateHasChanged();
+    }
+
+    private void ClearMessages()
+    {
+        _successMessage = null;
+        _errorMessage = null;
+    }
+
+    private static string GetStatusClass(string status) => status switch
+    {
+        "Pending" => "bg-blue-100 text-blue-800",
+        "Approved" => "bg-green-100 text-green-800",
+        "Rejected" => "bg-red-100 text-red-800",
+        "In Progress" => "bg-orange-100 text-orange-800",
+        "Completed" => "bg-emerald-100 text-emerald-800",
+        "Retry Required" => "bg-yellow-100 text-yellow-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string GetPriorityClass(string priority) => priority switch
+    {
+        "Critical" => "bg-red-100 text-red-800",
+        "High" => "bg-orange-100 text-orange-800",
+        "Medium" => "bg-yellow-100 text-yellow-800",
+        "Low" => "bg-green-100 text-green-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string GetTypeClass(string type) => type switch
+    {
+        "Planned" => "bg-blue-100 text-blue-800",
+        "Emergency" => "bg-red-100 text-red-800",
+        "Maintenance" => "bg-purple-100 text-purple-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private void ApproveMcr(string id)
+    {
+        var idx = _mcrs.FindIndex(x => x.Id == id);
+        if (idx < 0)
+            return;
+
+        _mcrs[idx] = _mcrs[idx] with { Status = "Approved" };
+        ClearMessages();
+        _successMessage = $"MCR {id} approved.";
+        if (_showDetailModal && _selectedMcr?.Id == id)
+            CloseDetailModal();
+        StateHasChanged();
+    }
+
+    private void ApproveFromDetail(string id) => ApproveMcr(id);
+
+    private void OpenRejectModal(string id)
+    {
+        _rejectTargetId = id;
+        _rejectReason = string.Empty;
+        _showRejectModal = true;
+        StateHasChanged();
+    }
+
+    private void OpenRejectFromDetail()
+    {
+        if (_selectedMcr is null)
+            return;
+        _rejectTargetId = _selectedMcr.Id;
+        _rejectReason = string.Empty;
+        _showDetailModal = false;
+        _selectedMcr = null;
+        _showRejectModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseRejectModal()
+    {
+        _showRejectModal = false;
+        StateHasChanged();
+    }
+
+    private void ConfirmReject()
+    {
+        if (string.IsNullOrWhiteSpace(_rejectReason))
+        {
+            _errorMessage = "Reason is required.";
+            StateHasChanged();
+            return;
+        }
+
+        var id = _rejectTargetId;
+        var idx = _mcrs.FindIndex(x => x.Id == id);
+        if (idx >= 0)
+        {
+            var m = _mcrs[idx];
+            _mcrs[idx] = m with { Status = "Rejected", Notes = string.IsNullOrEmpty(m.Notes) ? $"Rejected: {_rejectReason.Trim()}" : $"{m.Notes} | Rejected: {_rejectReason.Trim()}" };
+        }
+
+        ClearMessages();
+        _successMessage = $"MCR {id} rejected.";
+        _showRejectModal = false;
+        StateHasChanged();
+    }
+
+    private void SaveDraft()
+    {
+        ClearMessages();
+        if (string.IsNullOrWhiteSpace(_detailMoldToInstall))
+        {
+            _errorMessage = "Select a mold to install.";
+            StateHasChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_detailPlannedStartLocal))
+        {
+            _errorMessage = "Set planned start time.";
+            StateHasChanged();
+            return;
+        }
+
+        if (_assignedTechnicians.Count == 0)
+        {
+            _errorMessage = "Assign at least one technician.";
+            StateHasChanged();
+            return;
+        }
+
+        _successMessage = "Draft saved.";
+        CloseDetailModal();
+        StateHasChanged();
+    }
+
+    private void SaveNewMcr()
+    {
+        ClearMessages();
+        if (string.IsNullOrWhiteSpace(_newMachine) || string.IsNullOrWhiteSpace(_newJobId) ||
+            string.IsNullOrWhiteSpace(_newCurrentMold) || string.IsNullOrWhiteSpace(_newRequiredMold) ||
+            string.IsNullOrWhiteSpace(_newPlannedStartLocal) || string.IsNullOrWhiteSpace(_newTechnician))
+        {
+            _errorMessage = "Fill all required fields.";
+            StateHasChanged();
+            return;
+        }
+
+        var id = $"MCR-{DateTime.UtcNow:yyyyMMdd}-{_mcrSeq++:000}";
+        var planned = FromDateTimeLocalValue(_newPlannedStartLocal);
+        _mcrs.Add(new McrRow(
+            id, _newJobId.Trim(), _newMachine.Trim(), _newCurrentMold.Trim(), _newRequiredMold.Trim(),
+            _newType, 45, "Pending", planned, null, null, _newTechnician, _newPriority,
+            "Production Control", DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+            string.IsNullOrWhiteSpace(_newNotes) ? null : _newNotes.Trim(), null, null));
+
+        _successMessage = $"MCR {id} created.";
+        _showNewMcrModal = false;
+        StateHasChanged();
+    }
+
+    /// <summary>Mock mold option in the detail modal.</summary>
+    private sealed record AvailableMoldDto(string Id, string Name, string Status, string Location);
+
+    /// <summary>Mock technician row.</summary>
+    private sealed record TechnicianDto(string Id, string Name, string Department, string Experience);
+
+    /// <summary>Previous/next job context on an MCR.</summary>
+    private sealed record McrJobInfo(string JobId, string Product, string Mold, string Material, string Color);
+
+    /// <summary>Mock mold change request row (mutable list replaces entries).</summary>
+    private sealed record McrRow(
+        string Id,
+        string JobId,
+        string Machine,
+        string CurrentMold,
+        string RequiredMold,
+        string Type,
+        int EstimatedTime,
+        string Status,
+        string PlannedStart,
+        string? ActualStart,
+        string? ActualEnd,
+        string? Technician,
+        string Priority,
+        string CreatedBy,
+        string CreatedAt,
+        string? Notes,
+        McrJobInfo? PreviousJob,
+        McrJobInfo? NextJob);
+}
