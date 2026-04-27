@@ -188,10 +188,10 @@ src/
     XMachine.Module.Eventing/      ← alarms, downtime, OEE, KPI
     XMachine.Module.Workflow/      ← approval flows
     XMachine.Module.Integration/   ← connector defs/instances, mappings, sync
+    XMachine.Module.Engineering/   ← Sprint 3b ✅
     XMachine.Module.Plugin/
     XMachine.Module.Docs/
     ── TO BE ADDED ──
-    XMachine.Module.Engineering/   ← Sprint 3b
     XMachine.Module.Production/    ← Sprint 4
     XMachine.Module.Planning/      ← Sprint 6
     XMachine.Module.Inventory/     ← Sprint 8
@@ -232,40 +232,50 @@ figma-reference/           ← UI source of truth (TSX)
 - **Quality:** 2 QualityChecks · 5 Measurements · 1 Nonconformance · 1 Disposition
 - **Eventing:** 3 Alarms · 3 DowntimeRecords · 3 OeeSnapshots · 2 KpiDefinitions · 4 KpiResults
 - **Workflow:** 4 Definitions · 8 Steps · 4 Instances · 3 Actions
+- **Engineering:** 3 PmSchedules · 3 MaintenanceWorkOrders · 2 MachineFaults
 
-### 6.3 Missing entities (needed for upcoming sprints)
-| Sprint | Missing |
-|--------|---------|
-| 3b | `MaintenanceWorkOrder`, `MachineFault`, `PreventiveMaintenanceSchedule`, `Machine.OperationalStatus` enum |
-| 4 | `JobExecution`, `OperatorAssignment` refinements |
-| 6 | `ProductionPlan`, `PlanSlot`, `ScheduleLock` |
-| 8 | `InventoryItem`, `WarehouseLocation`, `MaterialBorrow`, `StockMovement` extensions |
-| 10 | `Product`, `Color`, `ProductColorMap`, `RawMaterialProductMap` |
-| 11 | `Employee`, `Attendance`, `LeaveRequest`, `TrainingRecord` |
+
 
 ---
 
-## 7. Commercial Module Map
+## 7. Sprint Convention — Read Phase + Write Phase
+
+**Every sprint follows a two-phase structure:**
+
+Phase 1 — READ
+→ Domain entities, EF config, migration
+→ GET API endpoints
+→ UI pages (list views, dashboards, calendars)
+→ Real API wiring for read pages
+Phase 2 — WRITE
+→ POST/PUT/DELETE API endpoints
+→ Create/Edit modals and forms wired to real API
+→ Status update flows (approve, close, complete)
+
+Read phase ships first so the UI is visible early.
+Write phase completes the sprint before moving to the next sprint.
+
+---
 
 Each module has a license code. Platform is always included.
 All other modules require an active `TenantModuleActivation` record.
 
-| # | License Code | Module Name | Backend | Frontend | Overall |
-|---|-------------|-------------|---------|----------|---------|
-| 0 | `platform` | Platform Core (Auth, Tenants, Licensing) | ✅ Done | ✅ Admin UI done | ✅ |
-| 1 | `mes-core` | MES Core (Orders, Recipes, Lots, Shifts) | ✅ Done | ✅ Lists done | ✅ |
-| 2 | `quality` | Quality Control | ⚠️ Basic done | 🟠 Only list pages | ⚠️ |
-| 3 | `eventing` | Eventing (Alarms, Downtime, OEE, KPIs) | ✅ Done | ✅ Lists done | ✅ |
-| 4 | `workflow` | Workflow & Approvals | ✅ Done | ✅ Lists done | ✅ |
-| 5 | `integration-core` | Integration framework (skeleton) | ⚠️ Skeleton | ✅ Lists done | ⚠️ |
-| 6 | `engineering` | Engineering & Maintenance | 🔴 Not started | 🟠 Mock dashboard only | 🔴 Sprint 3b |
-| 7 | `production` | Production Control (operator/supervisor) | 🔴 Not started | 🔴 Not started | 🔴 Sprint 4 |
-| 8 | `planning` | Planning & Scheduling | 🔴 Not started | 🔴 Not started | 🔴 Sprint 6 |
-| 9 | `inventory` | Inventory & Warehouse | 🔴 Not started | 🔴 Not started | 🔴 Sprint 8 |
-| 10 | `master-data` | Master Data (products, colors, mappings) | 🔴 Not started | 🔴 Not started | 🔴 Sprint 10 |
-| 11 | `hr` | Human Resources | 🔴 Not started | 🔴 Not started | 🔴 Sprint 11 |
-| 12 | `reports` | Reports & Advanced Analytics | 🔴 Not started | 🔴 Not started | 🔴 Sprint 12 |
-| 13 | `logistics` | Logistics Control | 🔴 Not started | 🔴 Not started | 🔴 Sprint 13 |
+| # | License Code | Module Name | Backend | UI Read | UI Write | Overall |
+|---|-------------|-------------|---------|---------|----------|---------|
+| 0 | `platform` | Platform Core | ✅ | ✅ | ⚠️ Partial | ✅ |
+| 1 | `mes-core` | MES Core | ✅ | ✅ | 🔴 No create forms | ⚠️ |
+| 2 | `quality` | Quality Control | ⚠️ Basic | 🟠 Lists only | 🔴 | 🔴 |
+| 3 | `eventing` | Eventing | ✅ | ✅ | 🔴 | ⚠️ |
+| 4 | `workflow` | Workflow | ✅ | ✅ | 🔴 | ⚠️ |
+| 5 | `integration-core` | Integration | ⚠️ Skeleton | ✅ | 🔴 | ⚠️ |
+| 6 | `engineering` | Engineering & Maintenance | ✅ | ✅ | 🚧 Sprint 3b-W | ⚠️ |
+| 7 | `production` | Production Control | 🔴 | 🔴 | 🔴 | 🔴 Sprint 4 |
+| 8 | `planning` | Planning & Scheduling | 🔴 | 🔴 | 🔴 | 🔴 Sprint 6 |
+| 9 | `inventory` | Inventory & Warehouse | 🔴 | 🔴 | 🔴 | 🔴 Sprint 8 |
+| 10 | `master-data` | Master Data | 🔴 | 🔴 | 🔴 | 🔴 Sprint 10 |
+| 11 | `hr` | Human Resources | 🔴 | 🔴 | 🔴 | 🔴 Sprint 11 |
+| 12 | `reports` | Reports & Analytics | 🔴 | 🔴 | 🔴 | 🔴 Sprint 12 |
+| 13 | `logistics` | Logistics Control | 🔴 | 🔴 | 🔴 | 🔴 Sprint 13 |
 
 **Premium connectors (separately licensable, Sprint 15-16):**
 - `connector-opcua-pro`, `connector-s7-pro`, `connector-modbus-pro`, `connector-sap`, `connector-rest-pro`, `connector-sql-pro`
@@ -319,14 +329,14 @@ All TSX sources: `figma-reference/src/app/components/`
 ### Engineering & Maintenance (`engineering`)
 | Figma TSX | Blazor Route | Status |
 |-----------|-------------|--------|
-| EngineeringDashboard.tsx | /engineering/dashboard | ⚠️ Mock data |
-| Engineering.tsx | /engineering | 🔴 Not built |
-| EngineeringModule.tsx | /engineering/module | 🔴 Not built |
-| MachineCalendarView.tsx | /engineering/calendar | 🔴 Not built |
-| MoldChangeRequests.tsx | /engineering/mold-changes | 🔴 Not built |
-| AssignmentCalendarModal.tsx | modal component | 🔴 Not built |
-| EngineeringMobile.tsx | /mobile/engineering | 🔴 Not built (PWA) |
-| EngineeringMobilePWA.tsx | /mobile/engineering | 🔴 Not built (PWA) |
+| EngineeringDashboard.tsx | /engineering/dashboard | ✅ Real API |
+| Engineering.tsx | /engineering | ✅ Built (mock data · write phase pending) |
+| EngineeringModule.tsx | /engineering | ✅ Merged into Engineering.razor |
+| MachineCalendarView.tsx | /engineering/calendar | ✅ Built (simplified · mock) |
+| MoldChangeRequests.tsx | /engineering/mold-changes | ✅ Built (mock state · write phase pending) |
+| AssignmentCalendarModal.tsx | modal component | ⏳ Deferred to Planning sprint |
+| EngineeringMobile.tsx | /mobile/engineering | 🔴 Sprint 14 (PWA) |
+| EngineeringMobilePWA.tsx | /mobile/engineering | 🔴 Sprint 14 (PWA) |
 
 ### Production Control (`production`)
 | Figma TSX | Blazor Route | Status |
@@ -439,9 +449,34 @@ All TSX sources: `figma-reference/src/app/components/`
 - MONITORING nav section added
 
 ### ✅ Sprint 3a — Engineering Dashboard UI (Mock)
-- EngineeringDashboard.razor (Figma match, mock data)
-- Myanmar/bilingual text removed, English-only UI
-- Paused to re-align project strategy (led to this doc rewrite)
+- EngineeringDashboard.razor (Figma match, mock data, English-only)
+
+### ✅ Sprint 3b — Engineering Module — Read Phase
+**Backend:**
+- `XMachine.Module.Engineering` — MaintenanceWorkOrder, MachineFault, PreventiveMaintenanceSchedule
+- `Machine.OperationalStatus` enum (Running/Idle/Down/PmDue/WaitingParts) added to Platform
+- EF config, `engineering` schema, migration: `AddEngineeringModule`
+- API: GET machine-status, work-orders, faults, pm-schedules, summary + POST work-orders
+- Engineering seed data added to DevSeedHostedService
+
+**UI pages built:**
+- `/engineering/dashboard` → ✅ Real API (EngineeringDashboard.razor)
+- `/engineering` → ✅ Tabbed: Breakdowns · PM · Spare Parts · Process Setup · Reports (mock)
+- `/engineering/calendar` → ✅ Maintenance calendar, month/day view (mock)
+- `/engineering/mold-changes` → ✅ MCR lifecycle with 3 modals (mock state)
+
+### 🚧 Sprint 3b-W — Engineering Module — Write Phase (CURRENT)
+**New API endpoints:**
+- `POST /api/engineering/pm-schedules` — create PM schedule
+- `PUT /api/engineering/work-orders/{id}/status` — update WO status (open→in-progress→done→cancelled)
+- `PUT /api/engineering/machine-status/{id}` — manually override machine operational status
+- `POST /api/engineering/faults` — report machine fault
+
+**UI wiring:**
+- Engineering.razor → "Schedule PM" button → real `POST /api/engineering/pm-schedules`
+- Engineering.razor → "Report New Breakdown" modal → real `POST /api/engineering/work-orders`
+- Engineering.razor → Breakdowns tab status buttons → real `PUT` endpoint
+- MoldChangeRequests.razor → approve/reject/start/complete → real API
 
 ### ✅ Sprint 3b — Engineering/Maintenance Module (TAMAMLANDI)
 - XMachine.Module.Engineering oluşturuldu (domain entities, EF config, migration)
@@ -451,30 +486,54 @@ All TSX sources: `figma-reference/src/app/components/`
 - EngineeringDashboard.razor → mock'tan gerçek API'ye geçirildi
 - EngineeringApiDtos.cs + XMachineApiClient güncellemesi
 
-### 📋 Sprint 4 — Production Control Module
-- `XMachine.Module.Production` backend
+### 📋 Sprint 4 — Production Control — Read Phase
+- `XMachine.Module.Production` backend, GET endpoints
 - ProductionControl.razor, ProductionControlMCR.razor
 - OperatorKiosk.razor (touch-optimized)
 - SupervisorScreen.razor, JobTracker.razor, SplitJobManagement.razor
+- LiveSchedule.razor, LiveProductionSchedule.razor
+
+### 📋 Sprint 4-W — Production Control — Write Phase
+- Start/stop/pause job endpoints
+- Operator declaration forms (production qty, scrap qty)
+- Supervisor approval flows
+- Real-time status updates from operator kiosk
 
 ### 📋 Sprint 5 — Live Monitoring (Real Data)
 - LiveMonitoring.razor → real DowntimeRecord + OEE
 - MachineOverview.razor → real Machine + OperationalStatus
 - OperatorDashboard.razor
-- Live-push strategy (SignalR hub) for real-time tiles
+- SignalR hub for real-time dashboard tiles
 
-### 📋 Sprint 6 — Planning Module
-- `XMachine.Module.Planning` backend
+### 📋 Sprint 5-W — Live Monitoring Write
+- Downtime entry form (operator reports stop reason)
+- Alarm acknowledgement endpoint + UI button
+- OEE manual correction form
+
+### 📋 Sprint 6 — Planning — Read Phase
+- `XMachine.Module.Planning` backend, GET endpoints
 - PlanningDashboard.razor
-- JobPlanningScheduleEnhanced.razor (Gantt-style)
-- CreatePlanForm.razor, PlanningCalendar.razor, PlanningMachineCalendarView.razor
+- JobPlanningScheduleEnhanced.razor (full drag-drop Gantt from MachineCalendarView.tsx)
+- PlanningCalendar.razor, PlanningMachineCalendarView.razor
 
-### 📋 Sprint 7 — Quality Control (Full)
+### 📋 Sprint 6-W — Planning Write
+- CreatePlanForm.razor → POST new production plan
+- Drag-drop reschedule → PUT plan schedule
+- Plan approval flow (draft → final → approved)
+- Cross-machine transfer API
+
+
+### 📋 Sprint 7 — Quality Control — Read Phase
 - QualityControl.razor (full Figma)
 - DefectHandling.razor, ScrapManagement.razor
 - RejectManagement.razor, WasteManagement.razor
 
-### 📋 Sprint 8–9 — Inventory & Warehouse
+### 📋 Sprint 7-W — Quality Write
+- New quality check form → POST /api/quality/checks
+- Measurement recording form
+- Nonconformance creation + disposition form (rework/scrap/accept)
+
+### 📋 Sprint 8–9 — Inventory & Warehouse — Read Phase
 - `XMachine.Module.Inventory` backend
 - InventoryModule.razor, WarehouseManagement.razor
 - RawMaterialWarehouse + Registration + ProductMapping
@@ -482,14 +541,22 @@ All TSX sources: `figma-reference/src/app/components/`
 - BorrowModule.razor (definition clarified during sprint)
 - GlueFillOperator.razor, CutGlueResidueManagement.razor
 
-### 📋 Sprint 10 — Master Data Module
-- `XMachine.Module.MasterData` backend
-- ProductMasterEnhanced.razor
-- ColorTab, ProductColorMapping, RawMaterialProductMapping
+### 📋 Sprint 8-W — Inventory Write
+- Stock movement entry forms (issue, receipt, transfer)
+- Raw material registration form
+- Warehouse location management
+- Finished goods transfer confirmation modal
 
-### 📋 Sprint 11 — HR Module
+### 📋 Sprint 10 — Master Data — Read + Write (combined)
+- `XMachine.Module.MasterData` backend
+- ProductMasterEnhanced.razor (CRUD)
+- ColorTab, ProductColorMapping, RawMaterialProductMapping (CRUD)
+- Machine master CRUD (add machines, assign lines)
+
+### 📋 Sprint 11 — HR — Read + Write (combined)
 - `XMachine.Module.HR` backend (employee, attendance, leave, training)
 - HR.razor + HRModule.razor + all hr/ sub-pages
+- Employee CRUD, attendance recording, leave requests
 
 ### 📋 Sprint 12 — Reports & Advanced Analytics
 - `XMachine.Module.Reports` backend
@@ -564,6 +631,13 @@ All TSX sources: `figma-reference/src/app/components/`
 - `GET /api/eventing/alarms` · `GET /api/eventing/downtimes`
 - `GET /api/eventing/oee` · `GET /api/eventing/kpis` · `GET /api/eventing/summary`
 
+### Engineering (`engineering`) ← NEW
+- `GET /api/engineering/machine-status`
+- `GET /api/engineering/work-orders` · `POST /api/engineering/work-orders`
+- `GET /api/engineering/faults`
+- `GET /api/engineering/pm-schedules`
+- `GET /api/engineering/summary`
+
 ### Workflow (`workflow`)
 - `GET /api/workflow/definitions` · `GET /api/workflow/instances` · `GET /api/workflow/summary`
 
@@ -618,12 +692,14 @@ All tenant-owned entities derive from `TenantAuditableEntity`, which provides:
 - `Status` (EntityStatus: Active/Inactive)
 - `CreatedAt`, `CreatedBy`, `UpdatedAt`, `UpdatedBy`
 
-### 11.6 Data Separation
+### 11.6 Write Operations Pattern ← NEW
 - **Operational data** → PostgreSQL (current)
 - **Time-series data** → TimescaleDB (planned, not yet wired)
 - **Audit data** → separate tables/schema (planned)
 - **Document/image data** → blob storage (planned)
-
+POST endpoint → validate TenantId → create entity → SaveChangesAsync → return 201 Created
+PUT endpoint  → validate TenantId + entity ownership → update → SaveChangesAsync → return 200 OK
+UI form       → HttpClient.PostAsJsonAsync / PutAsJsonAsync → handle response → StateHasChanged
 ---
 
 ## 12. Known Tensions & Open Questions
@@ -647,6 +723,10 @@ Meaning will be clarified during Sprint 8–9 (Inventory). Current best guess: i
 ### 12.5 TimescaleDB migration trigger
 Currently all eventing data goes to regular PostgreSQL tables. Once alarm/downtime/OEE volume exceeds ~100k rows/day per tenant, migrate to TimescaleDB hypertables.
 
+### 12.6 MachineCalendarView full drag-drop
+`/engineering/calendar` is a simplified maintenance calendar (no drag-drop).
+The full Gantt drag-drop production planning calendar from MachineCalendarView.tsx belongs to Sprint 6 (Planning module).
+
 ---
 
 ## 13. How to Use in a New Conversation
@@ -655,8 +735,8 @@ Currently all eventing data goes to regular PostgreSQL tables. Once alarm/downti
 
 > "This is the xMachineNema project status. Let's work on [topic]."
 
-**For Sprint 3b specifically:**
-> "We're on Sprint 3b — Engineering/Maintenance Module. Let's design the backend: XMachine.Module.Engineering entities (MaintenanceWorkOrder, MachineFault, PreventiveMaintenanceSchedule), the Machine.OperationalStatus extension, and the API endpoints."
+**For Sprint 3b-W (current — write phase):**
+> "We're on Sprint 3b-W — Engineering write phase. Add POST/PUT endpoints for pm-schedules and work-order status, then wire the UI buttons to real API."
 
 **For Figma → Blazor conversion work:**
 > "Convert figma-reference/src/app/components/[X].tsx to Blazor Server razor. Keep all Tailwind classes. Use OnAfterRenderAsync pattern."
