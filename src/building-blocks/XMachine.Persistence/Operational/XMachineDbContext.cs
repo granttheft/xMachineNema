@@ -6,6 +6,7 @@ using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
+using XMachine.Module.Production.Domain;
 using XMachine.Module.Quality.Domain;
 using XMachine.Module.Workflow.Domain;
 
@@ -86,6 +87,10 @@ public sealed class XMachineDbContext : DbContext
     public DbSet<MaintenanceWorkOrder> MaintenanceWorkOrders => Set<MaintenanceWorkOrder>();
     public DbSet<MachineFault> MachineFaults => Set<MachineFault>();
     public DbSet<PreventiveMaintenanceSchedule> PmSchedules => Set<PreventiveMaintenanceSchedule>();
+
+    // production
+    public DbSet<JobExecution> JobExecutions => Set<JobExecution>();
+    public DbSet<OperatorDeclaration> OperatorDeclarations => Set<OperatorDeclaration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

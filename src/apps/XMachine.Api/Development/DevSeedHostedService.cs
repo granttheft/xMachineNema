@@ -7,6 +7,7 @@ using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
+using XMachine.Module.Production.Domain;
 using XMachine.Module.Quality.Domain;
 using XMachine.Module.Workflow.Domain;
 using XMachine.Persistence.Operational;
@@ -1536,6 +1537,111 @@ internal sealed class DevSeedHostedService : IHostedService
         db.AddRange(pmM101, pmM102, pmM201);
         db.AddRange(wo1, wo2, wo3);
         db.AddRange(fault1, fault2);
+
+        var seedJob1 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[1].Id,
+            LineId = machines[1].LineId,
+            ProductionOrderId = order1.Id,
+            RecipeId = recipeAsm.Id,
+            ShiftId = shiftMorning.Id,
+            OperatorId = userOperator.Id,
+            JobNo = "JOB-20260427-001",
+            ExecutionStatus = JobExecutionStatus.Running,
+            PlannedQty = 500,
+            ProducedQty = 213,
+            ScrapQty = 4,
+            DefectQty = 0,
+            ActualStartAt = DateTimeOffset.UtcNow.AddHours(-6),
+            Status = EntityStatus.Active,
+        };
+
+        var seedJob2 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[3].Id,
+            LineId = machines[3].LineId,
+            ProductionOrderId = order2.Id,
+            RecipeId = recipeCoat.Id,
+            ShiftId = shiftMorning.Id,
+            OperatorId = userOperator.Id,
+            JobNo = "JOB-20260427-002",
+            ExecutionStatus = JobExecutionStatus.Running,
+            PlannedQty = 300,
+            ProducedQty = 89,
+            ScrapQty = 1,
+            DefectQty = 0,
+            ActualStartAt = DateTimeOffset.UtcNow.AddHours(-4),
+            Status = EntityStatus.Active,
+        };
+
+        var seedJob3 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[0].Id,
+            LineId = machines[0].LineId,
+            ProductionOrderId = order1.Id,
+            RecipeId = recipeAsm.Id,
+            ShiftId = shiftMorning.Id,
+            OperatorId = userOperator.Id,
+            JobNo = "JOB-20260427-003",
+            ExecutionStatus = JobExecutionStatus.Paused,
+            PauseReason = JobPauseReason.MachineBreakdown,
+            PlannedQty = 400,
+            ProducedQty = 67,
+            ScrapQty = 12,
+            DefectQty = 0,
+            ActualStartAt = DateTimeOffset.UtcNow.AddHours(-8),
+            PausedAt = DateTimeOffset.UtcNow.AddHours(-3),
+            Status = EntityStatus.Active,
+        };
+
+        var seedJob4 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            LineId = machines[2].LineId,
+            ProductionOrderId = order2.Id,
+            RecipeId = recipeCoat.Id,
+            JobNo = "JOB-20260427-004",
+            ExecutionStatus = JobExecutionStatus.Queued,
+            PlannedQty = 200,
+            ProducedQty = 0,
+            ScrapQty = 0,
+            DefectQty = 0,
+            PlannedStartAt = DateTimeOffset.UtcNow.AddHours(2),
+            Status = EntityStatus.Active,
+        };
+
+        var seedDecl1 = new OperatorDeclaration
+        {
+            TenantId = tenant.Id,
+            JobExecutionId = seedJob1.Id,
+            MachineId = machines[1].Id,
+            OperatorId = userOperator.Id,
+            DeclaredQty = 100,
+            ScrapQty = 2,
+            DefectQty = 0,
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-4),
+            Status = EntityStatus.Active,
+        };
+
+        var seedDecl2 = new OperatorDeclaration
+        {
+            TenantId = tenant.Id,
+            JobExecutionId = seedJob1.Id,
+            MachineId = machines[1].Id,
+            OperatorId = userOperator.Id,
+            DeclaredQty = 113,
+            ScrapQty = 2,
+            DefectQty = 0,
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Status = EntityStatus.Active,
+        };
+
+        db.AddRange(seedJob1, seedJob2, seedJob3, seedJob4);
+        db.AddRange(seedDecl1, seedDecl2);
 
         await db.SaveChangesAsync(cancellationToken);
 
