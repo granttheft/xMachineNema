@@ -188,11 +188,11 @@ src/
     XMachine.Module.Eventing/      ← alarms, downtime, OEE, KPI
     XMachine.Module.Workflow/      ← approval flows
     XMachine.Module.Integration/   ← connector defs/instances, mappings, sync
-    XMachine.Module.Engineering/   ← Sprint 3b + 3b-W ✅
+XMachine.Module.Engineering/   ← Sprint 3b + 3b-W ✅
+    XMachine.Module.Production/    ← Sprint 4 ✅ (backend done)
     XMachine.Module.Plugin/
     XMachine.Module.Docs/
     ── TO BE ADDED ──
-    XMachine.Module.Production/    ← Sprint 4
     XMachine.Module.Planning/      ← Sprint 6
     XMachine.Module.Inventory/     ← Sprint 8
     XMachine.Module.MasterData/    ← Sprint 10
@@ -233,6 +233,7 @@ figma-reference/           ← UI source of truth (TSX)
 - **Eventing:** 3 Alarms · 3 DowntimeRecords · 3 OeeSnapshots · 2 KpiDefinitions · 4 KpiResults
 - **Workflow:** 4 Definitions · 8 Steps · 4 Instances · 3 Actions
 - **Engineering:** 3 PmSchedules · 3 MaintenanceWorkOrders · 2 MachineFaults
+- **Production:** 4 JobExecutions · 2 OperatorDeclarations
 
 
 
@@ -269,7 +270,7 @@ All other modules require an active `TenantModuleActivation` record.
 | 4 | `workflow` | Workflow | ✅ | ✅ | 🔴 | ⚠️ |
 | 5 | `integration-core` | Integration | ⚠️ Skeleton | ✅ | 🔴 | ⚠️ |
 | 6 | `engineering` | Engineering & Maintenance | ✅ | ✅ | ✅ | ✅ |
-| 7 | `production` | Production Control | 🔴 | 🔴 | 🔴 | 🔴 Sprint 4 |
+| 7 | `production` | Production Control | ✅ | ✅ | 🚧 Sprint 4-W | ⚠️ |
 | 8 | `planning` | Planning & Scheduling | 🔴 | 🔴 | 🔴 | 🔴 Sprint 6 |
 | 9 | `inventory` | Inventory & Warehouse | 🔴 | 🔴 | 🔴 | 🔴 Sprint 8 |
 | 10 | `master-data` | Master Data | 🔴 | 🔴 | 🔴 | 🔴 Sprint 10 |
@@ -341,17 +342,17 @@ All TSX sources: `figma-reference/src/app/components/`
 ### Production Control (`production`)
 | Figma TSX | Blazor Route | Status |
 |-----------|-------------|--------|
-| ProductionControl.tsx | /production/control | 🔴 Not built |
-| ProductionControlMCR.tsx | /production/mcr | 🔴 Not built |
-| ProductionControlFixed.tsx | — (variant, evaluate) | 🔴 Not built |
-| ProductionModule.tsx | /production | 🔴 Not built |
-| OperatorDashboard.tsx | /production/operator | 🔴 Not built |
-| OperatorKiosk.tsx | /production/kiosk | 🔴 Not built |
-| SupervisorScreen.tsx | /production/supervisor | 🔴 Not built |
-| JobTracker.tsx | /production/jobs | 🔴 Not built |
-| SplitJobManagement.tsx | /production/split-jobs | 🔴 Not built |
-| LiveSchedule.tsx | /production/live | 🔴 Not built |
-| LiveProductionSchedule.tsx | /production/live-schedule | 🔴 Not built |
+| ProductionModule.tsx | /production | ✅ Real API |
+| ProductionControl.tsx | /production/control | ✅ Built (mock · write pending) |
+| ProductionControlMCR.tsx | /production/mcr | ✅ Built (mock) |
+| ProductionControlFixed.tsx | — | ⏳ Evaluate |
+| OperatorDashboard.tsx | /production/operator | ✅ Built (button assignment) |
+| OperatorKiosk.tsx | /production/kiosk | ✅ Built (live timer) |
+| SupervisorScreen.tsx | /production/supervisor | ✅ Built (QR/RFID flow) |
+| JobTracker.tsx | /production/jobs | ✅ Built (search + timeline) |
+| SplitJobManagement.tsx | /production/split-jobs | ✅ Built (modal) |
+| LiveSchedule.tsx | /production/live | ⏳ Empty (stub file) |
+| LiveProductionSchedule.tsx | /production/live-schedule | ⏳ Empty (stub file) |
 
 ### Planning (`planning`)
 | Figma TSX | Blazor Route | Status |
@@ -480,18 +481,43 @@ All TSX sources: `figma-reference/src/app/components/`
 
 
 
-### 📋 Sprint 4 — Production Control — Read Phase
-- `XMachine.Module.Production` backend, GET endpoints
-- ProductionControl.razor, ProductionControlMCR.razor
-- OperatorKiosk.razor (touch-optimized)
-- SupervisorScreen.razor, JobTracker.razor, SplitJobManagement.razor
-- LiveSchedule.razor, LiveProductionSchedule.razor
+### ✅ Sprint 4 — Production Control — Read Phase
+**Backend:**
+- XMachine.Module.Production — JobExecution, OperatorDeclaration, migration: AddProductionModule
+- API: GET jobs, GET jobs/active, GET machines (with active job), GET summary
+- Seed: 4 JobExecutions + 2 OperatorDeclarations
 
-### 📋 Sprint 4-W — Production Control — Write Phase
-- Start/stop/pause job endpoints
-- Operator declaration forms (production qty, scrap qty)
-- Supervisor approval flows
-- Real-time status updates from operator kiosk
+**UI pages built:**
+- /production → ✅ ProductionModule.razor (real API)
+- /production/control → ✅ ProductionControl.razor (3 tabs, mock)
+- /production/mcr → ✅ ProductionControlMCR.razor (mock)
+- /production/operator → ✅ OperatorDashboard.razor (button assignment)
+- /production/kiosk → ✅ OperatorKiosk.razor (live timer, IDisposable)
+- /production/supervisor → ✅ SupervisorScreen.razor (QR/RFID finalization)
+- /production/jobs → ✅ JobTracker.razor (search, 8-stage timeline, split/assembly)
+- /production/split-jobs → ✅ SplitJobManagement.razor (split request management)
+
+### 🚧 Sprint 4-W — Production Control — Write Phase (CURRENT)
+**New API endpoints needed:**
+- POST /api/production/jobs — create job execution
+- PUT /api/production/jobs/{id}/status — start/pause/resume/complete
+- POST /api/production/declarations — operator submits produced/scrap qty
+- PUT /api/production/machines/{id}/job — assign/unassign job
+
+**UI wiring:**
+- ProductionControl.razor → Demand Authorization → real API
+- ProductionControl.razor → Material Control → real API
+- OperatorKiosk.razor → Submit Count → real POST declarations
+- OperatorKiosk.razor → Machine Down / Break / Resume → real PUT status
+- OperatorDashboard.razor → Assign/Unassign → real API
+
+### 📋 Sprint i18n — Multi-language Support (after Sprint 4-W)
+**Goal:** EN / TR / DE / PL support across all existing pages.
+- JSON locale files + ITranslationService + DB tenant override table
+- Language toggle in NavMenu (flag + language name)
+- Admin UI: language management page
+- Tenant default language setting
+- Sprint 6+ new pages built with i18n from the start
 
 ### 📋 Sprint 5 — Live Monitoring (Real Data)
 - LiveMonitoring.razor → real DowntimeRecord + OEE
@@ -694,6 +720,15 @@ All tenant-owned entities derive from `TenantAuditableEntity`, which provides:
 POST endpoint → validate TenantId → create entity → SaveChangesAsync → return 201 Created
 PUT endpoint  → validate TenantId + entity ownership → update → SaveChangesAsync → return 200 OK
 UI form       → HttpClient.PostAsJsonAsync / PutAsJsonAsync → handle response → StateHasChanged
+
+### 11.7 Live Timer Pattern (OperatorKiosk)
+@implements IDisposable
+private System.Threading.Timer? _timer;
+// In OnAfterRenderAsync(firstRender):
+_timer = new System.Threading.Timer(_ =>
+    InvokeAsync(() => { _currentTime = DateTime.Now; StateHasChanged(); }),
+    null, 0, 1000);
+void IDisposable.Dispose() => _timer?.Dispose();
 ---
 
 ## 12. Known Tensions & Open Questions
@@ -721,6 +756,15 @@ Currently all eventing data goes to regular PostgreSQL tables. Once alarm/downti
 `/engineering/calendar` is a simplified maintenance calendar (no drag-drop).
 The full Gantt drag-drop production planning calendar from MachineCalendarView.tsx belongs to Sprint 6 (Planning module).
 
+### 12.7 MoldChangeRequest entity
+Currently uses MaintenanceWorkOrder(WorkOrderType=MoldChange).
+Dedicated entity needed in Sprint 4-W for proper MCR mutations.
+
+### 12.8 OperatorDashboard drag-drop
+Button-based assignment now. HTML5 drag-drop deferred to Sprint 4-W.
+
+### 12.9 i18n timing
+After Sprint 4-W: EN/TR/DE/PL + dynamic tenant language support.
 ---
 
 ## 13. How to Use in a New Conversation
