@@ -1,0 +1,246 @@
+@page "/production"
+@rendermode InteractiveServer
+@inject XMachineApiClient Api
+
+<PageTitle>Production Control · xMachine</PageTitle>
+
+<div class="p-6 bg-slate-50 min-h-screen">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <div class="mb-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="p-2 bg-blue-100 rounded-lg shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-8-5-8 5v12Z"/><path d="M6 18V10"/><path d="m10 18-2-8"/><path d="m14 18 2-8"/><path d="M18 18v-4"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-semibold text-slate-900">Production Control</h1>
+                    <p class="text-slate-600 mt-1">Live execution overview — jobs, machines, and shift performance</p>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_loadError))
+        {
+            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">@_loadError</div>
+        }
+
+        @if (_loading)
+        {
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                @for (var i = 0; i < 5; i++)
+                {
+                    <div class="rounded-lg border-0 shadow-sm bg-white animate-pulse">
+                        <div class="p-4">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-slate-100 rounded-lg h-10 w-10"></div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="h-7 bg-slate-200 rounded w-16"></div>
+                                    <div class="h-4 bg-slate-200 rounded w-28"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                @for (var i = 0; i < 6; i++)
+                {
+                    <div class="rounded-lg border-0 shadow-sm bg-white animate-pulse p-6 space-y-4">
+                        <div class="h-6 bg-slate-200 rounded w-3/4"></div>
+                        <div class="h-4 bg-slate-200 rounded w-1/2"></div>
+                        <div class="h-20 bg-slate-100 rounded-lg"></div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            @if (_summary is not null)
+            {
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                <div class="rounded-lg border-0 shadow-sm bg-white">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-green-100 rounded-lg">
+                                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-green-700">@_summary.RunningJobs</div>
+                                <div class="text-sm text-slate-600">Running Jobs</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-lg border-0 shadow-sm bg-white">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-yellow-100 rounded-lg">
+                                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-yellow-700">@_summary.PausedJobs</div>
+                                <div class="text-sm text-slate-600">Paused</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-lg border-0 shadow-sm bg-white">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-blue-100 rounded-lg">
+                                <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-blue-700">@_summary.QueuedJobs</div>
+                                <div class="text-sm text-slate-600">Queued</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-lg border-0 shadow-sm bg-white">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-emerald-100 rounded-lg">
+                                <div class="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-emerald-700">@_summary.CompletedToday</div>
+                                <div class="text-sm text-slate-600">Completed Today</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="rounded-lg border-0 shadow-sm bg-white">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 bg-blue-100 rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-blue-700">@_summary.TotalProducedToday</div>
+                                <div class="text-sm text-slate-600">Produced Today</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            }
+
+            <div class="rounded-lg border-0 shadow-sm bg-white p-4 mb-6">
+                <p class="text-sm font-medium text-slate-700 mb-3">Quick actions</p>
+                <div class="flex flex-wrap gap-3">
+                    <NavLink href="/production/control" Match="NavLinkMatch.All" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 no-underline text-slate-900">Control</NavLink>
+                    <NavLink href="/production/kiosk" Match="NavLinkMatch.All" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 no-underline text-slate-900">Operator Kiosk</NavLink>
+                    <NavLink href="/production/supervisor" Match="NavLinkMatch.All" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 no-underline text-slate-900">Supervisor</NavLink>
+                    <NavLink href="/production/jobs" Match="NavLinkMatch.All" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-10 px-4 hover:bg-slate-50 no-underline text-slate-900">Job Tracker</NavLink>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var machine in _machines)
+                {
+                    var job = machine.ActiveJob;
+                    var pct = job is null || job.PlannedQty <= 0 ? 0 : Math.Min(100, (int)(100.0 * job.ProducedQty / job.PlannedQty));
+                    <div class="rounded-lg border-0 shadow-sm bg-white hover:shadow-md transition-shadow">
+                        <div class="p-6">
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div class="min-w-0">
+                                    <div class="text-xl font-semibold text-slate-900 truncate">@machine.Name</div>
+                                    <div class="text-sm text-slate-500 font-mono">@machine.Code</div>
+                                </div>
+                                <span class="inline-flex shrink-0 rounded-md px-2.5 py-0.5 text-xs font-semibold @GetOperationalBadgeClass(machine.OperationalStatus)">@machine.OperationalStatus</span>
+                            </div>
+
+                            @if (job is not null)
+                            {
+                                <div class="space-y-3 pt-2 border-t border-slate-100">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-slate-600">Job</span>
+                                        <span class="font-mono font-medium text-slate-900">@job.JobNo</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-slate-600">Status</span>
+                                        <span class="font-medium text-slate-800">@job.ExecutionStatus</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="text-slate-600">Produced / Planned</span>
+                                        <span class="font-medium text-slate-900">@job.ProducedQty / @job.PlannedQty</span>
+                                    </div>
+                                    @if (job.ScrapQty > 0)
+                                    {
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-slate-600">Scrap</span>
+                                            <span class="font-medium text-amber-700">@job.ScrapQty</span>
+                                        </div>
+                                    }
+                                    <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full bg-blue-600 rounded-full transition-all" style="width: @(pct)%"></div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(job.PauseReason))
+                                    {
+                                        <p class="text-xs text-amber-700">Paused: @job.PauseReason</p>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="pt-4 border-t border-slate-100">
+                                    <p class="text-sm text-slate-500">No active job</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _initialized;
+    private bool _loading = true;
+    private string? _loadError;
+    private ApiProductionSummary? _summary;
+    private List<ApiMachineWithJob> _machines = new();
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+
+        _initialized = true;
+        _loading = true;
+        StateHasChanged();
+
+        var summaryResult = await Api.GetProductionSummaryAsync();
+        StateHasChanged();
+
+        var machinesResult = await Api.GetProductionMachinesAsync();
+        StateHasChanged();
+
+        _loading = false;
+
+        if (summaryResult.Error is not null)
+            _loadError = summaryResult.Error;
+        else
+            _summary = summaryResult.Data;
+
+        if (machinesResult.Error is not null)
+            _loadError = string.IsNullOrEmpty(_loadError) ? machinesResult.Error : $"{_loadError} {machinesResult.Error}";
+        else if (machinesResult.Data is not null)
+            _machines = machinesResult.Data;
+
+        StateHasChanged();
+    }
+
+    private static string GetOperationalBadgeClass(string status) =>
+        status.Trim() switch
+        {
+            "Running" => "bg-green-100 text-green-800",
+            "Idle" => "bg-slate-100 text-slate-700",
+            "Down" => "bg-red-100 text-red-800",
+            "PmDue" => "bg-purple-100 text-purple-800",
+            "WaitingParts" => "bg-orange-100 text-orange-800",
+            _ => "bg-slate-100 text-slate-600",
+        };
+}

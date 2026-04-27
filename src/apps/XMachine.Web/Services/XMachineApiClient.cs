@@ -242,6 +242,18 @@ public sealed class XMachineApiClient(HttpClient http)
     public Task<ApiFetch<ApiSummary>> GetEngineeringSummaryAsync(CancellationToken cancellationToken = default) =>
         GetAsync<ApiSummary>("api/engineering/summary", cancellationToken);
 
+    public Task<ApiFetch<List<ApiJobExecution>>> GetProductionJobsAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiJobExecution>>("api/production/jobs", cancellationToken);
+
+    public Task<ApiFetch<List<ApiJobExecution>>> GetProductionActiveJobsAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiJobExecution>>("api/production/jobs/active", cancellationToken);
+
+    public Task<ApiFetch<List<ApiMachineWithJob>>> GetProductionMachinesAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiMachineWithJob>>("api/production/machines", cancellationToken);
+
+    public Task<ApiFetch<ApiProductionSummary>> GetProductionSummaryAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<ApiProductionSummary>("api/production/summary", cancellationToken);
+
     public Task<ApiFetch<CreateWorkOrderResponse>> PostWorkOrderAsync(CreateWorkOrderDto dto, CancellationToken cancellationToken = default) =>
         PostJsonAsync<CreateWorkOrderDto, CreateWorkOrderResponse>("api/engineering/work-orders", dto, cancellationToken);
 
