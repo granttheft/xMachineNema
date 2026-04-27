@@ -188,7 +188,7 @@ src/
     XMachine.Module.Eventing/      ← alarms, downtime, OEE, KPI
     XMachine.Module.Workflow/      ← approval flows
     XMachine.Module.Integration/   ← connector defs/instances, mappings, sync
-    XMachine.Module.Engineering/   ← Sprint 3b ✅
+    XMachine.Module.Engineering/   ← Sprint 3b + 3b-W ✅
     XMachine.Module.Plugin/
     XMachine.Module.Docs/
     ── TO BE ADDED ──
@@ -268,7 +268,7 @@ All other modules require an active `TenantModuleActivation` record.
 | 3 | `eventing` | Eventing | ✅ | ✅ | 🔴 | ⚠️ |
 | 4 | `workflow` | Workflow | ✅ | ✅ | 🔴 | ⚠️ |
 | 5 | `integration-core` | Integration | ⚠️ Skeleton | ✅ | 🔴 | ⚠️ |
-| 6 | `engineering` | Engineering & Maintenance | ✅ | ✅ | 🚧 Sprint 3b-W | ⚠️ |
+| 6 | `engineering` | Engineering & Maintenance | ✅ | ✅ | ✅ | ✅ |
 | 7 | `production` | Production Control | 🔴 | 🔴 | 🔴 | 🔴 Sprint 4 |
 | 8 | `planning` | Planning & Scheduling | 🔴 | 🔴 | 🔴 | 🔴 Sprint 6 |
 | 9 | `inventory` | Inventory & Warehouse | 🔴 | 🔴 | 🔴 | 🔴 Sprint 8 |
@@ -465,7 +465,7 @@ All TSX sources: `figma-reference/src/app/components/`
 - `/engineering/calendar` → ✅ Maintenance calendar, month/day view (mock)
 - `/engineering/mold-changes` → ✅ MCR lifecycle with 3 modals (mock state)
 
-### 🚧 Sprint 3b-W — Engineering Module — Write Phase (CURRENT)
+### ✅ Sprint 3b-W — Engineering Module — Write Phase
 **New API endpoints:**
 - `POST /api/engineering/pm-schedules` — create PM schedule
 - `PUT /api/engineering/work-orders/{id}/status` — update WO status (open→in-progress→done→cancelled)
@@ -478,13 +478,7 @@ All TSX sources: `figma-reference/src/app/components/`
 - Engineering.razor → Breakdowns tab status buttons → real `PUT` endpoint
 - MoldChangeRequests.razor → approve/reject/start/complete → real API
 
-### ✅ Sprint 3b — Engineering/Maintenance Module (TAMAMLANDI)
-- XMachine.Module.Engineering oluşturuldu (domain entities, EF config, migration)
-- Machine.OperationalStatus eklendi (Platform modülü)
-- API endpoints: machine-status, work-orders (GET/POST), faults, pm-schedules, summary
-- DevSeedHostedService engineering seed data eklendi
-- EngineeringDashboard.razor → mock'tan gerçek API'ye geçirildi
-- EngineeringApiDtos.cs + XMachineApiClient güncellemesi
+
 
 ### 📋 Sprint 4 — Production Control — Read Phase
 - `XMachine.Module.Production` backend, GET endpoints
@@ -631,11 +625,11 @@ All TSX sources: `figma-reference/src/app/components/`
 - `GET /api/eventing/alarms` · `GET /api/eventing/downtimes`
 - `GET /api/eventing/oee` · `GET /api/eventing/kpis` · `GET /api/eventing/summary`
 
-### Engineering (`engineering`) ← NEW
-- `GET /api/engineering/machine-status`
-- `GET /api/engineering/work-orders` · `POST /api/engineering/work-orders`
-- `GET /api/engineering/faults`
-- `GET /api/engineering/pm-schedules`
+### Engineering (`engineering`)
+- `GET /api/engineering/machine-status` · `PUT /api/engineering/machine-status/{id}`
+- `GET /api/engineering/work-orders` · `POST /api/engineering/work-orders` · `PUT /api/engineering/work-orders/{id}/status`
+- `GET /api/engineering/faults` · `POST /api/engineering/faults`
+- `GET /api/engineering/pm-schedules` · `POST /api/engineering/pm-schedules`
 - `GET /api/engineering/summary`
 
 ### Workflow (`workflow`)
