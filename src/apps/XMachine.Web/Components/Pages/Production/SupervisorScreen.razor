@@ -1,0 +1,782 @@
+@page "/production/supervisor"
+@rendermode InteractiveServer
+@using System.Globalization
+
+<PageTitle>Supervisor · Finalize Batch · xMachine</PageTitle>
+
+<div class="p-6 bg-slate-50 min-h-screen">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <div class="mb-6">
+            <h1 class="text-3xl font-semibold text-slate-900 mb-2">Supervisor — Finalize Batch</h1>
+            <p class="text-slate-600">Choose output method and finalize batch after QC approval</p>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600 shrink-0"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                <h2 class="text-lg font-semibold text-slate-900">Jobs List — Select Job to Process</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead class="bg-slate-50">
+                    <tr>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Select</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job ID</th>
+                        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Operator</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">QC Status</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Production Status</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Output Status</th>
+                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Preferred Method</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white">
+                    @foreach (var job in _jobs)
+                    {
+                        var processable = IsProcessable(job);
+                        var selected = _selectedJobId == job.JobId;
+                        <tr class="transition-colors hover:bg-slate-50 @(selected ? "bg-blue-50" : "")">
+                            <td class="px-4 py-3">
+                                <button type="button" disabled="@(!processable)" @onclick="() => SelectJob(job.JobId)"
+                                        class="@(selected ? "inline-flex items-center justify-center rounded-md text-xs font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700" : "inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50") disabled:opacity-40 disabled:cursor-not-allowed">
+                                    @(selected ? "Selected" : "Select")
+                                </button>
+                            </td>
+                            <td class="px-4 py-3 font-medium text-slate-900">@job.JobId</td>
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-slate-900">@job.Product</div>
+                                <div class="text-slate-500">Qty: @job.GoodQty.ToString("N0", CultureInfo.InvariantCulture)</div>
+                            </td>
+                            <td class="px-4 py-3 text-slate-700">@job.Machine</td>
+                            <td class="px-4 py-3 text-slate-700">@job.Operator</td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium @GetQcBadgeClass(job.QcStatus)">
+                                    @switch (job.QcStatus.ToLowerInvariant())
+                                    {
+                                        case "approved":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                            break;
+                                        case "pending":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            break;
+                                        default:
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                                            break;
+                                    }
+                                    @FormatQcStatus(job.QcStatus)
+                                </span>
+                                @if (!string.IsNullOrEmpty(job.QcOfficer))
+                                {
+                                    <div class="text-xs text-slate-500 mt-1">@job.QcOfficer</div>
+                                }
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium @GetProductionBadgeClass(job.ProductionStatus)">
+                                    @switch (job.ProductionStatus.ToLowerInvariant())
+                                    {
+                                        case "released":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                            break;
+                                        case "pending":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            break;
+                                        default:
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                                            break;
+                                    }
+                                    @FormatProductionStatus(job.ProductionStatus)
+                                </span>
+                                @if (!string.IsNullOrEmpty(job.ProductionOfficer))
+                                {
+                                    <div class="text-xs text-slate-500 mt-1">@job.ProductionOfficer</div>
+                                }
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium @GetOutputBadgeClass(job.OutputStatus)">
+                                    @switch (job.OutputStatus.ToLowerInvariant())
+                                    {
+                                        case "completed":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                            break;
+                                        case "qr-printed":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                                            break;
+                                        case "rfid-issued":
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                                            break;
+                                        default:
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            break;
+                                    }
+                                    @FormatOutputStatus(job.OutputStatus)
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-1">
+                                    @if (string.Equals(job.PreferredOutput, "QR", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-600"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                                    }
+                                    <span class="font-medium">@job.PreferredOutput</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (string.IsNullOrEmpty(_selectedJobId))
+        {
+            <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                <strong>Select a job to proceed</strong> — Choose a job from the list above to begin finalization.
+            </div>
+        }
+        else if (!IsReady)
+        {
+            <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+                <strong>Job not ready for processing</strong> — This job requires both QC approval and Production release before proceeding.
+            </div>
+        }
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="space-y-6">
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                        <h2 class="text-lg font-semibold text-slate-900">Job Summary</h2>
+                    </div>
+                    <div class="p-6">
+                        @if (SelectedJob is { } sj)
+                        {
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div><p class="text-slate-600">Plan ID</p><p class="font-medium text-slate-900">@sj.Id</p></div>
+                                <div><p class="text-slate-600">Job ID</p><p class="font-medium text-slate-900">@sj.JobId</p></div>
+                                <div class="col-span-2"><p class="text-slate-600">Product</p><p class="font-medium text-slate-900">@sj.Product</p></div>
+                                <div><p class="text-slate-600">Machine</p><p class="font-medium text-slate-900">@sj.Machine</p></div>
+                                <div><p class="text-slate-600">Batch Qty</p><p class="font-medium text-blue-600">@sj.BatchQty.ToString("N0", CultureInfo.InvariantCulture)</p></div>
+                                <div class="col-span-2"><p class="text-slate-600">Operator</p><p class="font-medium text-slate-900">@sj.Operator</p></div>
+                            </div>
+                            <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-sm text-slate-600">QC Status</span>
+                                    <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium @GetQcBadgeClass(sj.QcStatus)">
+                                        @switch (sj.QcStatus.ToLowerInvariant())
+                                        {
+                                            case "approved":
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                                break;
+                                            case "pending":
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                break;
+                                            default:
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                                                break;
+                                        }
+                                        @FormatQcStatus(sj.QcStatus)
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-sm text-slate-600">Production Status</span>
+                                    <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium @GetProductionBadgeClass(sj.ProductionStatus)">
+                                        @switch (sj.ProductionStatus.ToLowerInvariant())
+                                        {
+                                            case "released":
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                                break;
+                                            case "pending":
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                break;
+                                            default:
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                                                break;
+                                        }
+                                        @FormatProductionStatus(sj.ProductionStatus)
+                                    </span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-10 text-slate-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto mb-4 text-slate-300"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                                <p>No job selected</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm @(!IsReady ? "opacity-60 pointer-events-none" : "")">
+                    <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                        <h2 class="text-lg font-semibold text-slate-900">Step 1 — Output Method</h2>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        @if (SelectedJob is { } sjm)
+                        {
+                            <div class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+                                <span class="inline-block w-2 h-2 rounded-full bg-blue-400 mr-2 align-middle"></span>
+                                Suggested by Product Master: <strong>@sjm.PreferredOutput</strong>
+                            </div>
+                        }
+                        <div class="space-y-3">
+                            <button type="button" disabled="@(!IsReady)" @onclick='() => SelectMethod("QR")'
+                                    class="w-full text-left p-4 rounded-lg border-2 transition-colors @(_selectedMethod == "QR" ? "border-blue-400 bg-blue-50" : "border-slate-200 hover:border-blue-200") disabled:opacity-40">
+                                <div class="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600 shrink-0"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                                    <div>
+                                        <div class="font-medium text-slate-900">QR Label</div>
+                                        <div class="text-sm text-slate-500">Print identification label</div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button type="button" disabled="@(!IsReady)" @onclick='() => SelectMethod("RFID")'
+                                    class="w-full text-left p-4 rounded-lg border-2 transition-colors @(_selectedMethod == "RFID" ? "border-green-400 bg-green-50" : "border-slate-200 hover:border-green-200") disabled:opacity-40">
+                                <div class="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-600 shrink-0"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                                    <div>
+                                        <div class="font-medium text-slate-900">RFID Tag</div>
+                                        <div class="text-sm text-slate-500">Encode and verify tag</div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                        @if (_showOverrideInput && !string.IsNullOrEmpty(_selectedMethod) && SelectedJob is not null)
+                        {
+                            <div class="rounded-lg border border-orange-200 bg-orange-50 p-3 space-y-2">
+                                <label class="text-sm font-medium text-orange-900">Override reason</label>
+                                <textarea @bind="_overrideReason" rows="3" placeholder="Explain why you are overriding the suggested method…" class="w-full rounded-md border border-orange-200 bg-white px-3 py-2 text-sm"></textarea>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                @if (_selectedMethod == "QR")
+                {
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                            <h2 class="text-lg font-semibold text-slate-900">QR Label Configuration</h2>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Label Template</label>
+                                <select @bind="_labelTemplate" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm">
+                                    <option value="standard-70x50">Standard 70×50mm</option>
+                                    <option value="small-40x30">Small 40×30mm</option>
+                                    <option value="large-100x60">Large 100×60mm</option>
+                                </select>
+                            </div>
+                            @if (SelectedJob is { } qj)
+                            {
+                                <div class="rounded-lg bg-slate-50 p-3 space-y-2 text-xs">
+                                    <p class="font-medium text-slate-700">Auto-filled fields</p>
+                                    <div class="grid grid-cols-2 gap-2 text-slate-800">
+                                        <div><strong>Product:</strong> @qj.Product</div>
+                                        <div><strong>Machine:</strong> @qj.Machine</div>
+                                        <div><strong>Operator:</strong> @qj.Operator</div>
+                                        <div><strong>Date/Time:</strong> @DateTime.Now.ToString("g", CultureInfo.CurrentCulture)</div>
+                                        <div><strong>Quantity:</strong> @qj.GoodQty.ToString("N0", CultureInfo.InvariantCulture)</div>
+                                        <div><strong>Job ID:</strong> @qj.JobId</div>
+                                    </div>
+                                </div>
+                            }
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Printer</label>
+                                <div class="flex items-center gap-2">
+                                    <select @bind="_selectedPrinter" class="flex-1 h-10 rounded-md border border-slate-200 px-3 text-sm">
+                                        <option value="printer-01">Production Line Printer 01</option>
+                                        <option value="printer-02">Production Line Printer 02</option>
+                                        <option value="printer-03">Office Printer 03</option>
+                                    </select>
+                                    <span class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-green-100 text-green-800 shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                                        Online
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Copies</label>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" @onclick="() => AdjustCopies(-1)" class="h-10 w-10 rounded-md border border-slate-200 text-lg font-bold hover:bg-slate-50">−</button>
+                                    <input type="number" min="1" @bind="_copies" class="w-20 h-10 text-center rounded-md border border-slate-200 text-sm" />
+                                    <button type="button" @onclick="() => AdjustCopies(1)" class="h-10 w-10 rounded-md border border-slate-200 text-lg font-bold hover:bg-slate-50">+</button>
+                                </div>
+                            </div>
+                            <button type="button" @onclick="PrintQr" disabled="@(!IsReady)" class="w-full h-12 inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white text-lg font-semibold hover:bg-blue-700 disabled:opacity-40">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>
+                                Print QR Label
+                            </button>
+                            @if (_qrPrinted)
+                            {
+                                <button type="button" @onclick="ReprintQr" class="w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white text-sm font-medium hover:bg-slate-50">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                                    Reprint
+                                </button>
+                                <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                                    <strong>QR label printed successfully.</strong>
+                                    <div class="mt-1">QR ID: <code class="bg-white px-1 rounded font-mono text-xs">@_qrId</code></div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (_selectedMethod == "RFID")
+                {
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-600"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                            <h2 class="text-lg font-semibold text-slate-900">RFID Tag Configuration</h2>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-900 mb-1">Encoder device</label>
+                                <div class="flex items-center gap-2">
+                                    <select @bind="_selectedEncoder" class="flex-1 h-10 rounded-md border border-slate-200 px-3 text-sm">
+                                        <option value="encoder-01">RFID Writer Station 01</option>
+                                        <option value="encoder-02">RFID Writer Station 02</option>
+                                        <option value="encoder-03">Mobile RFID Writer</option>
+                                    </select>
+                                    <span class="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium bg-green-100 text-green-800 shrink-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                                        Connected
+                                    </span>
+                                </div>
+                            </div>
+                            @if (SelectedJob is { } rj)
+                            {
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-900 mb-1">Encoding scheme</label>
+                                    <div class="rounded-lg bg-slate-50 p-3 space-y-3 text-sm">
+                                        <div>
+                                            <strong>EPC format:</strong> @rj.JobId + Batch + @rj.GoodQty
+                                            <div class="text-slate-600 text-xs mt-1">Job ID + batch info + quantity</div>
+                                        </div>
+                                        <div class="border-t border-slate-200 pt-3">
+                                            <p class="text-xs font-medium text-slate-700 mb-2">Optional user memory</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <input type="text" @bind="_lotNumber" placeholder="Lot number" class="h-9 rounded-md border border-slate-200 px-2 text-sm" />
+                                                <input type="text" @bind="_expiryDate" placeholder="Expiry date" class="h-9 rounded-md border border-slate-200 px-2 text-sm" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            <label class="flex items-center gap-2 p-3 rounded-lg bg-slate-50 cursor-pointer">
+                                <input type="checkbox" @bind="_lockTag" class="rounded border-slate-300" />
+                                @if (_lockTag)
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                }
+                                else
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                                }
+                                <span class="text-sm font-medium text-slate-800">Lock tag</span>
+                            </label>
+                            @if (_lockTag)
+                            {
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-900 mb-1">Lock password</label>
+                                    <input type="password" @bind="_lockPassword" placeholder="Enter lock password" class="w-full h-10 rounded-md border border-slate-200 px-3 text-sm" />
+                                </div>
+                            }
+                            <button type="button" @onclick="WriteRfid" disabled="@(!IsReady)" class="w-full h-12 inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 text-white text-lg font-semibold hover:bg-green-700 disabled:opacity-40">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                                Write &amp; Verify Tag
+                            </button>
+                            @if (_rfidEncoded)
+                            {
+                                <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                                    <strong>RFID tag verification</strong>
+                                    <div class="mt-1 space-y-1 font-mono text-xs">
+                                        <div>UID: <code class="bg-white px-1 rounded">@_rfidUid</code></div>
+                                        <div>CRC: <code class="bg-white px-1 rounded">@_rfidCrc</code></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="space-y-6">
+                @if (!string.IsNullOrEmpty(_selectedMethod))
+                {
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                        <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <h2 class="text-lg font-semibold text-slate-900">Preview</h2>
+                        </div>
+                        <div class="p-6">
+                            @if (_selectedMethod == "QR" && SelectedJob is { } pj)
+                            {
+                                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto text-slate-400 mb-4"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                                    <div class="text-sm text-slate-600 space-y-1">
+                                        <div class="font-medium text-slate-800">QR label preview</div>
+                                        <div>@pj.Product</div>
+                                        <div>@pj.Machine · @pj.Operator</div>
+                                        <div>Qty: @pj.GoodQty.ToString("N0", CultureInfo.InvariantCulture)</div>
+                                        <div class="text-xs font-mono">@pj.JobId</div>
+                                    </div>
+                                </div>
+                            }
+                            else if (_selectedMethod == "RFID" && SelectedJob is { } tj)
+                            {
+                                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center bg-white">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto text-slate-400 mb-4"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+                                    <div class="text-sm text-slate-600 space-y-1">
+                                        <div class="font-medium text-slate-800">RFID tag preview</div>
+                                        <div>EPC: @tj.JobId-BATCH-@tj.GoodQty</div>
+                                        <div>User memory: Available</div>
+                                        <div class="text-xs">125kHz / 13.56MHz compatible</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                    <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <h2 class="text-lg font-semibold text-slate-900">Audit Log</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="max-h-64 overflow-y-auto space-y-3">
+                            @foreach (var entry in _auditLog)
+                            {
+                                <div class="flex items-start gap-3 text-sm">
+                                    <div class="w-2 h-2 rounded-full mt-2 shrink-0 @(entry.Type == "success" ? "bg-green-500" : entry.Type == "error" ? "bg-red-500" : "bg-blue-500")"></div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-slate-500">@entry.Timestamp</div>
+                                        <div class="text-slate-900">@entry.Event</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 bg-slate-100 shadow-sm">
+            <div class="p-6 flex flex-wrap items-center justify-between gap-4">
+                <p class="text-sm text-slate-600">
+                    @if (SelectedJob is null)
+                    {
+                        <span>No job selected</span>
+                    }
+                    else if (CanFinalize)
+                    {
+                        <span>Job Status: Ready to Finalize</span>
+                    }
+                    else
+                    {
+                        <span>Job Status: Waiting…</span>
+                    }
+                </p>
+                <div class="flex flex-wrap items-center gap-4">
+                    <button type="button" @onclick="ClearSelection" disabled="@(SelectedJob is null)" class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white h-12 px-6 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-40">
+                        Select Next Job
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="ml-2"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                    <button type="button" @onclick="FinalizeBatch" disabled="@(!CanFinalize)" class="inline-flex items-center justify-center rounded-lg bg-green-600 text-white h-12 px-8 text-lg font-semibold hover:bg-green-700 disabled:opacity-40">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mr-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Finalize Job
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<JobRow> _jobs = new();
+    private List<AuditEntry> _auditLog = new();
+
+    private string? _selectedJobId;
+    private string? _selectedMethod;
+    private bool _showOverrideInput;
+    private string _overrideReason = string.Empty;
+
+    private string _labelTemplate = "standard-70x50";
+    private string _selectedPrinter = "printer-01";
+    private int _copies = 1;
+    private bool _qrPrinted;
+    private string _qrId = string.Empty;
+
+    private string _selectedEncoder = "encoder-01";
+    private bool _lockTag;
+    private string _lockPassword = string.Empty;
+    private string _lotNumber = string.Empty;
+    private string _expiryDate = string.Empty;
+    private bool _rfidEncoded;
+    private string _rfidUid = string.Empty;
+    private string _rfidCrc = string.Empty;
+
+    private bool _initialized;
+
+    private JobRow? SelectedJob =>
+        string.IsNullOrEmpty(_selectedJobId) ? null : _jobs.FirstOrDefault(j => j.JobId == _selectedJobId);
+
+    private bool IsReady =>
+        SelectedJob is { QcStatus: "approved", ProductionStatus: "released" };
+
+    private bool CanFinalize =>
+        _selectedMethod is not null && (_qrPrinted || _rfidEncoded);
+
+    /// <summary>Seeds jobs and audit log once after first render.</summary>
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return Task.CompletedTask;
+
+        _initialized = true;
+        _jobs = new List<JobRow>
+        {
+            new("PLAN20250907-001", "JOB20250907-001", "2011 - Plastic Bottle 500ml", "INJ-M001", "Thant (OP001)", 10000, 9850, 100, 50, "approved", "released", "pending", "QR", "Hnin (QC02)", "Zaw (SUP01)", null, null),
+            new("PLAN20250907-002", "JOB20250907-002", "2013 - Plastic Cup 250ml", "INJ-M002", "Hla (OP002)", 8000, 7850, 120, 30, "approved", "released", "qr-printed", "RFID", "Min (QC01)", "Thin (SUP02)", "QR-JOB20250907-002-001", null),
+            new("PLAN20250907-003", "JOB20250907-003", "2015 - Plastic Container 1L", "INJ-M003", "Aung (OP003)", 5000, 4900, 80, 20, "pending", "in-progress", "pending", "QR", null, null, null, null),
+            new("PLAN20250907-004", "JOB20250907-004", "2017 - Plastic Tray 300x200mm", "INJ-M004", "Su (OP004)", 3000, 2950, 40, 10, "approved", "pending", "pending", "RFID", "Hnin (QC02)", null, null, null),
+            new("PLAN20250907-005", "JOB20250907-005", "2019 - Plastic Lid 100mm", "INJ-M005", "Htun (OP005)", 12000, 11800, 150, 50, "approved", "released", "completed", "QR", "Min (QC01)", "Zaw (SUP01)", "QR-JOB20250907-005-001", "UID-JOB20250907-005-A1B2C3"),
+        };
+        _auditLog = new List<AuditEntry>
+        {
+            new("2025-09-07 14:30", "QC approved by Hnin (QC02)", "success"),
+            new("2025-09-07 14:25", "Target quantity reached: 10,000 units", "info"),
+            new("2025-09-07 14:20", "Batch production completed", "info"),
+        };
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Returns true when the job may be selected (QC approved and production released).</summary>
+    private static bool IsProcessable(JobRow j) =>
+        string.Equals(j.QcStatus, "approved", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(j.ProductionStatus, "released", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Selects a job and resets output-method and print/encode state.</summary>
+    private void SelectJob(string jobId)
+    {
+        _selectedJobId = jobId;
+        _selectedMethod = null;
+        _showOverrideInput = false;
+        _overrideReason = string.Empty;
+        _qrPrinted = false;
+        _rfidEncoded = false;
+        _qrId = string.Empty;
+        _rfidUid = string.Empty;
+        _rfidCrc = string.Empty;
+        _copies = 1;
+        _lockTag = false;
+        _lockPassword = string.Empty;
+        _lotNumber = string.Empty;
+        _expiryDate = string.Empty;
+
+        var ts = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        _auditLog.Insert(0, new AuditEntry(ts, $"Job selected: {jobId}", "info"));
+        StateHasChanged();
+    }
+
+    /// <summary>Sets the output method, toggles override reason visibility, and resets QR/RFID step state.</summary>
+    private void SelectMethod(string method)
+    {
+        if (SelectedJob is null)
+            return;
+
+        _selectedMethod = method;
+        _showOverrideInput = !string.Equals(method, SelectedJob.PreferredOutput, StringComparison.OrdinalIgnoreCase);
+        _qrPrinted = false;
+        _rfidEncoded = false;
+        _qrId = string.Empty;
+        _rfidUid = string.Empty;
+        _rfidCrc = string.Empty;
+
+        var ts = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        var suffix = _showOverrideInput ? " (override)" : string.Empty;
+        _auditLog.Insert(0, new AuditEntry(ts, $"Output method selected: {method}{suffix} for {SelectedJob.JobId}", "info"));
+        StateHasChanged();
+    }
+
+    /// <summary>Adjusts label copy count with a minimum of one.</summary>
+    private void AdjustCopies(int delta)
+    {
+        _copies = Math.Max(1, _copies + delta);
+        StateHasChanged();
+    }
+
+    /// <summary>Mocks printing a QR label and updates the job output status.</summary>
+    private void PrintQr()
+    {
+        if (SelectedJob is null || _selectedMethod != "QR")
+            return;
+
+        _qrId = $"QR-{SelectedJob.JobId}-{DateTime.UtcNow.Ticks}";
+        _qrPrinted = true;
+
+        var idx = _jobs.FindIndex(j => j.JobId == SelectedJob.JobId);
+        if (idx >= 0)
+        {
+            var j = _jobs[idx];
+            _jobs[idx] = j with { OutputStatus = "qr-printed", QrId = _qrId };
+        }
+
+        var ts = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        _auditLog.Insert(0, new AuditEntry(ts, $"QR label printed. QR ID: {_qrId} for {SelectedJob.JobId}", "success"));
+        StateHasChanged();
+    }
+
+    /// <summary>Mocks a reprint and appends an audit entry only.</summary>
+    private void ReprintQr()
+    {
+        var ts = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        _auditLog.Insert(0, new AuditEntry(ts, $"QR label reprinted. QR ID: {_qrId}", "info"));
+        StateHasChanged();
+    }
+
+    /// <summary>Mocks RFID encode/verify and updates the job output status.</summary>
+    private void WriteRfid()
+    {
+        if (SelectedJob is null || _selectedMethod != "RFID")
+            return;
+
+        _rfidUid = $"UID-{SelectedJob.JobId}-{DateTime.UtcNow.Ticks:X}";
+        _rfidCrc = "CRC-VALID";
+        _rfidEncoded = true;
+
+        var idx = _jobs.FindIndex(j => j.JobId == SelectedJob.JobId);
+        if (idx >= 0)
+        {
+            var j = _jobs[idx];
+            var newStatus = string.Equals(j.OutputStatus, "qr-printed", StringComparison.OrdinalIgnoreCase) ? "completed" : "rfid-issued";
+            _jobs[idx] = j with { OutputStatus = newStatus, RfidUid = _rfidUid };
+        }
+
+        var ts = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        _auditLog.Insert(0, new AuditEntry(ts, $"RFID encoded and verified. UID: {_rfidUid} for {SelectedJob.JobId}", "success"));
+        StateHasChanged();
+    }
+
+    /// <summary>Marks the job completed, logs audit, and clears the current selection.</summary>
+    private void FinalizeBatch()
+    {
+        if (!CanFinalize || SelectedJob is null)
+            return;
+
+        var jobId = SelectedJob.JobId;
+        var method = _selectedMethod;
+        var idx = _jobs.FindIndex(j => j.JobId == jobId);
+        if (idx >= 0)
+            _jobs[idx] = _jobs[idx] with { OutputStatus = "completed" };
+
+        var ts = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        _auditLog.Insert(0, new AuditEntry(ts, $"Batch finalized with {method} output for {jobId}", "success"));
+
+        ClearSelection();
+    }
+
+    /// <summary>Clears job selection and output step state.</summary>
+    private void ClearSelection()
+    {
+        _selectedJobId = null;
+        _selectedMethod = null;
+        _showOverrideInput = false;
+        _overrideReason = string.Empty;
+        _qrPrinted = false;
+        _rfidEncoded = false;
+        _qrId = string.Empty;
+        _rfidUid = string.Empty;
+        _rfidCrc = string.Empty;
+        StateHasChanged();
+    }
+
+    /// <summary>Maps QC status codes to display labels.</summary>
+    private static string FormatQcStatus(string s) => s.ToLowerInvariant() switch
+    {
+        "approved" => "Approved",
+        "pending" => "Pending",
+        "failed" => "Failed",
+        _ => s
+    };
+
+    /// <summary>Returns Tailwind classes for QC status badges.</summary>
+    private static string GetQcBadgeClass(string s) => s.ToLowerInvariant() switch
+    {
+        "approved" => "bg-green-100 text-green-800",
+        "pending" => "bg-yellow-100 text-yellow-800",
+        "failed" => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    /// <summary>Maps production status codes to display labels.</summary>
+    private static string FormatProductionStatus(string s) => s.ToLowerInvariant() switch
+    {
+        "released" => "Released",
+        "pending" => "Pending",
+        "in-progress" => "In progress",
+        _ => s
+    };
+
+    /// <summary>Returns Tailwind classes for production status badges.</summary>
+    private static string GetProductionBadgeClass(string s) => s.ToLowerInvariant() switch
+    {
+        "released" => "bg-green-100 text-green-800",
+        "pending" => "bg-yellow-100 text-yellow-800",
+        "in-progress" => "bg-blue-100 text-blue-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    /// <summary>Maps output status codes to display labels.</summary>
+    private static string FormatOutputStatus(string s) => s.ToLowerInvariant() switch
+    {
+        "completed" => "Completed",
+        "qr-printed" => "QR Printed",
+        "rfid-issued" => "RFID Issued",
+        "pending" => "Pending",
+        _ => s
+    };
+
+    /// <summary>Returns Tailwind classes for output status badges.</summary>
+    private static string GetOutputBadgeClass(string s) => s.ToLowerInvariant() switch
+    {
+        "completed" => "bg-green-100 text-green-800",
+        "qr-printed" => "bg-blue-100 text-blue-800",
+        "rfid-issued" => "bg-purple-100 text-purple-800",
+        "pending" => "bg-slate-100 text-slate-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    /// <summary>Single job row in the supervisor finalize table.</summary>
+    private sealed record JobRow(
+        string Id,
+        string JobId,
+        string Product,
+        string Machine,
+        string Operator,
+        int BatchQty,
+        int GoodQty,
+        int DefectQty,
+        int ScrapQty,
+        string QcStatus,
+        string ProductionStatus,
+        string OutputStatus,
+        string PreferredOutput,
+        string? QcOfficer,
+        string? ProductionOfficer,
+        string? QrId,
+        string? RfidUid);
+
+    /// <summary>Audit log line for batch / output events.</summary>
+    private sealed record AuditEntry(string Timestamp, string Event, string Type);
+}
