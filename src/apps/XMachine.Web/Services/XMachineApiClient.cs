@@ -47,6 +47,82 @@ public sealed class XMachineApiClient(HttpClient http)
         }
     }
 
+    private async Task<ApiFetch<TResponse>> ParseJsonResponseAsync<TResponse>(
+        HttpResponseMessage response,
+        string relativeUrl,
+        CancellationToken cancellationToken)
+    {
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var detail = string.IsNullOrWhiteSpace(body)
+                ? response.ReasonPhrase ?? ""
+                : TrimErrorBody(body);
+            var code = (int)response.StatusCode;
+            var message = string.IsNullOrWhiteSpace(detail)
+                ? $"{code} {response.StatusCode}"
+                : $"{code}: {detail}";
+            message += StatusCodeHint(code);
+            return ApiFetch<TResponse>.Fail(message);
+        }
+
+        try
+        {
+            var data = await response.Content.ReadFromJsonAsync<TResponse>(ApiJson.Options, cancellationToken).ConfigureAwait(false);
+            if (data is null)
+                return ApiFetch<TResponse>.Fail("Empty response body.");
+            return ApiFetch<TResponse>.Ok(data);
+        }
+        catch (JsonException jex)
+        {
+            return ApiFetch<TResponse>.Fail($"Could not parse API JSON ({relativeUrl}): {jex.Message}");
+        }
+    }
+
+    private async Task<ApiFetch<TResponse>> PostJsonAsync<TRequest, TResponse>(
+        string relativeUrl,
+        TRequest body,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var content = JsonContent.Create(body, options: ApiJson.Options);
+            var response = await http.PostAsync(relativeUrl, content, cancellationToken).ConfigureAwait(false);
+            return await ParseJsonResponseAsync<TResponse>(response, relativeUrl, cancellationToken).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            return ApiFetch<TResponse>.Fail(
+                $"Could not reach the API at {http.BaseAddress?.AbsoluteUri.TrimEnd('/') ?? "?"}. {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return ApiFetch<TResponse>.Fail(ex.Message);
+        }
+    }
+
+    private async Task<ApiFetch<TResponse>> PutJsonAsync<TRequest, TResponse>(
+        string relativeUrl,
+        TRequest body,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var content = JsonContent.Create(body, options: ApiJson.Options);
+            var response = await http.PutAsync(relativeUrl, content, cancellationToken).ConfigureAwait(false);
+            return await ParseJsonResponseAsync<TResponse>(response, relativeUrl, cancellationToken).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            return ApiFetch<TResponse>.Fail(
+                $"Could not reach the API at {http.BaseAddress?.AbsoluteUri.TrimEnd('/') ?? "?"}. {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return ApiFetch<TResponse>.Fail(ex.Message);
+        }
+    }
+
     private static string TrimErrorBody(string body)
     {
         var t = body.Trim();
@@ -165,4 +241,31 @@ public sealed class XMachineApiClient(HttpClient http)
 
     public Task<ApiFetch<ApiSummary>> GetEngineeringSummaryAsync(CancellationToken cancellationToken = default) =>
         GetAsync<ApiSummary>("api/engineering/summary", cancellationToken);
+
+    public Task<ApiFetch<CreateWorkOrderResponse>> PostWorkOrderAsync(CreateWorkOrderDto dto, CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreateWorkOrderDto, CreateWorkOrderResponse>("api/engineering/work-orders", dto, cancellationToken);
+
+    public Task<ApiFetch<CreatePmScheduleResponse>> PostPmScheduleAsync(CreatePmScheduleDto dto, CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreatePmScheduleDto, CreatePmScheduleResponse>("api/engineering/pm-schedules", dto, cancellationToken);
+
+    public Task<ApiFetch<UpdateWorkOrderStatusResponse>> PutWorkOrderStatusAsync(
+        Guid id,
+        UpdateWorkOrderStatusDto dto,
+        CancellationToken cancellationToken = default) =>
+        PutJsonAsync<UpdateWorkOrderStatusDto, UpdateWorkOrderStatusResponse>(
+            $"api/engineering/work-orders/{id}/status",
+            dto,
+            cancellationToken);
+
+    public Task<ApiFetch<UpdateMachineStatusResponse>> PutMachineStatusAsync(
+        Guid id,
+        UpdateMachineStatusDto dto,
+        CancellationToken cancellationToken = default) =>
+        PutJsonAsync<UpdateMachineStatusDto, UpdateMachineStatusResponse>(
+            $"api/engineering/machine-status/{id}",
+            dto,
+            cancellationToken);
+
+    public Task<ApiFetch<CreateFaultResponse>> PostFaultAsync(CreateFaultDto dto, CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreateFaultDto, CreateFaultResponse>("api/engineering/faults", dto, cancellationToken);
 }

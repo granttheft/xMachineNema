@@ -1,5 +1,7 @@
 @page "/engineering"
 @rendermode InteractiveServer
+@using System.Globalization
+@inject XMachineApiClient Api
 
 <PageTitle>Engineering · xMachine</PageTitle>
 
@@ -40,33 +42,48 @@
     </div>
 
     <div class="p-6">
+        @if (!string.IsNullOrEmpty(_pageLoadError))
+        {
+            <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">@_pageLoadError</div>
+        }
         @if (_activeTab == "breakdowns")
         {
+            @if (!_engineeringLoaded)
+            {
+                <p class="text-sm text-slate-600 mb-6">Loading breakdown data…</p>
+            }
+            else
+            {
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
                     <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
                         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Open Work Orders</p>
-                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.Open</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetBreakdownSummary().Open</p>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
                         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">In Progress</p>
-                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.InProgress</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetBreakdownSummary().InProgress</p>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
                         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Waiting Parts</p>
-                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.WaitingParts</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetBreakdownSummary().WaitingParts</p>
                     </div>
                     <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
                         <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Completed Today</p>
-                        <p class="text-2xl font-semibold text-slate-900 mt-1">@_breakdownSummary.CompletedToday</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetBreakdownSummary().CompletedToday</p>
                     </div>
                 </div>
                 <button type="button"
-                        @onclick="() => _showBreakdownModal = true"
+                        @onclick="OpenBreakdownModal"
                         class="shrink-0 inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800 whitespace-nowrap">
                     Report New Breakdown
                 </button>
             </div>
+
+            @if (!string.IsNullOrEmpty(_workOrderActionError))
+            {
+                <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">@_workOrderActionError</div>
+            }
 
             <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
                 <div class="overflow-x-auto">
@@ -84,7 +101,7 @@
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                        @foreach (var row in _breakdownRows)
+                        @foreach (var row in GetBreakdownRows())
                         {
                             <tr class="transition-colors hover:bg-slate-50">
                                 <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-700">@row.WoNumber</td>
@@ -99,7 +116,17 @@
                                 <td class="px-4 py-3 text-sm text-slate-700">@row.AssignedRole</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-slate-600">@row.ReportedAt</td>
                                 <td class="px-4 py-3 text-sm">
-                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-3 hover:bg-slate-50">View Details</button>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-3 hover:bg-slate-50">View Details</button>
+                                        @if (IsOpenWoStatus(row.Status))
+                                        {
+                                            <button type="button" disabled="@_workOrderActionBusy" @onclick="() => StartWorkOrderAsync(row.Id)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-blue-600 text-white h-8 px-3 hover:bg-blue-700 disabled:opacity-50">Start</button>
+                                        }
+                                        @if (IsInProgressWoStatus(row.Status))
+                                        {
+                                            <button type="button" disabled="@_workOrderActionBusy" @onclick="() => MarkDoneWorkOrderAsync(row.Id)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-3 hover:bg-green-700 disabled:opacity-50">Mark Done</button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -107,25 +134,41 @@
                     </table>
                 </div>
             </div>
+            }
         }
         else if (_activeTab == "pm")
         {
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total PM Schedules</p>
-                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.Total</p>
+            @if (!_engineeringLoaded)
+            {
+                <p class="text-sm text-slate-600 mb-6">Loading preventive maintenance…</p>
+            }
+            else
+            {
+            <div class="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-4 mb-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Total PM Schedules</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetPmSummary().Total</p>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Overdue</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetPmSummary().Overdue</p>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Due This Week</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetPmSummary().DueThisWeek</p>
+                    </div>
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Compliance %</p>
+                        <p class="text-2xl font-semibold text-slate-900 mt-1">@GetPmSummary().CompliancePct%</p>
+                    </div>
                 </div>
-                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Overdue</p>
-                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.Overdue</p>
-                </div>
-                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Due This Week</p>
-                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.DueThisWeek</p>
-                </div>
-                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
-                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Compliance %</p>
-                    <p class="text-2xl font-semibold text-slate-900 mt-1">@_pmSummary.CompliancePct%</p>
+                <div class="flex items-start justify-end shrink-0">
+                    <button type="button"
+                            @onclick="OpenPmScheduleModal"
+                            class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800 whitespace-nowrap">
+                        Schedule PM
+                    </button>
                 </div>
             </div>
 
@@ -145,7 +188,7 @@
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
-                        @foreach (var row in _pmRows)
+                        @foreach (var row in GetPmRows())
                         {
                             <tr class="transition-colors hover:bg-slate-50">
                                 <td class="px-4 py-3 text-sm text-slate-900 font-medium">@row.ScheduleName</td>
@@ -166,6 +209,7 @@
                     </table>
                 </div>
             </div>
+            }
         }
         else if (_activeTab == "spares")
         {
@@ -346,48 +390,52 @@
 
 @if (_showBreakdownModal)
 {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="() => _showBreakdownModal = false">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseBreakdownModal">
         <div class="max-w-2xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
             <div class="flex items-start justify-between gap-4 mb-4">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900">Breakdown Report</h2>
                     <p class="text-sm text-slate-500 mt-1">Log a new breakdown and assign follow-up.</p>
                 </div>
-                <button type="button" @onclick="() => _showBreakdownModal = false" class="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Close">
+                <button type="button" @onclick="CloseBreakdownModal" class="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Close">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
             </div>
+            @if (!string.IsNullOrEmpty(_breakdownModalError))
+            {
+                <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">@_breakdownModalError</div>
+            }
             <div class="space-y-4">
                 <div class="space-y-2">
                     <label class="text-sm font-medium text-slate-900">Machine</label>
-                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-                        @foreach (var m in _mockMachines)
+                    <select @bind="_breakdownMachineId" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        @foreach (var m in _apiMachines)
                         {
-                            <option value="@m">@m</option>
+                            <option value="@m.Id">@m.Name (@m.Code)</option>
                         }
                     </select>
                 </div>
                 <div class="space-y-2">
                     <label class="text-sm font-medium text-slate-900">Type</label>
-                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-                        <option>Corrective</option>
-                        <option>Preventive</option>
-                        <option>MoldChange</option>
-                        <option>Inspection</option>
+                    <select @bind="_breakdownWorkOrderType" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option value="Corrective">Corrective</option>
+                        <option value="Preventive">Preventive</option>
+                        <option value="MoldChange">MoldChange</option>
+                        <option value="Inspection">Inspection</option>
                     </select>
                 </div>
                 <div class="space-y-2">
                     <label class="text-sm font-medium text-slate-900">Priority</label>
-                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
-                        <option>P1Critical</option>
-                        <option>P2High</option>
-                        <option>P3Medium</option>
-                        <option>P4Low</option>
+                    <select @bind="_breakdownPriority" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option value="P1Critical">P1Critical</option>
+                        <option value="P2High">P2High</option>
+                        <option value="P3Medium">P3Medium</option>
+                        <option value="P4Low">P4Low</option>
                     </select>
                 </div>
                 <div class="space-y-2">
                     <label class="text-sm font-medium text-slate-900">Assigned Role</label>
-                    <select class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                    <select @bind="_breakdownAssignedRole" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
                         <option value="maintenance">maintenance</option>
                         <option value="mold">mold</option>
                         <option value="plastic">plastic</option>
@@ -397,11 +445,80 @@
                 </div>
                 <div class="space-y-2">
                     <label class="text-sm font-medium text-slate-900">Description</label>
-                    <textarea rows="4" placeholder="Describe the issue..." class="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"></textarea>
+                    <textarea @bind="_breakdownDescription" rows="4" placeholder="Describe the issue..." class="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"></textarea>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" @onclick="() => _showBreakdownModal = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
-                    <button type="button" @onclick="() => _showBreakdownModal = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800">Save Report</button>
+                    <button type="button" @onclick="CloseBreakdownModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                    <button type="button" disabled="@_breakdownSaving" @onclick="SaveBreakdownReportAsync" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800 disabled:opacity-50">Save Report</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showPmScheduleModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="ClosePmScheduleModal">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-900">Schedule PM</h2>
+                    <p class="text-sm text-slate-500 mt-1">Create a preventive maintenance schedule for a machine.</p>
+                </div>
+                <button type="button" @onclick="ClosePmScheduleModal" class="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_pmModalError))
+            {
+                <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">@_pmModalError</div>
+            }
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Machine</label>
+                    <select @bind="_pmMachineId" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        @foreach (var m in _apiMachines)
+                        {
+                            <option value="@m.Id">@m.Name (@m.Code)</option>
+                        }
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Name</label>
+                    <input type="text" @bind="_pmName" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Interval Type</label>
+                    <select @bind="_pmIntervalType" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option value="days">Days</option>
+                        <option value="hours">Hours</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Interval Value</label>
+                    <input type="number" min="1" @bind="_pmIntervalValue" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">First Due Date (optional)</label>
+                    <input type="date" @bind="_pmFirstDueDate" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm" />
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Owner Role</label>
+                    <select @bind="_pmOwnerRole" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                        <option value="maintenance">maintenance</option>
+                        <option value="mold">mold</option>
+                        <option value="plastic">plastic</option>
+                        <option value="mold-change">mold-change</option>
+                        <option value="technician-head">technician-head</option>
+                    </select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-900">Description</label>
+                    <textarea @bind="_pmDescription" rows="3" class="flex min-h-[72px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @onclick="ClosePmScheduleModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                    <button type="button" disabled="@_pmSaving" @onclick="SavePmScheduleAsync" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-slate-900 text-white h-9 px-4 hover:bg-slate-800 disabled:opacity-50">Save</button>
                 </div>
             </div>
         </div>
@@ -410,28 +527,35 @@
 
 @code {
     private string _activeTab = "breakdowns";
+    private bool _initialized;
+    private bool _engineeringLoaded;
+    private string? _pageLoadError;
+    private string? _workOrderActionError;
+    private bool _workOrderActionBusy;
+
+    private List<ApiMachine> _apiMachines = new();
+    private List<ApiWorkOrder> _apiWorkOrders = new();
+    private List<ApiPmSchedule> _apiPmSchedules = new();
+
     private bool _showBreakdownModal;
+    private string? _breakdownModalError;
+    private bool _breakdownSaving;
+    private Guid _breakdownMachineId;
+    private string _breakdownWorkOrderType = "Corrective";
+    private string _breakdownPriority = "P2High";
+    private string _breakdownAssignedRole = "maintenance";
+    private string _breakdownDescription = string.Empty;
 
-    private static readonly IReadOnlyList<string> _mockMachines = ["M-101", "M-102", "M-201", "M-202"];
-
-    private readonly BreakdownSummary _breakdownSummary = new(12, 5, 3, 8);
-
-    private static readonly IReadOnlyList<BreakdownRow> _breakdownRows =
-    [
-        new("WO-20240115-001", "M-101", "Corrective", "P1Critical", "InProgress", "maintenance", "3h ago"),
-        new("WO-20240115-002", "M-201", "Preventive", "P2High", "Open", "mold", "1h ago"),
-        new("WO-20240114-001", "M-102", "Corrective", "P3Medium", "Done", "maintenance", "yesterday"),
-    ];
-
-    private readonly PmSummary _pmSummary = new(24, 5, 7, 94);
-
-    private static readonly IReadOnlyList<PmScheduleRow> _pmRows =
-    [
-        new("Monthly preventive maintenance", "M-101", "30 days", "45 days ago", "15 days overdue", "Overdue", "maintenance"),
-        new("Weekly lubrication check", "M-102", "7 days", "3 days ago", "in 4 days", "Due Soon", "maintenance"),
-        new("Quarterly mold inspection", "M-201", "90 days", "92 days ago", "2 days overdue", "Overdue", "mold"),
-        new("Daily tooling check", "M-202", "1 day", "today", "tomorrow", "OK", "plastic"),
-    ];
+    private bool _showPmScheduleModal;
+    private string? _pmModalError;
+    private bool _pmSaving;
+    private Guid _pmMachineId;
+    private string _pmName = string.Empty;
+    private string _pmIntervalType = "days";
+    private int _pmIntervalValue = 7;
+    private DateTime? _pmFirstDueDate;
+    private string _pmOwnerRole = "maintenance";
+    private string _pmDescription = string.Empty;
 
     private readonly SpareSummary _spareSummary = new(124, 3, 2);
 
@@ -452,6 +576,7 @@
     /// One row in the breakdown work order table.
     /// </summary>
     private sealed record BreakdownRow(
+        Guid Id,
         string WoNumber,
         string Machine,
         string WoType,
@@ -503,11 +628,344 @@
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        if (!firstRender || _initialized)
             return;
 
-        await Task.CompletedTask;
+        _initialized = true;
+        await LoadEngineeringDataAsync();
         StateHasChanged();
+    }
+
+    private async Task LoadEngineeringDataAsync()
+    {
+        _pageLoadError = null;
+
+        var machinesResult = await Api.GetEngineeringMachineStatusAsync();
+        StateHasChanged();
+        if (machinesResult.Error is not null)
+            _pageLoadError = machinesResult.Error;
+        else if (machinesResult.Data is not null)
+            _apiMachines = machinesResult.Data;
+
+        var workOrdersResult = await Api.GetEngineeringWorkOrdersAsync();
+        StateHasChanged();
+        if (workOrdersResult.Error is not null)
+            _pageLoadError = string.IsNullOrEmpty(_pageLoadError) ? workOrdersResult.Error : $"{_pageLoadError} {workOrdersResult.Error}";
+        else if (workOrdersResult.Data is not null)
+            _apiWorkOrders = workOrdersResult.Data;
+
+        var pmResult = await Api.GetEngineeringPmSchedulesAsync();
+        StateHasChanged();
+        if (pmResult.Error is not null)
+            _pageLoadError = string.IsNullOrEmpty(_pageLoadError) ? pmResult.Error : $"{_pageLoadError} {pmResult.Error}";
+        else if (pmResult.Data is not null)
+            _apiPmSchedules = pmResult.Data;
+
+        _engineeringLoaded = true;
+        StateHasChanged();
+    }
+
+    private async Task ReloadWorkOrdersAndMachinesAsync()
+    {
+        var workOrdersResult = await Api.GetEngineeringWorkOrdersAsync();
+        StateHasChanged();
+        if (workOrdersResult.Data is not null)
+            _apiWorkOrders = workOrdersResult.Data;
+
+        var machinesResult = await Api.GetEngineeringMachineStatusAsync();
+        StateHasChanged();
+        if (machinesResult.Data is not null)
+            _apiMachines = machinesResult.Data;
+
+        StateHasChanged();
+    }
+
+    private void OpenBreakdownModal()
+    {
+        _breakdownModalError = null;
+        _showBreakdownModal = true;
+        if (_breakdownMachineId == Guid.Empty && _apiMachines.Count > 0)
+            _breakdownMachineId = _apiMachines[0].Id;
+        StateHasChanged();
+    }
+
+    private void CloseBreakdownModal()
+    {
+        _showBreakdownModal = false;
+        _breakdownModalError = null;
+        StateHasChanged();
+    }
+
+    private async Task SaveBreakdownReportAsync()
+    {
+        _breakdownModalError = null;
+        if (_breakdownMachineId == Guid.Empty)
+        {
+            _breakdownModalError = "Select a machine.";
+            StateHasChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_breakdownDescription))
+        {
+            _breakdownModalError = "Description is required.";
+            StateHasChanged();
+            return;
+        }
+
+        var machine = _apiMachines.FirstOrDefault(m => m.Id == _breakdownMachineId);
+        var dto = new CreateWorkOrderDto(
+            _breakdownMachineId,
+            machine is null ? null : machine.LineId,
+            _breakdownWorkOrderType,
+            _breakdownPriority,
+            _breakdownDescription.Trim(),
+            null,
+            _breakdownAssignedRole);
+
+        _breakdownSaving = true;
+        StateHasChanged();
+        var result = await Api.PostWorkOrderAsync(dto);
+        StateHasChanged();
+        _breakdownSaving = false;
+
+        if (result.Error is not null)
+        {
+            _breakdownModalError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        _showBreakdownModal = false;
+        _breakdownDescription = string.Empty;
+        await ReloadWorkOrdersAndMachinesAsync();
+        StateHasChanged();
+    }
+
+    private void OpenPmScheduleModal()
+    {
+        _pmModalError = null;
+        _showPmScheduleModal = true;
+        if (_pmMachineId == Guid.Empty && _apiMachines.Count > 0)
+            _pmMachineId = _apiMachines[0].Id;
+        StateHasChanged();
+    }
+
+    private void ClosePmScheduleModal()
+    {
+        _showPmScheduleModal = false;
+        _pmModalError = null;
+        StateHasChanged();
+    }
+
+    private async Task SavePmScheduleAsync()
+    {
+        _pmModalError = null;
+        if (_pmMachineId == Guid.Empty)
+        {
+            _pmModalError = "Select a machine.";
+            StateHasChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_pmName))
+        {
+            _pmModalError = "Name is required.";
+            StateHasChanged();
+            return;
+        }
+
+        if (_pmIntervalValue < 1)
+        {
+            _pmModalError = "Interval value must be at least 1.";
+            StateHasChanged();
+            return;
+        }
+
+        int? intervalHours = _pmIntervalType == "hours" ? _pmIntervalValue : null;
+        int? intervalDays = _pmIntervalType == "days" ? _pmIntervalValue : null;
+
+        DateTimeOffset? firstDue = _pmFirstDueDate is { } fd
+            ? new DateTimeOffset(DateTime.SpecifyKind(fd.Date, DateTimeKind.Utc))
+            : null;
+
+        var dto = new CreatePmScheduleDto(
+            _pmMachineId,
+            _pmName.Trim(),
+            string.IsNullOrWhiteSpace(_pmDescription) ? null : _pmDescription.Trim(),
+            intervalHours,
+            intervalDays,
+            firstDue,
+            string.IsNullOrWhiteSpace(_pmOwnerRole) ? null : _pmOwnerRole.Trim());
+
+        _pmSaving = true;
+        StateHasChanged();
+        var result = await Api.PostPmScheduleAsync(dto);
+        StateHasChanged();
+        _pmSaving = false;
+
+        if (result.Error is not null)
+        {
+            _pmModalError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        _showPmScheduleModal = false;
+        _pmName = string.Empty;
+        _pmDescription = string.Empty;
+        _pmIntervalValue = 7;
+        _pmFirstDueDate = null;
+
+        var pmResult = await Api.GetEngineeringPmSchedulesAsync();
+        StateHasChanged();
+        if (pmResult.Data is not null)
+            _apiPmSchedules = pmResult.Data;
+
+        StateHasChanged();
+    }
+
+    private async Task StartWorkOrderAsync(Guid id)
+    {
+        _workOrderActionError = null;
+        _workOrderActionBusy = true;
+        StateHasChanged();
+        var result = await Api.PutWorkOrderStatusAsync(id, new UpdateWorkOrderStatusDto("InProgress", null));
+        StateHasChanged();
+        _workOrderActionBusy = false;
+
+        if (result.Error is not null)
+        {
+            _workOrderActionError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        await ReloadWorkOrdersAndMachinesAsync();
+    }
+
+    private async Task MarkDoneWorkOrderAsync(Guid id)
+    {
+        _workOrderActionError = null;
+        _workOrderActionBusy = true;
+        StateHasChanged();
+        var result = await Api.PutWorkOrderStatusAsync(id, new UpdateWorkOrderStatusDto("Done", null));
+        StateHasChanged();
+        _workOrderActionBusy = false;
+
+        if (result.Error is not null)
+        {
+            _workOrderActionError = result.Error;
+            StateHasChanged();
+            return;
+        }
+
+        await ReloadWorkOrdersAndMachinesAsync();
+    }
+
+    private BreakdownSummary GetBreakdownSummary()
+    {
+        var q = _apiWorkOrders
+            .Where(w => string.Equals(w.WorkOrderType, "Corrective", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var today = DateTimeOffset.UtcNow.Date;
+        return new BreakdownSummary(
+            q.Count(w => IsOpenWoStatus(w.WorkOrderStatus)),
+            q.Count(w => IsInProgressWoStatus(w.WorkOrderStatus)),
+            q.Count(w => IsWaitingPartsWoStatus(w.WorkOrderStatus)),
+            q.Count(w =>
+                IsDoneWoStatus(w.WorkOrderStatus) &&
+                w.CompletedAt is { } ca &&
+                ca.UtcDateTime.Date == today));
+    }
+
+    private List<BreakdownRow> GetBreakdownRows() =>
+        _apiWorkOrders
+            .Where(w => string.Equals(w.WorkOrderType, "Corrective", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(w => w.ReportedAt)
+            .Select(w => new BreakdownRow(
+                w.Id,
+                w.WorkOrderNo,
+                GetMachineDisplayName(w.MachineId),
+                w.WorkOrderType,
+                w.Priority,
+                NormalizeWoStatus(w.WorkOrderStatus),
+                string.IsNullOrWhiteSpace(w.AssignedRole) ? "—" : w.AssignedRole,
+                w.ReportedAt.ToLocalTime().ToString("g", CultureInfo.CurrentCulture)))
+            .ToList();
+
+    private string GetMachineDisplayName(Guid machineId)
+    {
+        var m = _apiMachines.FirstOrDefault(x => x.Id == machineId);
+        return m is null ? "—" : $"{m.Name} ({m.Code})";
+    }
+
+    private static string NormalizeWoStatus(string status) =>
+        status.Trim() switch
+        {
+            "open" => "Open",
+            "inProgress" => "InProgress",
+            "waitingParts" => "WaitingParts",
+            "done" => "Done",
+            "cancelled" => "Cancelled",
+            _ => status,
+        };
+
+    private static bool IsOpenWoStatus(string status) =>
+        string.Equals(NormalizeWoStatus(status), "Open", StringComparison.Ordinal);
+
+    private static bool IsInProgressWoStatus(string status) =>
+        string.Equals(NormalizeWoStatus(status), "InProgress", StringComparison.Ordinal);
+
+    private static bool IsWaitingPartsWoStatus(string status) =>
+        string.Equals(NormalizeWoStatus(status), "WaitingParts", StringComparison.Ordinal);
+
+    private static bool IsDoneWoStatus(string status) =>
+        string.Equals(NormalizeWoStatus(status), "Done", StringComparison.Ordinal);
+
+    private PmSummary GetPmSummary()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var weekEnd = now.AddDays(7);
+        var total = _apiPmSchedules.Count;
+        var overdue = _apiPmSchedules.Count(s =>
+            s.NextDueAt is { } nd && nd < now && string.Equals(s.Status, "Active", StringComparison.OrdinalIgnoreCase));
+        var dueThisWeek = _apiPmSchedules.Count(s =>
+            s.NextDueAt is { } nd &&
+            nd >= now &&
+            nd <= weekEnd &&
+            string.Equals(s.Status, "Active", StringComparison.OrdinalIgnoreCase));
+        var compliance = total == 0 ? 94 : Math.Clamp(100 - overdue * 10, 0, 100);
+        return new PmSummary(total, overdue, dueThisWeek, compliance);
+    }
+
+    private List<PmScheduleRow> GetPmRows()
+    {
+        var now = DateTimeOffset.UtcNow;
+        return _apiPmSchedules
+            .OrderBy(s => s.NextDueAt ?? DateTimeOffset.MaxValue)
+            .Select(s =>
+            {
+                var interval = s.IntervalDays is { } d
+                    ? $"{d} days"
+                    : s.IntervalHours is { } h
+                        ? $"{h} hours"
+                        : "—";
+                var last = s.LastDoneAt?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "—";
+                var next = s.NextDueAt?.ToLocalTime().ToString("g", CultureInfo.CurrentCulture) ?? "—";
+                var statusLabel = s.NextDueAt is { } nd
+                    ? nd < now ? "Overdue" : nd <= now.AddDays(7) ? "Due Soon" : "OK"
+                    : "OK";
+                return new PmScheduleRow(
+                    s.Name,
+                    GetMachineDisplayName(s.MachineId),
+                    interval,
+                    last,
+                    next,
+                    statusLabel,
+                    string.IsNullOrWhiteSpace(s.OwnerRole) ? "—" : s.OwnerRole);
+            })
+            .ToList();
     }
 
     private static string TabClass(bool active) =>

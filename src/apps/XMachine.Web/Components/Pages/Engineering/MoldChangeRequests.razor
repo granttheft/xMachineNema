@@ -1,5 +1,6 @@
 @page "/engineering/mold-changes"
 @rendermode InteractiveServer
+@inject XMachineApiClient Api
 
 <PageTitle>Mold Change Requests · xMachine</PageTitle>
 
@@ -368,9 +369,109 @@
             return;
 
         _initialized = true;
-        _mcrs = BuildMockMcrs();
-        await Task.CompletedTask;
+
+        var machinesResult = await Api.GetEngineeringMachineStatusAsync();
         StateHasChanged();
+
+        if (machinesResult.Error is not null || machinesResult.Data is null || machinesResult.Data.Count == 0)
+        {
+            _mcrs = BuildMockMcrs();
+            StateHasChanged();
+            return;
+        }
+
+        var machineNames = machinesResult.Data.ToDictionary(
+            m => m.Id,
+            m => string.IsNullOrWhiteSpace(m.Name) ? m.Code : m.Name);
+
+        var workOrdersResult = await Api.GetEngineeringWorkOrdersAsync();
+        StateHasChanged();
+
+        if (workOrdersResult.Error is not null || workOrdersResult.Data is null)
+        {
+            _mcrs = BuildMockMcrs();
+            StateHasChanged();
+            return;
+        }
+
+        var moldChanges = workOrdersResult.Data
+            .Where(w => string.Equals(w.WorkOrderType, "MoldChange", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(w => w.ReportedAt)
+            .ToList();
+
+        if (moldChanges.Count == 0)
+            _mcrs = BuildMockMcrs();
+        else
+            _mcrs = moldChanges.Select(wo => MapWorkOrderToMcr(wo, machineNames)).ToList();
+
+        StateHasChanged();
+    }
+
+    private static MoldChangeRequest MapWorkOrderToMcr(ApiWorkOrder wo, Dictionary<Guid, string> machineNames)
+    {
+        var machine = machineNames.GetValueOrDefault(wo.MachineId, "Unknown machine");
+        var fromMold = string.IsNullOrWhiteSpace(wo.ReasonCode) ? "—" : wo.ReasonCode;
+        var toMold = TruncateForDisplay(wo.Description, 40);
+        var product = TruncateForDisplay(wo.Description, 48);
+        var status = MapWorkOrderStatusToMcrStatus(wo.WorkOrderStatus);
+        var reportedLocal = wo.ReportedAt.ToLocalTime();
+        var scheduledDate = reportedLocal.ToString("yyyy-MM-dd");
+        var scheduledTime = reportedLocal.ToString("HH:mm");
+        const int estimatedMinutes = 45;
+
+        var startedAt = wo.StartedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        var completedAt = wo.CompletedAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+        string? rejectedBy = null;
+        string? rejectionReason = null;
+        if (string.Equals(status, "rejected", StringComparison.Ordinal))
+        {
+            rejectedBy = "System";
+            rejectionReason = string.IsNullOrWhiteSpace(wo.ClosingNotes) ? "Cancelled" : wo.ClosingNotes;
+        }
+
+        return new MoldChangeRequest(
+            wo.WorkOrderNo,
+            machine,
+            product,
+            fromMold,
+            toMold,
+            scheduledDate,
+            scheduledTime,
+            estimatedMinutes,
+            status,
+            null,
+            null,
+            rejectedBy,
+            rejectionReason,
+            startedAt,
+            completedAt,
+            null,
+            wo.ClosingNotes);
+    }
+
+    private static string MapWorkOrderStatusToMcrStatus(string workOrderStatus)
+    {
+        var s = workOrderStatus.Trim();
+        if (s.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            return "pending";
+        if (s.Equals("InProgress", StringComparison.OrdinalIgnoreCase) || s.Equals("inProgress", StringComparison.Ordinal))
+            return "in-progress";
+        if (s.Equals("WaitingParts", StringComparison.OrdinalIgnoreCase) || s.Equals("waitingParts", StringComparison.Ordinal))
+            return "in-progress";
+        if (s.Equals("Done", StringComparison.OrdinalIgnoreCase))
+            return "completed";
+        if (s.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+            return "rejected";
+        return "pending";
+    }
+
+    private static string TruncateForDisplay(string? text, int maxLen)
+    {
+        if (string.IsNullOrEmpty(text))
+            return "—";
+        var t = text.Trim();
+        return t.Length <= maxLen ? t : t[..maxLen] + "…";
     }
 
     private static List<MoldChangeRequest> BuildMockMcrs()
@@ -465,6 +566,7 @@
         return "text-slate-700";
     }
 
+    // TODO: wire MCR mutations to real API when MoldChangeRequest entity is added
     private void ReplaceMcr(MoldChangeRequest updated)
     {
         var i = _mcrs.FindIndex(x => x.Id == updated.Id);

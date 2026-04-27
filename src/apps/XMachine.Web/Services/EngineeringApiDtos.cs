@@ -1,6 +1,74 @@
 namespace XMachine.Web.Services;
 
 /// <summary>
+/// Request body for POST /api/engineering/work-orders.
+/// </summary>
+public sealed record CreateWorkOrderDto(
+    Guid MachineId,
+    Guid? LineId,
+    string WorkOrderType,
+    string Priority,
+    string Description,
+    string? ReasonCode,
+    string? AssignedRole);
+
+/// <summary>
+/// Response body for POST /api/engineering/work-orders.
+/// </summary>
+public sealed record CreateWorkOrderResponse(Guid Id, string WorkOrderNo);
+
+/// <summary>
+/// Request body for POST /api/engineering/pm-schedules.
+/// </summary>
+public sealed record CreatePmScheduleDto(
+    Guid MachineId,
+    string Name,
+    string? Description,
+    int? IntervalHours,
+    int? IntervalDays,
+    DateTimeOffset? FirstDueAt,
+    string? OwnerRole);
+
+/// <summary>
+/// Response body for POST /api/engineering/pm-schedules.
+/// </summary>
+public sealed record CreatePmScheduleResponse(Guid Id, string Name);
+
+/// <summary>
+/// Request body for PUT /api/engineering/work-orders/{id}/status.
+/// </summary>
+public sealed record UpdateWorkOrderStatusDto(string NewStatus, string? ClosingNotes);
+
+/// <summary>
+/// Response body for PUT /api/engineering/work-orders/{id}/status.
+/// </summary>
+public sealed record UpdateWorkOrderStatusResponse(Guid Id, string WorkOrderNo, string WorkOrderStatus);
+
+/// <summary>
+/// Request body for PUT /api/engineering/machine-status/{id}.
+/// </summary>
+public sealed record UpdateMachineStatusDto(string OperationalStatus);
+
+/// <summary>
+/// Response body for PUT /api/engineering/machine-status/{id}.
+/// </summary>
+public sealed record UpdateMachineStatusResponse(Guid Id, string Code, string OperationalStatus);
+
+/// <summary>
+/// Request body for POST /api/engineering/faults.
+/// </summary>
+public sealed record CreateFaultDto(
+    Guid MachineId,
+    Guid? MaintenanceWorkOrderId,
+    string FaultCode,
+    string Description);
+
+/// <summary>
+/// Response body for POST /api/engineering/faults.
+/// </summary>
+public sealed record CreateFaultResponse(Guid Id, string FaultCode);
+
+/// <summary>
 /// JSON shape for GET /api/engineering/machine-status.
 /// </summary>
 public sealed record ApiMachine(
