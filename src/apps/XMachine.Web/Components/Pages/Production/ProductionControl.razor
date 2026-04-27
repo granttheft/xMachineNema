@@ -1,0 +1,1492 @@
+@page "/production/control"
+@rendermode InteractiveServer
+@implements IDisposable
+
+<PageTitle>Production Control · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <h1 class="text-2xl font-semibold text-slate-900">Production Control</h1>
+        <p class="text-sm text-slate-500 mt-1">Job Monitoring · Demand Authorization · Material Control</p>
+    </div>
+
+    <div class="bg-white border-b border-slate-200 px-6">
+        <div class="flex flex-wrap gap-x-8">
+            <button type="button" @onclick='() => SetTab("jobs")' class="@TabClass(_activeTab == "jobs") py-3 px-1 text-sm mr-8">Job Monitoring</button>
+            <button type="button" @onclick='() => SetTab("demand")' class="@TabClass(_activeTab == "demand") py-3 px-1 text-sm mr-8">Demand Authorization</button>
+            <button type="button" @onclick='() => SetTab("material")' class="@TabClass(_activeTab == "material") py-3 px-1 text-sm mr-8">Material Control</button>
+        </div>
+    </div>
+
+    <div class="p-6 space-y-6">
+        @if (!string.IsNullOrEmpty(_planSuccessMessage))
+        {
+            <div class="@_successBannerCss">@_planSuccessMessage</div>
+        }
+
+        @if (_activeTab == "jobs")
+        {
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-6 py-4">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <svg class="h-5 w-5 text-blue-600 shrink-0" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                        Job Monitoring Dashboard
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="flex gap-3 mb-6">
+                        <div class="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+                            <span class="text-sm">Real-time job status monitoring and performance tracking</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                            <div class="text-2xl font-bold text-green-600">@RunningJobCount</div>
+                            <div class="text-sm text-slate-600">Running Jobs</div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                            <div class="text-2xl font-bold text-blue-600">@CompletedJobCount</div>
+                            <div class="text-sm text-slate-600">Completed</div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                            <div class="text-2xl font-bold text-yellow-600">@PausedJobCount</div>
+                            <div class="text-sm text-slate-600">Paused</div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                            <div class="text-2xl font-bold text-purple-600">@SetupJobCount</div>
+                            <div class="text-sm text-slate-600">Setup</div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                            <div class="text-2xl font-bold text-red-600">@TotalAlerts</div>
+                            <div class="text-sm text-slate-600">Active Alerts</div>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                            <div class="text-2xl font-bold text-indigo-600">@AvgOee%</div>
+                            <div class="text-sm text-slate-600">Avg OEE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2 flex-1">
+                        <svg class="h-5 w-5 text-slate-700" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-8-5-8 5v12Z"/><path d="M6 18V10"/><path d="m10 18-2-8"/><path d="m14 18 2-8"/><path d="M18 18v-4"/></svg>
+                        Active Jobs List &amp; Status
+                    </h2>
+                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-800">@_jobMonitoring.Count jobs</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job ID</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Progress</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">OEE</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Operator</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Alerts</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var job in _jobMonitoring)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-blue-600">@job.JobId</div>
+                                    <div class="text-sm text-slate-600">Plan: @job.PlanId</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium">@job.ProductCode</div>
+                                    <div class="text-sm text-slate-600 max-w-[150px] truncate" title="@job.Product">@job.Product</div>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-sm">@job.Machine</td>
+                                <td class="px-4 py-3">
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between text-sm">
+                                            <span>@job.ProducedQty/@job.TargetQty</span>
+                                            <span>@job.ProgressPercentage%</span>
+                                        </div>
+                                        <div class="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                            <div class="h-2 rounded-full bg-blue-500" style="width:@(Math.Clamp(job.ProgressPercentage, 0, 100))%"></div>
+                                        </div>
+                                        <div class="text-xs text-slate-600">Good: @job.GoodQty | Defect: @job.DefectQty</div>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetJobStatusClass(job.Status)">@job.Status</span>
+                                    <div class="text-xs text-slate-600 mt-1">Eff: @job.Efficiency%</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-indigo-600">@job.OeeScore%</div>
+                                    <div class="text-xs text-slate-600">DT: @job.DowntimeMinutes min</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="text-sm">@job.Operator</div>
+                                    <div class="text-xs text-slate-600">@job.Shift</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if (job.AlertCount > 0)
+                                    {
+                                        <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium border bg-red-50 text-red-700 border-red-200">@job.AlertCount Alert@(job.AlertCount > 1 ? "s" : "")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium border bg-green-50 text-green-700 border-green-200">Normal</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex flex-wrap gap-1">
+                                        <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-2 hover:bg-slate-50">View</button>
+                                        @if (string.Equals(job.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-yellow-600 text-yellow-600 h-8 px-2 hover:bg-yellow-50">Pause</button>
+                                        }
+                                        @if (string.Equals(job.Status, "Paused", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 px-2 hover:bg-green-50">Resume</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                @foreach (var job in _jobMonitoring.Take(4))
+                {
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm relative">
+                        @if (job.AlertCount > 0)
+                        {
+                            <div class="absolute top-3 right-3">
+                                <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium border bg-red-50 text-red-700 border-red-200">@job.AlertCount</span>
+                            </div>
+                        }
+                        <div class="border-b border-slate-100 px-6 py-3">
+                            <div class="flex items-center gap-2 text-lg font-semibold text-slate-900 pr-16">
+                                <div class="w-3 h-3 rounded-full @(job.Status switch { "Running" => "bg-green-500", "Completed" => "bg-blue-500", "Paused" => "bg-yellow-500", "Setup" => "bg-purple-500", _ => "bg-slate-500" })"></div>
+                                @job.JobId
+                                <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium border @GetPriorityBadgeClass(job.Priority)">@job.Priority</span>
+                            </div>
+                        </div>
+                        <div class="p-6 space-y-4">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <p class="text-xs text-slate-600">Product</p>
+                                    <p class="font-medium text-slate-900">@job.ProductCode</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-600">Machine</p>
+                                    <p class="font-mono text-slate-900">@job.Machine</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-600">Operator</p>
+                                    <p class="text-slate-900">@job.Operator</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-600">Status</p>
+                                    <p class="font-medium @(job.Status switch { "Running" => "text-green-600", "Completed" => "text-blue-600", "Paused" => "text-yellow-600", "Setup" => "text-purple-600", _ => "text-slate-600" })">@job.Status</p>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-2">
+                                    <span class="text-slate-600">Progress</span>
+                                    <span class="font-medium">@FormatProgress(job.ProducedQty, job.TargetQty)</span>
+                                </div>
+                                <div class="h-3 rounded-full bg-slate-200 overflow-hidden">
+                                    <div class="h-3 rounded-full bg-blue-500" style="width:@(Math.Clamp(job.ProgressPercentage, 0, 100))%"></div>
+                                </div>
+                                <div class="text-xs text-slate-600 mt-1 flex justify-between">
+                                    <span>Good: @job.GoodQty</span>
+                                    <span>Defect: @job.DefectQty</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                <div class="text-center p-2 bg-indigo-50 rounded-lg">
+                                    <div class="font-bold text-indigo-600">@job.OeeScore%</div>
+                                    <div class="text-indigo-700 text-xs">OEE Score</div>
+                                </div>
+                                <div class="text-center p-2 bg-green-50 rounded-lg">
+                                    <div class="font-bold text-green-600">@job.Efficiency%</div>
+                                    <div class="text-green-700 text-xs">Efficiency</div>
+                                </div>
+                                <div class="text-center p-2 bg-yellow-50 rounded-lg">
+                                    <div class="font-bold text-yellow-600">@job.DowntimeMinutes m</div>
+                                    <div class="text-yellow-700 text-xs">Downtime</div>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-600 mb-1">Raw Materials</p>
+                                <div class="space-y-1 mt-1">
+                                    @foreach (var m in job.RawMaterials)
+                                    {
+                                        var pct = m.Required > 0 ? (int)Math.Round(m.Remaining / m.Required * 100) : 0;
+                                        <div class="flex justify-between items-center text-xs bg-slate-50 p-2 rounded">
+                                            <span class="font-medium">@m.Code</span>
+                                            <span class="text-slate-600">@m.Remaining/@m.Required @m.Unit</span>
+                                            <span class="px-2 py-1 rounded text-xs @(pct > 30 ? "bg-green-100 text-green-700" : pct > 10 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700")">@pct%</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-600 mb-1">Recent Activity</p>
+                                <div class="space-y-1 mt-1">
+                                    @foreach (var ev in job.RecentEvents.Take(2))
+                                    {
+                                        <div class="flex items-center gap-2 text-xs">
+                                            <span class="text-slate-500 font-mono">@ev.Time</span>
+                                            <div class="w-2 h-2 rounded-full @(ev.Type switch { "success" => "bg-green-500", "warning" => "bg-yellow-500", "error" => "bg-red-500", _ => "bg-blue-500" })"></div>
+                                            <span class="flex-1">@ev.Message</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button type="button" class="inline-flex flex-1 items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-2 hover:bg-slate-50">View Details</button>
+                                @if (string.Equals(job.Status, "Running", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-yellow-600 text-yellow-600 h-8 px-2 hover:bg-yellow-50">Pause</button>
+                                }
+                                @if (string.Equals(job.Status, "Paused", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 px-2 hover:bg-green-50">Resume</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (_activeTab == "demand")
+        {
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending Approval</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@DemandPendingParents</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Approved</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@DemandApprovedParents</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Rejected</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@DemandRejectedParents</p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Draft</p>
+                    <p class="text-2xl font-semibold text-slate-900 mt-1">@DemandDraftParents</p>
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Plan ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Quantity</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Planner</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Submitted Date</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job ID</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var p in _plans)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 font-mono text-slate-700">@p.PlanId</td>
+                                <td class="px-4 py-3 text-slate-700">@p.ProductCode — @p.ProductName</td>
+                                <td class="whitespace-nowrap px-4 py-3">@p.Qty.ToString("N0") @p.Unit</td>
+                                <td class="whitespace-nowrap px-4 py-3 text-slate-700">@p.Planner</td>
+                                <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetPriorityClass(p.Priority)">@p.Priority</span></td>
+                                <td class="whitespace-nowrap px-4 py-3 text-slate-600">@p.SubmittedDate</td>
+                                <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStatusClass(p.Status)">@p.Status</span></td>
+                                <td class="whitespace-nowrap px-4 py-3 font-mono text-slate-600">@(p.JobId ?? "—")</td>
+                                <td class="px-4 py-3">
+                                    <div class="flex flex-wrap gap-1">
+                                        <button type="button" @onclick="() => OpenPlanDetail(p)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 w-8 p-0 hover:bg-slate-50" title="View">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-600"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                        </button>
+                                        @if (string.Equals(p.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <button type="button" @onclick="() => ApprovePlan(p.PlanId)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-2 hover:bg-green-700">✓</button>
+                                            <button type="button" @onclick="() => OpenRejectModal(p)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-red-600 text-white h-8 px-2 hover:bg-red-700">✗</button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else if (_activeTab == "material")
+        {
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-6 py-4">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <svg class="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                        Raw Material Control
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <div class="flex flex-wrap gap-3">
+                        <button type="button" @onclick="() => { _showRequestModal = true; ResetRequestForm(); StateHasChanged(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">New Material Request</button>
+                        <button type="button" @onclick="() => { _showTransferModal = true; ResetTransferForm(); StateHasChanged(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-purple-600 text-purple-600 h-9 px-4 hover:bg-purple-50">Job-to-Job Transfer</button>
+                        <button type="button" @onclick="() => { _showReturnModal = true; ResetReturnForm(); StateHasChanged(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-orange-600 text-orange-600 h-9 px-4 hover:bg-orange-50">Return Leftover</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-900">Raw Material Requests</h2>
+                    <span class="text-xs font-medium text-slate-500">@_materialRequests.Count requests</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ref No</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Product</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Material + Color</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Required Qty</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Reserved Qty</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Issue Qty</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _materialRequests)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 font-mono">@r.RefNo</td>
+                                <td class="px-4 py-3 font-medium">@r.JobId</td>
+                                <td class="px-4 py-3 max-w-[200px] truncate" title="@r.Product">@r.Product</td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium">@r.MaterialCode</div>
+                                    <div class="text-slate-600">@r.MaterialName — @r.Color</div>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3">@r.RequiredQty @r.Unit</td>
+                                <td class="whitespace-nowrap px-4 py-3">@r.ReservedQty @r.Unit</td>
+                                <td class="whitespace-nowrap px-4 py-3">
+                                    @if (string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <input type="number" step="0.1" class="w-20 rounded-md border border-blue-200 px-2 py-1 text-center text-sm"
+                                               value="@GetIssueQtyEdit(r.Id, r.IssueQty)"
+                                               @onchange="e => SetIssueQtyEdit(r.Id, ParseDecimal(e.Value))" />
+                                    }
+                                    else
+                                    {
+                                        <span class="font-medium text-blue-600">@r.IssuedQty @r.Unit</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetMaterialRequestStatusClass(r.Status)">@r.Status</span></td>
+                                <td class="px-4 py-3">
+                                    @if (string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <button type="button" @onclick="() => SubmitMaterialRequest(r.Id)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-blue-600 text-white h-8 px-3 hover:bg-blue-700">Submit Request</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-900">Job-to-Job Transfer</h2>
+                    <span class="text-xs font-medium text-slate-500">@_transfers.Count requests</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ref No</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">From Job (Machine)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">To Job (Machine)</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Material + Color</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Qty</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Reason</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var t in _transfers)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 font-mono">@t.RefNo</td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium">@t.FromJobId</div>
+                                    <div class="text-slate-600">(@t.FromMachine)</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium">@t.ToJobId</div>
+                                    <div class="text-slate-600">(@t.ToMachine)</div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium">@t.MaterialCode</div>
+                                    <div class="text-slate-600">@t.MaterialName — @t.Color</div>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 font-medium text-purple-600">@t.TransferQty @t.Unit</td>
+                                <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium border border-slate-200">@t.Reason</span></td>
+                                <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetTransferStatusClass(t.Status)">@t.Status</span></td>
+                                <td class="px-4 py-3">
+                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-2 hover:bg-slate-50">View</button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-900">Return Leftover</h2>
+                    <span class="text-xs font-medium text-slate-500">@_returns.Count requests</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50">
+                        <tr>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Ref No</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job ID</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Material + Color</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Issued Qty</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Returned Qty</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Reason</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+                        @foreach (var r in _returns)
+                        {
+                            <tr class="transition-colors hover:bg-slate-50">
+                                <td class="whitespace-nowrap px-4 py-3 font-mono">@r.RefNo</td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-blue-600">@r.JobId</div>
+                                    <div class="text-slate-600 max-w-[150px] truncate" title="@r.Product">@r.Product</div>
+                                </td>
+                                <td class="px-4 py-3 font-medium">@r.Machine</td>
+                                <td class="px-4 py-3">
+                                    <div class="font-medium">@r.MaterialCode</div>
+                                    <div class="text-slate-600">@r.MaterialName — @r.Color</div>
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3">@r.IssuedQty @r.Unit</td>
+                                <td class="whitespace-nowrap px-4 py-3">
+                                    @if (string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <input type="number" step="0.1" class="w-20 rounded-md border border-orange-200 px-2 py-1 text-center text-sm"
+                                               value="@GetReturnQtyEdit(r.Id, r.ReturnedQty)"
+                                               @onchange="e => SetReturnQtyEdit(r.Id, ParseDecimal(e.Value))" />
+                                    }
+                                    else
+                                    {
+                                        <span class="font-medium text-orange-600">@r.ReturnedQty @r.Unit</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-slate-700">@r.Reason</td>
+                                <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetReturnStatusClass(r.Status)">@r.Status</span></td>
+                                <td class="px-4 py-3">
+                                    @if (string.Equals(r.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <button type="button" @onclick="() => SubmitReturnRequest(r.Id)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-orange-600 text-orange-600 h-8 px-2 hover:bg-orange-50">Request Return</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (_showPlanDetailModal && _selectedPlan is not null)
+{
+    var sp = _selectedPlan;
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" @onclick="ClosePlanDetail">
+        <div class="max-w-4xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg my-8" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Plan @sp.PlanId</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-6">
+                <div><p class="text-xs text-slate-500">Plan ID</p><p class="font-medium">@sp.PlanId</p></div>
+                <div><p class="text-xs text-slate-500">Product</p><p class="font-medium">@sp.ProductCode — @sp.ProductName</p></div>
+                <div><p class="text-xs text-slate-500">Quantity</p><p class="font-medium">@sp.Qty.ToString("N0") @sp.Unit</p></div>
+                <div><p class="text-xs text-slate-500">Planner</p><p class="font-medium">@sp.Planner</p></div>
+                <div><p class="text-xs text-slate-500">Date</p><p class="font-medium">@sp.SubmittedDate</p></div>
+                <div><p class="text-xs text-slate-500">Priority</p><p><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetPriorityClass(sp.Priority)">@sp.Priority</span></p></div>
+                <div><p class="text-xs text-slate-500">Status</p><p><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStatusClass(sp.Status)">@sp.Status</span></p></div>
+                <div><p class="text-xs text-slate-500">Type</p><p class="font-medium">@sp.PlanType</p></div>
+            </div>
+            <div class="overflow-hidden rounded-lg border border-slate-200 mb-6">
+                <table class="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">Material Code</th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">Name</th>
+                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500">Required Qty</th>
+                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500">Available Stock</th>
+                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">Status</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                    @foreach (var m in sp.RawMaterials)
+                    {
+                        var ok = m.AvailableStock >= m.RequiredQty;
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-2 font-mono text-blue-600">@m.MaterialCode</td>
+                            <td class="px-4 py-2">@m.MaterialName</td>
+                            <td class="px-4 py-2 text-right font-mono">@m.RequiredQty.ToString("N2") @m.Unit</td>
+                            <td class="px-4 py-2 text-right font-mono">@m.AvailableStock.ToString("N2")</td>
+                            <td class="px-4 py-2">@(ok ? "Sufficient" : "Shortage")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            @if (string.Equals(sp.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="flex justify-end gap-2">
+                    <button type="button" @onclick="ClosePlanDetail" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Close</button>
+                    <button type="button" @onclick="() => { ApprovePlan(sp.PlanId); ClosePlanDetail(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-green-600 text-white h-9 px-4 hover:bg-green-700">Approve</button>
+                    <button type="button" @onclick="() => { ClosePlanDetail(); OpenRejectModal(sp); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Reject</button>
+                </div>
+            }
+            else
+            {
+                <div class="flex justify-end">
+                    <button type="button" @onclick="ClosePlanDetail" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Close</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (_showRejectModal && _selectedPlan is not null)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseRejectModal">
+        <div class="max-w-md w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-2">Reject plan @_selectedPlan.PlanId</h2>
+            @if (!string.IsNullOrEmpty(_rejectModalError))
+            {
+                <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 mb-3">@_rejectModalError</div>
+            }
+            <label class="block text-sm font-medium text-slate-900 mb-1">Reason</label>
+            <textarea @bind="_rejectReason" rows="4" class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm mb-4"></textarea>
+            <div class="flex justify-end gap-2">
+                <button type="button" @onclick="CloseRejectModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="RejectPlan" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Confirm Reject</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showRequestModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" @onclick="() => { _showRequestModal = false; StateHasChanged(); }">
+        <div class="max-w-2xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg my-8" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">New Material Request</h2>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Job *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_reqJobId">
+                        <option value="">Select job</option>
+                        @foreach (var j in _activeJobsWithMaterials)
+                        {
+                            <option value="@j.JobId">@j.JobId — @j.Product</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Material *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_reqMaterialCode" disabled="@string.IsNullOrEmpty(_reqJobId)">
+                        <option value="">Select material</option>
+                        @foreach (var mat in GetReservedForJob(_reqJobId))
+                        {
+                            <option value="@mat.MaterialCode">@mat.MaterialCode — @mat.MaterialName (@mat.Color)</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Issue Qty *</label>
+                    <input type="number" step="0.1" class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_reqIssueQty" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Reason</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_reqReason">
+                        @foreach (var o in TransferReasonOptions)
+                        {
+                            <option value="@o">@o</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" @onclick="() => { _showRequestModal = false; StateHasChanged(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="AddNewMaterialRequest" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white h-9 px-4 hover:bg-blue-700">Submit</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showTransferModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" @onclick="() => { _showTransferModal = false; StateHasChanged(); }">
+        <div class="max-w-2xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg my-8" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Job-to-Job Transfer</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">From Job *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_trFromJobId">
+                        <option value="">Select</option>
+                        @foreach (var j in _activeJobsWithMaterials.Where(x => x.ReservedMaterials.Count > 0))
+                        {
+                            <option value="@j.JobId">@j.JobId</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">To Job *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_trToJobId" disabled="@string.IsNullOrEmpty(_trFromJobId)">
+                        <option value="">Select</option>
+                        @foreach (var j in _activeJobsWithMaterials.Where(x => x.JobId != _trFromJobId))
+                        {
+                            <option value="@j.JobId">@j.JobId</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-slate-900 mb-1">Material *</label>
+                <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_trMaterialCode" disabled="@string.IsNullOrEmpty(_trFromJobId)">
+                    <option value="">Select material</option>
+                    @foreach (var mat in GetReservedForJob(_trFromJobId))
+                    {
+                        <option value="@mat.MaterialCode">@mat.MaterialCode — @mat.MaterialName</option>
+                    }
+                </select>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Qty *</label>
+                    <input type="number" step="0.1" class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_trQty" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Reason *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_trReason">
+                        @foreach (var o in TransferReasonOptions)
+                        {
+                            <option value="@o">@o</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" @onclick="() => { _showTransferModal = false; StateHasChanged(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="AddJobTransfer" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-purple-600 text-white h-9 px-4 hover:bg-purple-700">Submit</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showReturnModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto" @onclick="() => { _showReturnModal = false; StateHasChanged(); }">
+        <div class="max-w-2xl w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg my-8" @onclick:stopPropagation="true">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4">Return Leftover</h2>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Job *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_retJobId">
+                        <option value="">Select job</option>
+                        @foreach (var j in _activeJobsWithMaterials)
+                        {
+                            <option value="@j.JobId">@j.JobId</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Material *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_retMaterialCode" disabled="@string.IsNullOrEmpty(_retJobId)">
+                        <option value="">Select material</option>
+                        @foreach (var mat in GetReservedForJob(_retJobId))
+                        {
+                            <option value="@mat.MaterialCode">@mat.MaterialCode — @mat.MaterialName</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Returned Qty *</label>
+                    <input type="number" step="0.1" class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_retQty" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Reason *</label>
+                    <select class="w-full h-10 rounded-md border border-slate-200 px-3" @bind="_retReason">
+                        @foreach (var o in ReturnReasonOptions)
+                        {
+                            <option value="@o">@o</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" @onclick="() => { _showReturnModal = false; StateHasChanged(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
+                <button type="button" @onclick="AddReturnRequest" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-orange-600 text-white h-9 px-4 hover:bg-orange-700">Submit</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string _activeTab = "jobs";
+    private bool _initialized;
+    private string? _planSuccessMessage;
+    private string _successBannerCss = "rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800";
+    private CancellationTokenSource? _successBannerCts;
+    private string? _rejectModalError;
+
+    private List<JobMonitoringRow> _jobMonitoring = new();
+    private List<PlanRow> _plans = new();
+    private PlanRow? _selectedPlan;
+    private bool _showPlanDetailModal;
+    private bool _showRejectModal;
+    private string _rejectReason = string.Empty;
+
+    private List<MaterialRequestRow> _materialRequests = new();
+    private readonly Dictionary<string, decimal> _issueQtyEdits = new();
+    private List<JobTransferRow> _transfers = new();
+    private List<ReturnLeftoverRow> _returns = new();
+    private readonly Dictionary<string, decimal> _returnQtyEdits = new();
+
+    private List<ActiveJobMaterialsRow> _activeJobsWithMaterials = new();
+
+    private bool _showRequestModal;
+    private bool _showTransferModal;
+    private bool _showReturnModal;
+
+    private string _reqJobId = string.Empty;
+    private string _reqMaterialCode = string.Empty;
+    private decimal _reqIssueQty;
+    private string _reqReason = "Over Reserved";
+
+    private string _trFromJobId = string.Empty;
+    private string _trToJobId = string.Empty;
+    private string _trMaterialCode = string.Empty;
+    private decimal _trQty;
+    private string _trReason = "Over Reserved";
+
+    private string _retJobId = string.Empty;
+    private string _retMaterialCode = string.Empty;
+    private decimal _retQty;
+    private string _retReason = "End of Job";
+
+    private int _nextSeq = 100;
+    private int _jobSeq = 1;
+
+    private static readonly string[] TransferReasonOptions =
+    {
+        "Over Reserved", "Urgent Order", "Machine Breakdown", "Priority Change", "Resource Reallocation"
+    };
+
+    private static readonly string[] ReturnReasonOptions =
+    {
+        "End of Job", "Over Issued", "Material Change", "Machine Issue", "Quality Issue", "Production Stop"
+    };
+
+    private int RunningJobCount => _jobMonitoring.Count(j => string.Equals(j.Status, "Running", StringComparison.OrdinalIgnoreCase));
+    private int CompletedJobCount => _jobMonitoring.Count(j => string.Equals(j.Status, "Completed", StringComparison.OrdinalIgnoreCase));
+    private int PausedJobCount => _jobMonitoring.Count(j => string.Equals(j.Status, "Paused", StringComparison.OrdinalIgnoreCase));
+    private int SetupJobCount => _jobMonitoring.Count(j => string.Equals(j.Status, "Setup", StringComparison.OrdinalIgnoreCase));
+    private int TotalAlerts => _jobMonitoring.Sum(j => j.AlertCount);
+    private string AvgOee => _jobMonitoring.Count == 0 ? "0.0" : (_jobMonitoring.Sum(j => j.OeeScore) / (decimal)_jobMonitoring.Count).ToString("F1");
+
+    private int DemandPendingParents => _plans.Count(p => IsParent(p) && string.Equals(p.Status, "Pending", StringComparison.OrdinalIgnoreCase));
+    private int DemandApprovedParents => _plans.Count(p => IsParent(p) && string.Equals(p.Status, "Approved", StringComparison.OrdinalIgnoreCase));
+    private int DemandRejectedParents => _plans.Count(p => IsParent(p) && string.Equals(p.Status, "Rejected", StringComparison.OrdinalIgnoreCase));
+    private int DemandDraftParents => _plans.Count(p => IsParent(p) && string.Equals(p.Status, "Draft", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Initializes mock lists for the production control workspace.</summary>
+    public ProductionControl()
+    {
+        SeedMockData();
+    }
+
+    private static bool IsParent(PlanRow p) =>
+        string.Equals(p.PlanType, "Parent", StringComparison.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+
+        _initialized = true;
+        await Task.CompletedTask;
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _successBannerCts?.Cancel();
+        _successBannerCts?.Dispose();
+    }
+
+    private void SetTab(string tab)
+    {
+        _activeTab = tab;
+        StateHasChanged();
+    }
+
+    private static string TabClass(bool active) =>
+        active
+            ? "border-b-2 border-slate-900 text-slate-900 font-medium"
+            : "border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+
+    private static string GetJobStatusClass(string status) => status switch
+    {
+        "Running" => "bg-green-100 text-green-800",
+        "Completed" => "bg-blue-100 text-blue-800",
+        "Paused" => "bg-yellow-100 text-yellow-800",
+        "Setup" => "bg-purple-100 text-purple-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string GetPriorityClass(string priority) => priority switch
+    {
+        "High" => "bg-red-100 text-red-800",
+        "Medium" => "bg-yellow-100 text-yellow-800",
+        "Low" => "bg-green-100 text-green-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string GetPriorityBadgeClass(string priority) =>
+        priority switch
+        {
+            "High" => "border-red-200 text-red-700 bg-red-50",
+            "Medium" => "border-yellow-200 text-yellow-700 bg-yellow-50",
+            _ => "border-green-200 text-green-700 bg-green-50",
+        };
+
+    private static string GetStatusClass(string status) => status switch
+    {
+        "Pending" => "bg-yellow-100 text-yellow-800",
+        "Approved" => "bg-green-100 text-green-800",
+        "Rejected" => "bg-red-100 text-red-800",
+        "Draft" => "bg-slate-100 text-slate-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string GetMaterialRequestStatusClass(string status) => status switch
+    {
+        "Issued" => "bg-green-100 text-green-800",
+        "Completed" => "bg-slate-100 text-slate-600",
+        "Pending" => "bg-yellow-100 text-yellow-800",
+        "Rejected" => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string GetTransferStatusClass(string status) =>
+        string.Equals(status, "Acknowledged", StringComparison.OrdinalIgnoreCase)
+            ? "bg-green-100 text-green-800"
+            : status.Contains("Pending", StringComparison.OrdinalIgnoreCase)
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-red-100 text-red-800";
+
+    private static string GetReturnStatusClass(string status) => status switch
+    {
+        "Approved" => "bg-green-100 text-green-800",
+        "Pending" => "bg-yellow-100 text-yellow-800",
+        "Rejected" => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string FormatProgress(int produced, int planned)
+    {
+        if (planned <= 0)
+            return $"{produced} / {planned} (0%)";
+        var pct = (int)Math.Round(produced * 100m / planned);
+        return $"{produced} / {planned} ({pct}%)";
+    }
+
+    private void OpenPlanDetail(PlanRow p)
+    {
+        _selectedPlan = p;
+        _showPlanDetailModal = true;
+        StateHasChanged();
+    }
+
+    private void ClosePlanDetail()
+    {
+        _showPlanDetailModal = false;
+        StateHasChanged();
+    }
+
+    private void OpenRejectModal(PlanRow p)
+    {
+        _selectedPlan = p;
+        _rejectReason = string.Empty;
+        _rejectModalError = null;
+        _showRejectModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseRejectModal()
+    {
+        _showRejectModal = false;
+        StateHasChanged();
+    }
+
+    private async void ApprovePlan(string planId)
+    {
+        var jobNo = $"JOB-{DateTime.UtcNow:yyyyMMdd}-{_jobSeq++:000}";
+        for (var i = 0; i < _plans.Count; i++)
+        {
+            if (_plans[i].PlanId != planId)
+                continue;
+
+            var p = _plans[i];
+            _plans[i] = p with { Status = "Approved", JobId = jobNo };
+            if (IsParent(p) && p.Children.Count > 0)
+            {
+                foreach (var childId in p.Children)
+                {
+                    var ci = _plans.FindIndex(x => x.PlanId == childId);
+                    if (ci >= 0)
+                    {
+                        var c = _plans[ci];
+                        var suffix = childId.Split('-').LastOrDefault() ?? "C";
+                        _plans[ci] = c with { Status = "Approved", JobId = $"{jobNo}-{suffix}" };
+                    }
+                }
+            }
+
+            break;
+        }
+
+        StateHasChanged();
+        await ShowSuccessBannerAsync($"Plan {planId} approved. Job {jobNo} created.");
+    }
+
+    private async void RejectPlan()
+    {
+        if (string.IsNullOrWhiteSpace(_rejectReason))
+        {
+            _rejectModalError = "Please enter a rejection reason.";
+            StateHasChanged();
+            return;
+        }
+
+        if (_selectedPlan is null)
+            return;
+
+        var id = _selectedPlan.PlanId;
+        for (var i = 0; i < _plans.Count; i++)
+        {
+            if (_plans[i].PlanId == id)
+            {
+                _plans[i] = _plans[i] with { Status = "Rejected", RejectionReason = _rejectReason.Trim() };
+                break;
+            }
+        }
+
+        _showRejectModal = false;
+        _rejectReason = string.Empty;
+        _rejectModalError = null;
+        StateHasChanged();
+        await ShowSuccessBannerAsync($"Plan {id} rejected.", false);
+    }
+
+    /// <summary>Shows a temporary banner message (auto-dismiss after 3 seconds).</summary>
+    /// <param name="message">Banner text.</param>
+    /// <param name="approveStyle">When true, use green success styling; otherwise neutral slate.</param>
+    private async Task ShowSuccessBannerAsync(string message, bool approveStyle = true)
+    {
+        _successBannerCts?.Cancel();
+        _successBannerCts?.Dispose();
+        _successBannerCts = new CancellationTokenSource();
+        var token = _successBannerCts.Token;
+
+        _successBannerCss = approveStyle
+            ? "rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800"
+            : "rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-800";
+        _planSuccessMessage = message;
+        StateHasChanged();
+
+        try
+        {
+            await Task.Delay(3000, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (!token.IsCancellationRequested)
+        {
+            _planSuccessMessage = null;
+            StateHasChanged();
+        }
+    }
+
+    private decimal GetIssueQtyEdit(string id, decimal fallback) =>
+        _issueQtyEdits.TryGetValue(id, out var v) ? v : fallback;
+
+    private void SetIssueQtyEdit(string id, decimal v)
+    {
+        _issueQtyEdits[id] = v;
+        StateHasChanged();
+    }
+
+    private decimal GetReturnQtyEdit(string id, decimal fallback) =>
+        _returnQtyEdits.TryGetValue(id, out var v) ? v : fallback;
+
+    private void SetReturnQtyEdit(string id, decimal v)
+    {
+        _returnQtyEdits[id] = v;
+        StateHasChanged();
+    }
+
+    private static decimal ParseDecimal(object? v)
+    {
+        if (v is null)
+            return 0;
+        return decimal.TryParse(v.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d)
+            ? d
+            : 0;
+    }
+
+    private void SubmitMaterialRequest(string requestId)
+    {
+        var idx = _materialRequests.FindIndex(r => r.Id == requestId);
+        if (idx < 0)
+            return;
+
+        var r = _materialRequests[idx];
+        var qty = GetIssueQtyEdit(r.Id, r.IssueQty);
+        _materialRequests[idx] = r with { Status = "Issued", IssueQty = qty, IssuedQty = qty };
+        StateHasChanged();
+    }
+
+    private void SubmitReturnRequest(string requestId)
+    {
+        var idx = _returns.FindIndex(r => r.Id == requestId);
+        if (idx < 0)
+            return;
+
+        var r = _returns[idx];
+        var qty = GetReturnQtyEdit(r.Id, r.ReturnedQty);
+        if (qty <= 0)
+            return;
+
+        _returns[idx] = r with { ReturnedQty = qty, Status = "Approved" };
+        StateHasChanged();
+    }
+
+    /// <summary>Returns reserved materials for the selected job (mock).</summary>
+    private IReadOnlyList<ReservedMaterialRow> GetReservedForJob(string jobId)
+    {
+        var j = _activeJobsWithMaterials.FirstOrDefault(x => x.JobId == jobId);
+        return j?.ReservedMaterials ?? new List<ReservedMaterialRow>();
+    }
+
+    private void ResetRequestForm()
+    {
+        _reqJobId = string.Empty;
+        _reqMaterialCode = string.Empty;
+        _reqIssueQty = 0;
+        _reqReason = TransferReasonOptions[0];
+    }
+
+    private void ResetTransferForm()
+    {
+        _trFromJobId = string.Empty;
+        _trToJobId = string.Empty;
+        _trMaterialCode = string.Empty;
+        _trQty = 0;
+        _trReason = TransferReasonOptions[0];
+    }
+
+    private void ResetReturnForm()
+    {
+        _retJobId = string.Empty;
+        _retMaterialCode = string.Empty;
+        _retQty = 0;
+        _retReason = ReturnReasonOptions[0];
+    }
+
+    private void AddNewMaterialRequest()
+    {
+        if (string.IsNullOrEmpty(_reqJobId) || string.IsNullOrEmpty(_reqMaterialCode) || _reqIssueQty <= 0)
+            return;
+
+        var job = _activeJobsWithMaterials.FirstOrDefault(j => j.JobId == _reqJobId);
+        var mat = GetReservedForJob(_reqJobId).FirstOrDefault(m => m.MaterialCode == _reqMaterialCode);
+        if (job is null || mat is null || _reqIssueQty > mat.Qty)
+            return;
+
+        var refNo = $"RMR-{DateTime.UtcNow:yyyyMMdd}-{_nextSeq++:000}";
+        _materialRequests.Add(new MaterialRequestRow(
+            $"RMR-NEW-{_nextSeq}",
+            refNo,
+            job.JobId,
+            job.Machine,
+            job.Product,
+            mat.MaterialCode,
+            mat.MaterialName,
+            mat.Color,
+            mat.Qty,
+            mat.Qty,
+            _reqIssueQty,
+            0,
+            mat.Unit,
+            "Pending"));
+
+        _issueQtyEdits[_materialRequests[^1].Id] = _reqIssueQty;
+        _showRequestModal = false;
+        ResetRequestForm();
+        StateHasChanged();
+    }
+
+    private void AddJobTransfer()
+    {
+        if (string.IsNullOrEmpty(_trFromJobId) || string.IsNullOrEmpty(_trToJobId) || string.IsNullOrEmpty(_trMaterialCode) || _trQty <= 0 || string.IsNullOrEmpty(_trReason))
+            return;
+
+        var from = _activeJobsWithMaterials.FirstOrDefault(j => j.JobId == _trFromJobId);
+        var to = _activeJobsWithMaterials.FirstOrDefault(j => j.JobId == _trToJobId);
+        var mat = GetReservedForJob(_trFromJobId).FirstOrDefault(m => m.MaterialCode == _trMaterialCode);
+        if (from is null || to is null || mat is null || _trQty > mat.Qty)
+            return;
+
+        var refNo = $"JT-{DateTime.UtcNow:yyyyMMdd}-{_nextSeq++:000}";
+        _transfers.Add(new JobTransferRow(
+            $"JT-NEW-{_nextSeq}",
+            refNo,
+            from.JobId,
+            from.Machine,
+            to.JobId,
+            to.Machine,
+            mat.MaterialCode,
+            mat.MaterialName,
+            mat.Color,
+            _trQty,
+            mat.Unit,
+            _trReason,
+            "Pending Acknowledgement (Warehouse)"));
+
+        _showTransferModal = false;
+        ResetTransferForm();
+        StateHasChanged();
+    }
+
+    private void AddReturnRequest()
+    {
+        if (string.IsNullOrEmpty(_retJobId) || string.IsNullOrEmpty(_retMaterialCode) || _retQty <= 0 || string.IsNullOrEmpty(_retReason))
+            return;
+
+        var job = _activeJobsWithMaterials.FirstOrDefault(j => j.JobId == _retJobId);
+        var mat = GetReservedForJob(_retJobId).FirstOrDefault(m => m.MaterialCode == _retMaterialCode);
+        if (job is null || mat is null || _retQty > mat.Qty)
+            return;
+
+        var refNo = $"RL-{DateTime.UtcNow:yyyyMMdd}-{_nextSeq++:000}";
+        var row = new ReturnLeftoverRow(
+            $"RL-NEW-{_nextSeq}",
+            refNo,
+            job.JobId,
+            job.Machine,
+            job.Product,
+            mat.MaterialCode,
+            mat.MaterialName,
+            mat.Color,
+            mat.Qty,
+            _retQty,
+            mat.Unit,
+            _retReason,
+            "Pending");
+        _returns.Add(row);
+        _returnQtyEdits[row.Id] = _retQty;
+
+        _showReturnModal = false;
+        ResetReturnForm();
+        StateHasChanged();
+    }
+
+    /// <summary>Seeds in-memory mock rows aligned with the Figma reference data (English only).</summary>
+    private void SeedMockData()
+    {
+        _jobMonitoring = new List<JobMonitoringRow>
+        {
+            new("JOB20250908-001", "PL20250903-001", "2011 - Plastic Bottle 500ml", "PB500", 2000, 1580, 35, 1545, "INJ-M001", "Operator A (OP001)", "Day Shift (08:00-16:00)", "Running", "High", 79, 95.7m, 91.2m, 22, 1,
+                new List<JobMaterialRow>
+                {
+                    new("PET001", "PET Resin Clear", 80, 63.2m, 16.8m, "kg"),
+                    new("ADD001", "Additive Blue", 2, 1.58m, 0.42m, "kg"),
+                },
+                new List<JobEventRow>
+                {
+                    new("14:45", "Quality check passed", "info"),
+                    new("14:30", "Cycle time spike detected", "warning"),
+                    new("14:15", "Material top-up completed", "success"),
+                }),
+            new("JOB20250908-002", "PL20250903-002", "2012 - Plastic Container 1L", "PC1000", 1200, 1200, 18, 1182, "INJ-M002", "Operator B (OP002)", "Day Shift (08:00-16:00)", "Completed", "Medium", 100, 98.5m, 95.8m, 8, 0,
+                new List<JobMaterialRow> { new("PP002", "PP Blue Compound", 60, 60, 0, "kg") },
+                new List<JobEventRow>
+                {
+                    new("14:45", "Job completed successfully", "success"),
+                    new("14:30", "Final quality inspection passed", "info"),
+                }),
+            new("JOB20250908-003", "PL20250902-003", "2013 - Plastic Cup 250ml", "PC250", 3000, 950, 28, 922, "INJ-M003", "Operator C (OP003)", "Day Shift (08:00-16:00)", "Paused", "Low", 32, 88.2m, 82.5m, 45, 3,
+                new List<JobMaterialRow>
+                {
+                    new("PS001", "PS Clear", 45, 14.25m, 30.75m, "kg"),
+                    new("ADD002", "UV Stabilizer", 1.5m, 0.48m, 1.02m, "kg"),
+                },
+                new List<JobEventRow>
+                {
+                    new("13:15", "Job paused - Mold maintenance required", "error"),
+                    new("13:00", "High defect rate detected", "warning"),
+                }),
+            new("JOB20250908-004", "PL20250902-004", "2014 - Plastic Lid 100ml", "PL100", 5000, 3200, 45, 3155, "INJ-M004", "Operator D (OP004)", "Day Shift (08:00-16:00)", "Running", "High", 64, 93.8m, 89.4m, 18, 0,
+                new List<JobMaterialRow> { new("PP003", "PP White", 25, 16, 9, "kg") },
+                new List<JobEventRow>
+                {
+                    new("14:50", "Production rhythm stable", "info"),
+                    new("14:30", "Operator break completed", "info"),
+                }),
+            new("JOB20250908-005", "PL20250903-005", "2015 - Plastic Tray Large", "PT-L", 800, 0, 0, 0, "INJ-M005", "Operator E (OP005)", "Day Shift (08:00-16:00)", "Setup", "Medium", 0, 0, 0, 0, 0,
+                new List<JobMaterialRow>
+                {
+                    new("ABS001", "ABS Black", 120, 0, 120, "kg"),
+                    new("ADD003", "Flame Retardant", 3, 0, 3, "kg"),
+                },
+                new List<JobEventRow>
+                {
+                    new("14:55", "Mold installation in progress", "info"),
+                    new("14:45", "Material preparation started", "info"),
+                }),
+        };
+
+        _plans = new List<PlanRow>
+        {
+            new("PL20250903-001", "Parent", "2011", "Plastic Bottle 500ml", 1000, "pcs", "Ko Thant", "2025-09-03", "High", "Pending", null, null,
+                new List<string> { "PL20250903-001-C1", "PL20250903-001-C2" }, false,
+                new List<PlanMaterialRow>
+                {
+                    new("PET001", "PET Resin Clear", 25, "kg", 150, 0),
+                    new("ADD001", "Additive Blue", 1, "kg", 3, 0),
+                    new("CAP001", "Bottle Cap PP White", 1000, "pcs", 6000, 0),
+                    new("LAB001", "Product Label", 1000, "pcs", 4800, 0),
+                }),
+            new("PL20250903-001-C1", "Child", "2011", "Plastic Bottle 500ml - Batch 1", 500, "pcs", "Ko Thant", "2025-09-03", "High", "Pending", null, "PL20250903-001", new List<string>(), false,
+                new List<PlanMaterialRow>
+                {
+                    new("PET001", "PET Resin Clear", 12.5m, "kg", 150, 0),
+                    new("ADD001", "Additive Blue", 0.5m, "kg", 3, 0),
+                }),
+            new("PL20250903-001-C2", "Child", "2011", "Plastic Bottle 500ml - Batch 2", 500, "pcs", "Ko Thant", "2025-09-03", "High", "Pending", null, "PL20250903-001", new List<string>(), false,
+                new List<PlanMaterialRow>
+                {
+                    new("PET001", "PET Resin Clear", 12.5m, "kg", 150, 0),
+                    new("ADD001", "Additive Blue", 0.5m, "kg", 3, 0),
+                }),
+            new("PL20250903-002", "Parent", "2012", "Plastic Container 1L", 500, "pcs", "Ma Than Dar", "2025-09-03", "Medium", "Draft", null, null, new List<string>(), false,
+                new List<PlanMaterialRow>
+                {
+                    new("PP002", "PP White Compound", 20, "kg", 85, 0),
+                    new("ADD002", "UV Stabilizer", 1, "kg", 2, 0),
+                    new("LID002", "Container Lid HDPE", 500, "pcs", 2500, 0),
+                }),
+            new("PL20250902-001", "Parent", "2013", "Plastic Cup 250ml", 2000, "pcs", "Ko Aung", "2025-09-02", "Low", "Approved", "JOB20250903-001", null,
+                new List<string> { "PL20250902-001-C1" }, false,
+                new List<PlanMaterialRow>
+                {
+                    new("PS001", "PS Clear", 15, "kg", 65, 0),
+                    new("ADD003", "Anti-static Agent", 0.5m, "kg", 5, 0),
+                }),
+            new("PL20250902-001-C1", "Child", "2013", "Plastic Cup 250ml - Single Batch", 2000, "pcs", "Ko Aung", "2025-09-02", "Low", "Approved", "JOB20250903-001", "PL20250902-001", new List<string>(), false,
+                new List<PlanMaterialRow>
+                {
+                    new("PS001", "PS Clear", 15, "kg", 65, 0),
+                    new("ADD003", "Anti-static Agent", 0.5m, "kg", 5, 0),
+                }),
+            new("PL20250902-002", "Parent", "2011", "Plastic Bottle 500ml", 1500, "pcs", "Ma Myint Myint", "2025-09-02", "High", "Rejected", null, null, new List<string>(), false,
+                new List<PlanMaterialRow>
+                {
+                    new("PET001", "PET Resin Clear", 37.5m, "kg", 150, 0),
+                    new("ADD001", "Additive Blue", 1.5m, "kg", 3, 0),
+                }, "Insufficient raw material inventory"),
+        };
+
+        _activeJobsWithMaterials = new List<ActiveJobMaterialsRow>
+        {
+            new("JOB20250903-001", "2013 - Plastic Cup 250ml", "INJ-M001", new List<ReservedMaterialRow>
+            {
+                new("PET001", "PET Resin Clear", "Clear", 40, "kg"),
+                new("PP002", "PP Blue Compound", "Blue", 15.5m, "kg"),
+            }),
+            new("JOB20250903-002", "2011 - Plastic Bottle 500ml", "INJ-M002", new List<ReservedMaterialRow>
+            {
+                new("PP002", "PP Blue Compound", "Blue", 25.5m, "kg"),
+            }),
+            new("JOB20250903-004", "2011 - Plastic Bottle 500ml", "INJ-M004", new List<ReservedMaterialRow>
+            {
+                new("PET001", "PET Resin Clear", "Clear", 32, "kg"),
+            }),
+            new("JOB20250903-005", "2013 - Plastic Cup 250ml", "INJ-M005", new List<ReservedMaterialRow>()),
+        };
+
+        _materialRequests = new List<MaterialRequestRow>
+        {
+            new("RMR-REQ-001", "RMR-20250908-001", "JOB20250903-001", "INJ-M001", "2013 - Plastic Cup 250ml", "PET001", "PET Resin Clear", "Clear", 40, 40, 40, 40, "kg", "Issued"),
+            new("RMR-REQ-002", "RMR-20250908-002", "JOB20250903-002", "INJ-M002", "2011 - Plastic Bottle 500ml", "PP002", "PP Blue Compound", "Blue", 25.5m, 25.5m, 20, 20, "kg", "Issued"),
+            new("RMR-REQ-003", "RMR-20250908-003", "JOB20250903-004", "INJ-M004", "2011 - Plastic Bottle 500ml", "PET001", "PET Resin Clear", "Clear", 32, 32, 15, 15, "kg", "Completed"),
+            new("RMR-REQ-004", "RMR-20250908-004", "JOB20250903-003", "INJ-M003", "2012 - Plastic Container 1L", "PP002", "PP Blue Compound", "Blue", 18, 18, 18, 18, "kg", "Rejected"),
+            new("RMR-REQ-PEND", "RMR-20250908-099", "JOB20250903-001", "INJ-M001", "2013 - Plastic Cup 250ml", "PP002", "PP Blue Compound", "Blue", 15.5m, 15.5m, 10, 0, "kg", "Pending"),
+        };
+        _issueQtyEdits["RMR-REQ-PEND"] = 10;
+
+        _transfers = new List<JobTransferRow>
+        {
+            new("JT-REQ-001", "JT-20250908-001", "JOB20250903-001", "INJ-M001", "JOB20250903-005", "INJ-M005", "PET001", "PET Resin Clear", "Clear", 15, "kg", "Over Reserved", "Pending Acknowledgement (Warehouse)"),
+            new("JT-REQ-002", "JT-20250908-002", "JOB20250903-002", "INJ-M002", "JOB20250903-004", "INJ-M004", "PP002", "PP Blue Compound", "Blue", 10, "kg", "Urgent Order", "Acknowledged"),
+        };
+
+        _returns = new List<ReturnLeftoverRow>
+        {
+            new("RL-REQ-001", "RL-20250908-001", "JOB20250903-001", "INJ-M001", "2013 - Plastic Cup 250ml", "PET001", "PET Resin Clear", "Clear", 40, 8.5m, "kg", "End of Job", "Pending"),
+            new("RL-REQ-002", "RL-20250908-002", "JOB20250903-002", "INJ-M002", "2011 - Plastic Bottle 500ml", "PP002", "PP Blue Compound", "Blue", 25.5m, 3, "kg", "Over Issued", "Approved"),
+            new("RL-REQ-003", "RL-20250908-003", "JOB20250903-003", "INJ-M003", "2012 - Plastic Container 1L", "PP002", "PP Blue Compound", "Blue", 18, 2.5m, "kg", "Material Change", "Rejected"),
+            new("RL-REQ-004", "RL-20250908-004", "JOB20250903-004", "INJ-M004", "2011 - Plastic Bottle 500ml", "PET001", "PET Resin Clear", "Clear", 32, 0, "kg", "Machine Issue", "Pending"),
+        };
+    }
+
+    /// <summary>Mock raw material line on a monitored job.</summary>
+    private sealed record JobMaterialRow(string Code, string Name, decimal Required, decimal Consumed, decimal Remaining, string Unit);
+
+    /// <summary>Mock timeline event on a monitored job.</summary>
+    private sealed record JobEventRow(string Time, string Message, string Type);
+
+    /// <summary>Mock row for the job monitoring table and detail cards.</summary>
+    private sealed record JobMonitoringRow(
+        string JobId,
+        string PlanId,
+        string Product,
+        string ProductCode,
+        int TargetQty,
+        int ProducedQty,
+        int DefectQty,
+        int GoodQty,
+        string Machine,
+        string Operator,
+        string Shift,
+        string Status,
+        string Priority,
+        int ProgressPercentage,
+        decimal Efficiency,
+        decimal OeeScore,
+        int DowntimeMinutes,
+        int AlertCount,
+        List<JobMaterialRow> RawMaterials,
+        List<JobEventRow> RecentEvents);
+
+    /// <summary>Mock BOM line on a production plan.</summary>
+    private sealed record PlanMaterialRow(string MaterialCode, string MaterialName, decimal RequiredQty, string Unit, decimal AvailableStock, decimal Shortage);
+
+    /// <summary>Mock production plan for demand authorization.</summary>
+    private sealed record PlanRow(
+        string PlanId,
+        string PlanType,
+        string ProductCode,
+        string ProductName,
+        decimal Qty,
+        string Unit,
+        string Planner,
+        string SubmittedDate,
+        string Priority,
+        string Status,
+        string? JobId,
+        string? ParentPlan,
+        List<string> Children,
+        bool HasShortage,
+        List<PlanMaterialRow> RawMaterials,
+        string? RejectionReason = null);
+
+    /// <summary>Mock reserved material on an active job.</summary>
+    private sealed record ReservedMaterialRow(string MaterialCode, string MaterialName, string Color, decimal Qty, string Unit);
+
+    /// <summary>Mock active job with reserved materials for material modals.</summary>
+    private sealed record ActiveJobMaterialsRow(string JobId, string Product, string Machine, List<ReservedMaterialRow> ReservedMaterials);
+
+    /// <summary>Mock raw material issue request row.</summary>
+    private sealed record MaterialRequestRow(
+        string Id,
+        string RefNo,
+        string JobId,
+        string Machine,
+        string Product,
+        string MaterialCode,
+        string MaterialName,
+        string Color,
+        decimal RequiredQty,
+        decimal ReservedQty,
+        decimal IssueQty,
+        decimal IssuedQty,
+        string Unit,
+        string Status);
+
+    /// <summary>Mock job-to-job material transfer request.</summary>
+    private sealed record JobTransferRow(
+        string Id,
+        string RefNo,
+        string FromJobId,
+        string FromMachine,
+        string ToJobId,
+        string ToMachine,
+        string MaterialCode,
+        string MaterialName,
+        string Color,
+        decimal TransferQty,
+        string Unit,
+        string Reason,
+        string Status);
+
+    /// <summary>Mock return-leftover request row.</summary>
+    private sealed record ReturnLeftoverRow(
+        string Id,
+        string RefNo,
+        string JobId,
+        string Machine,
+        string Product,
+        string MaterialCode,
+        string MaterialName,
+        string Color,
+        decimal IssuedQty,
+        decimal ReturnedQty,
+        string Unit,
+        string Reason,
+        string Status);
+}
+
