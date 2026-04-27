@@ -1,0 +1,547 @@
+@page "/production/split-jobs"
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.AspNetCore.Components
+
+<PageTitle>Split Job Management · xMachine</PageTitle>
+
+<div class="space-y-6">
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">@_successMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(_infoMessage))
+    {
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">@_infoMessage</div>
+    }
+
+    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-600"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m18 9-1.5-1.5"/><path d="m5 21 2.5-2.5"/><path d="M12.5 21 9 17.5"/></svg>
+            <h1 class="text-lg font-semibold text-slate-900">Split Job Management</h1>
+        </div>
+        <div class="p-6 flex flex-wrap gap-3">
+            <button type="button" @onclick="() => OpenModal(null)" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0 1.172-2.872L13 11"/><path d="m14 13-1.827 1.827a4 4 0 0 1-5.656 0L4 11"/><path d="M12 22H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2v6a2 2 0 0 1-2 2Z"/></svg>
+                Create Split Request
+            </button>
+            <button type="button" @onclick="ShowComingSoonAsync" class="inline-flex items-center gap-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                Split Analytics
+            </button>
+            <button type="button" @onclick="ShowComingSoonAsync" class="inline-flex items-center gap-2 rounded-lg border border-green-600 bg-white px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                Split Settings
+            </button>
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-6 py-4 flex flex-wrap items-center gap-3 justify-between">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-600"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                <h2 class="text-lg font-semibold text-slate-900">Active Jobs (Available for Splitting)</h2>
+                <span class="rounded-md bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">@_activeJobs.Count jobs</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Job ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Product</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Machine</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Progress</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Remaining Qty</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Operator</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Actions</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var job in _activeJobs)
+                {
+                    var pct = job.TotalQty > 0 ? (int)Math.Round(100.0 * job.CompletedQty / job.TotalQty) : 0;
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3"><span class="inline-flex rounded border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs">@job.JobId</span></td>
+                        <td class="px-4 py-3 max-w-[220px]"><div class="truncate" title="@job.Product">@job.Product</div></td>
+                        <td class="px-4 py-3"><span class="inline-flex rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-800">@job.Machine</span></td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-16 bg-slate-200 rounded-full h-2">
+                                    <div class="bg-green-500 h-2 rounded-full" style="width: @(pct)%"></div>
+                                </div>
+                                <span class="text-xs text-slate-600">@pct%</span>
+                            </div>
+                            <div class="text-xs text-slate-500 mt-1">@job.CompletedQty.ToString("N0", CultureInfo.InvariantCulture) / @job.TotalQty.ToString("N0", CultureInfo.InvariantCulture)</div>
+                        </td>
+                        <td class="px-4 py-3 font-bold text-blue-600">@job.RemainingQty.ToString("N0", CultureInfo.InvariantCulture)</td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium">@job.Operator</div>
+                            <div class="text-xs text-slate-500">@job.Shift</div>
+                        </td>
+                        <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetJobStatusClass(job.Status)">@job.Status</span></td>
+                        <td class="px-4 py-3">
+                            <button type="button" @onclick="() => OpenModal(job.JobId)" class="inline-flex items-center gap-1 rounded-md border border-purple-600 bg-white px-2 py-1 text-xs font-medium text-purple-700 hover:bg-purple-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0 1.172-2.872L13 11"/><path d="m14 13-1.827 1.827a4 4 0 0 1-5.656 0L4 11"/><path d="M12 22H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2v6a2 2 0 0 1-2 2Z"/></svg>
+                                Split
+                            </button>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-6 py-4 flex flex-wrap items-center gap-3 justify-between">
+            <div class="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-orange-600"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m18 9-1.5-1.5"/><path d="m5 21 2.5-2.5"/><path d="M12.5 21 9 17.5"/></svg>
+                <h2 class="text-lg font-semibold text-slate-900">Split Job Requests</h2>
+                <span class="rounded-md bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-900">@_splitRequests.Count requests</span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Request ID</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Original Job</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Product</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Split Into</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Reason</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Requested By</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-500">Actions</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 bg-white">
+                @foreach (var req in _splitRequests)
+                {
+                    var sumQty = req.NewJobs.Sum(j => j.Qty);
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-3"><span class="font-mono text-xs rounded border border-slate-200 px-2 py-0.5">@req.Id</span></td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium">@req.OriginalJobId</div>
+                            <div class="text-xs text-slate-500">@req.Machine</div>
+                        </td>
+                        <td class="px-4 py-3 max-w-[160px]"><div class="truncate text-xs" title="@req.Product">@req.Product</div></td>
+                        <td class="px-4 py-3">
+                            <div class="font-semibold text-purple-700">@req.SplitInto jobs</div>
+                            <div class="text-xs text-slate-500 mt-0.5">@string.Join(" + ", req.NewJobs.Select(j => j.Qty.ToString("N0", CultureInfo.InvariantCulture))) = @sumQty.ToString("N0", CultureInfo.InvariantCulture) pcs</div>
+                        </td>
+                        <td class="px-4 py-3 max-w-[140px]"><div class="truncate text-xs" title="@req.Reason">@req.Reason</div></td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-xs">@req.RequestedBy</div>
+                            <div class="text-xs text-slate-500 font-mono">@req.RequestedTime</div>
+                        </td>
+                        <td class="px-4 py-3"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetRequestStatusClass(req.Status)">@req.Status</span></td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" class="inline-flex items-center justify-center rounded border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-50" title="View">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                                @if (string.Equals(req.Status, "Pending Approval", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <button type="button" @onclick="() => ApproveRequest(req.Id)" class="inline-flex items-center gap-1 rounded border border-green-600 bg-white px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-50">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        Approve
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (_showSplitModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @onclick="CloseModal">
+        <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl" @onclick:stopPropagation>
+            <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-600"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0 1.172-2.872L13 11"/><path d="m14 13-1.827 1.827a4 4 0 0 1-5.656 0L4 11"/><path d="M12 22H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2v6a2 2 0 0 1-2 2Z"/></svg>
+                <h2 class="text-lg font-semibold text-slate-900">Create Split Job Request</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-600">Split an active job into multiple smaller jobs for better line balancing and tracking.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-900 mb-1">Select Job</label>
+                        <select @bind="_splitFormJobId" @bind:after="OnJobSelectionChanged" class="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm">
+                            <option value="">— Select —</option>
+                            @foreach (var j in _activeJobs)
+                            {
+                                <option value="@j.JobId">@j.JobId — remaining @j.RemainingQty.ToString("N0", CultureInfo.InvariantCulture)</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-900 mb-1">Split Into</label>
+                        <select @bind="_splitCountStr" @bind:after="OnSplitCountDropdownChanged" class="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm">
+                            <option value="2">2 jobs</option>
+                            <option value="3">3 jobs</option>
+                            <option value="4">4 jobs</option>
+                            <option value="5">5 jobs</option>
+                        </select>
+                    </div>
+                </div>
+
+                @if (GetSelectedJob() is { } sel)
+                {
+                    <div class="rounded-lg bg-slate-50 border border-slate-100 p-4 text-sm">
+                        <h4 class="font-medium text-slate-900 mb-2">Job information</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div><span class="text-slate-500">Product</span><div class="font-medium">@sel.Product</div></div>
+                            <div><span class="text-slate-500">Machine</span><div class="font-medium">@sel.Machine</div></div>
+                            <div><span class="text-slate-500">Completed</span><div class="font-medium">@sel.CompletedQty.ToString("N0", CultureInfo.InvariantCulture) pcs</div></div>
+                            <div><span class="text-slate-500">Remaining</span><div class="font-medium text-blue-600">@sel.RemainingQty.ToString("N0", CultureInfo.InvariantCulture) pcs</div></div>
+                        </div>
+                    </div>
+                }
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-2">Split job quantities</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        @for (var i = 0; i < _splitFormEntries.Count; i++)
+                        {
+                            var idx = i;
+                            var letter = ((char)('A' + idx)).ToString();
+                            var labelJob = string.IsNullOrEmpty(_splitFormJobId) ? "JOB" : _splitFormJobId;
+                            <div class="rounded-lg border border-slate-200 p-3 space-y-2">
+                                <div class="text-sm font-medium text-slate-800">Job @labelJob@letter</div>
+                                <div>
+                                    <label class="text-xs text-slate-600">Quantity</label>
+                                    <input type="number" min="0" class="mt-0.5 w-full h-9 rounded-md border border-slate-200 px-2 text-sm"
+                                           value="@_splitFormEntries[idx].Qty"
+                                           @onchange="e => OnQtyChanged(idx, e)" />
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-600">Operator (optional)</label>
+                                    <input type="text" class="mt-0.5 w-full h-9 rounded-md border border-slate-200 px-2 text-sm"
+                                           @bind="_splitFormEntries[idx].Operator" @bind:event="oninput" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    @if (GetSelectedJob() is { } remJob)
+                    {
+                        var total = GetTotalSplitQty();
+                        var ok = total <= remJob.RemainingQty && total > 0;
+                        <p class="text-sm mt-2">
+                            <span class="text-slate-600">Total split quantity:</span>
+                            <span class="font-semibold @(ok ? "text-green-600" : "text-red-600")">@total.ToString("N0", CultureInfo.InvariantCulture) / @remJob.RemainingQty.ToString("N0", CultureInfo.InvariantCulture) pcs</span>
+                        </p>
+                    }
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Reason for split</label>
+                    <select @bind="_splitReason" class="w-full h-10 rounded-lg border border-slate-200 px-3 text-sm">
+                        <option value="">— Select reason —</option>
+                        @foreach (var r in SplitReasons)
+                        {
+                            <option value="@r">@r</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-900 mb-1">Additional notes</label>
+                    <textarea @bind="_splitNotes" rows="2" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="Optional instructions…"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @onclick="CloseModal" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">Cancel</button>
+                    <button type="button" @onclick="SubmitSplitRequest" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/></svg>
+                        Create Split Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ActiveJobRow> _activeJobs = new();
+    private List<SplitRequestRow> _splitRequests = new();
+
+    private bool _showSplitModal;
+    private string _splitFormJobId = string.Empty;
+    private int _splitCount = 2;
+    private string _splitCountStr = "2";
+    private string _splitReason = string.Empty;
+    private string _splitNotes = string.Empty;
+    private List<SplitJobFormEntry> _splitFormEntries = new();
+    private string? _successMessage;
+    private string? _infoMessage;
+    private bool _initialized;
+
+    private static readonly string[] SplitReasons =
+    [
+        "Shift Change - Different Operators",
+        "Quality Issue - Different Material Batch",
+        "Machine Maintenance Required",
+        "Urgent Order Priority Change",
+        "Material Supply Issue",
+        "Operator Skill Requirement",
+        "Equipment Capacity Limitation",
+    ];
+
+    /// <summary>Seeds mock active jobs and split requests after first render.</summary>
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return Task.CompletedTask;
+
+        _initialized = true;
+        _activeJobs =
+        [
+            new ActiveJobRow("JOB20250903-001", "2011 - Plastic Bottle 500ml", "INJ-M001", 10000, 3500, 6500, "Thant (OP001)", "Day Shift", "Running", true),
+            new ActiveJobRow("JOB20250903-002", "2012 - Plastic Container 1L", "INJ-M002", 8000, 2100, 5900, "Hnin (OP002)", "Day Shift", "Running", true),
+            new ActiveJobRow("JOB20250903-003", "2013 - Plastic Cup 200ml", "INJ-M003", 15000, 8200, 6800, "Zaw (OP003)", "Day Shift", "Running", true),
+        ];
+        _splitRequests =
+        [
+            new SplitRequestRow("SPL-REQ-001", "JOB20250903-001", "2011 - Plastic Bottle 500ml", "INJ-M001", 10000, 3500, 6500, 2,
+                new List<NewJobQty> { new("JOB20250903-001A", 3000), new("JOB20250903-001B", 3500) },
+                "Shift Change - Different Operators", "Production Supervisor", "2025-09-08 14:30", "Pending Approval", null, null),
+            new SplitRequestRow("SPL-REQ-002", "JOB20250903-002", "2012 - Plastic Container 1L", "INJ-M002", 8000, 2100, 5900, 3,
+                new List<NewJobQty> { new("JOB20250903-002A", 2000), new("JOB20250903-002B", 2000), new("JOB20250903-002C", 1900) },
+                "Quality Issue - Different Material Batch", "QC Supervisor", "2025-09-08 13:15", "Approved", "Production Manager", "2025-09-08 13:45"),
+        ];
+        RebuildSplitFormEntries(_splitCount);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Opens the split request modal and optionally pre-selects a job.</summary>
+    private void OpenModal(string? jobId)
+    {
+        _showSplitModal = true;
+        if (!string.IsNullOrEmpty(jobId))
+            _splitFormJobId = jobId;
+        _successMessage = null;
+        StateHasChanged();
+    }
+
+    private void CloseModal()
+    {
+        _showSplitModal = false;
+        StateHasChanged();
+    }
+
+    private void OnJobSelectionChanged()
+    {
+        StateHasChanged();
+    }
+
+    private void OnSplitCountDropdownChanged() => OnSplitCountChanged(int.TryParse(_splitCountStr, out var c) ? c : 2);
+
+    /// <summary>Rebuilds per-split quantity rows when the split count changes.</summary>
+    private void OnSplitCountChanged(int count)
+    {
+        count = Math.Clamp(count, 2, 5);
+        _splitCount = count;
+        _splitCountStr = count.ToString(CultureInfo.InvariantCulture);
+        RebuildSplitFormEntries(count);
+        StateHasChanged();
+    }
+
+    private void RebuildSplitFormEntries(int count)
+    {
+        _splitFormEntries = Enumerable.Range(0, count).Select(_ => new SplitJobFormEntry()).ToList();
+    }
+
+    private void OnQtyChanged(int index, ChangeEventArgs e)
+    {
+        if (index < 0 || index >= _splitFormEntries.Count)
+            return;
+        _ = int.TryParse(e.Value?.ToString(), out var q);
+        if (q < 0) q = 0;
+        _splitFormEntries[index].Qty = q;
+        StateHasChanged();
+    }
+
+    /// <summary>Returns the sum of entered split quantities.</summary>
+    private int GetTotalSplitQty() => _splitFormEntries.Sum(x => x.Qty);
+
+    /// <summary>Returns the active job selected in the modal, if any.</summary>
+    private ActiveJobRow? GetSelectedJob() =>
+        string.IsNullOrEmpty(_splitFormJobId) ? null : _activeJobs.FirstOrDefault(j => j.JobId == _splitFormJobId);
+
+    /// <summary>Validates the form and appends a new pending split request.</summary>
+    private void SubmitSplitRequest()
+    {
+        var job = GetSelectedJob();
+        if (job is null || string.IsNullOrEmpty(_splitFormJobId))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_splitReason))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        if (_splitFormEntries.Any(e => e.Qty <= 0))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var total = GetTotalSplitQty();
+        if (total > job.RemainingQty)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        var nextId = NextRequestId();
+        var letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var newJobs = new List<NewJobQty>();
+        for (var i = 0; i < _splitFormEntries.Count; i++)
+        {
+            var suffix = i < letters.Length ? letters[i].ToString() : (i + 1).ToString(CultureInfo.InvariantCulture);
+            newJobs.Add(new NewJobQty($"{_splitFormJobId}{suffix}", _splitFormEntries[i].Qty));
+        }
+
+        _splitRequests.Insert(0, new SplitRequestRow(
+            nextId,
+            job.JobId,
+            job.Product,
+            job.Machine,
+            job.TotalQty,
+            job.CompletedQty,
+            job.RemainingQty,
+            _splitFormEntries.Count,
+            newJobs,
+            _splitReason.Trim(),
+            "Production Supervisor",
+            DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+            "Pending Approval",
+            null,
+            null));
+
+        _showSplitModal = false;
+        _splitFormJobId = string.Empty;
+        _splitReason = string.Empty;
+        _splitNotes = string.Empty;
+        _splitCount = 2;
+        _splitCountStr = "2";
+        RebuildSplitFormEntries(2);
+        _successMessage = "Split Request created";
+        _ = ClearSuccessMessageAsync();
+        StateHasChanged();
+    }
+
+    private async Task ClearSuccessMessageAsync()
+    {
+        await Task.Delay(4000);
+        _successMessage = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string NextRequestId()
+    {
+        var max = 0;
+        foreach (var r in _splitRequests)
+        {
+            if (r.Id.StartsWith("SPL-REQ-", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(r.Id.AsSpan(8), out var n))
+                max = Math.Max(max, n);
+        }
+        max++;
+        return $"SPL-REQ-{max:D3}";
+    }
+
+    /// <summary>Marks a pending request as approved by the production manager.</summary>
+    private void ApproveRequest(string requestId)
+    {
+        var idx = _splitRequests.FindIndex(r => r.Id == requestId);
+        if (idx < 0)
+            return;
+        var r = _splitRequests[idx];
+        if (!string.Equals(r.Status, "Pending Approval", StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _splitRequests[idx] = r with
+        {
+            Status = "Approved",
+            ApprovedBy = "Production Manager",
+            ApprovedTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+        };
+        StateHasChanged();
+    }
+
+    private async Task ShowComingSoonAsync()
+    {
+        _infoMessage = "Coming soon";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(2000);
+        _infoMessage = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string GetJobStatusClass(string status) => status switch
+    {
+        "Running" => "bg-green-100 text-green-800",
+        "Paused" => "bg-yellow-100 text-yellow-800",
+        "Completed" => "bg-blue-100 text-blue-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    /// <summary>Returns Tailwind classes for split request status badges.</summary>
+    private static string GetRequestStatusClass(string status) => status switch
+    {
+        "Pending Approval" => "bg-yellow-100 text-yellow-800",
+        "Approved" => "bg-green-100 text-green-800",
+        "Rejected" => "bg-red-100 text-red-800",
+        "Completed" => "bg-blue-100 text-blue-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private sealed record ActiveJobRow(
+        string JobId,
+        string Product,
+        string Machine,
+        int TotalQty,
+        int CompletedQty,
+        int RemainingQty,
+        string Operator,
+        string Shift,
+        string Status,
+        bool CanSplit);
+
+    private sealed record NewJobQty(string JobId, int Qty);
+
+    private sealed record SplitRequestRow(
+        string Id,
+        string OriginalJobId,
+        string Product,
+        string Machine,
+        int TotalQty,
+        int CompletedQty,
+        int RemainingQty,
+        int SplitInto,
+        List<NewJobQty> NewJobs,
+        string Reason,
+        string RequestedBy,
+        string RequestedTime,
+        string Status,
+        string? ApprovedBy,
+        string? ApprovedTime);
+
+    /// <summary>Mutable row for split quantity form binding.</summary>
+    private sealed class SplitJobFormEntry
+    {
+        public int Qty { get; set; }
+        public string Operator { get; set; } = string.Empty;
+    }
+}

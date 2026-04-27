@@ -1,0 +1,762 @@
+@page "/production/jobs"
+@rendermode InteractiveServer
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>Job Tracker · xMachine</PageTitle>
+
+<div class="p-6 bg-slate-50 min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-6">
+            <h1 class="text-2xl font-semibold text-slate-900 mb-2">Job Tracker</h1>
+            <p class="text-slate-600">Real-time tracking of production jobs and assembly plans</p>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+            <div class="p-6">
+                <label class="block text-sm font-medium text-slate-900 mb-1">Enter Plan ID or Job ID</label>
+                <p class="text-xs text-slate-500 mb-3">Try: PLAN20250907-001, JOB20250907-001-C1, PLAN20250908-002, JOB20250903-001</p>
+                <div class="flex flex-wrap gap-3 items-stretch">
+                    <div class="relative flex-1 min-w-[200px]">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        <input type="text" @bind="_searchTerm" @bind:event="oninput" @onkeydown="HandleKeyDown"
+                               class="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-200 text-sm" placeholder="PLAN… or JOB…" />
+                    </div>
+                    <button type="button" @onclick="Search" class="h-10 px-5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        Track
+                    </button>
+                    <button type="button" @onclick="MockScanQr" class="h-10 px-5 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-800 hover:bg-slate-50 inline-flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+                        Scan QR
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @if (_searchResults is null)
+        {
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="py-16 px-6 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto text-slate-400 mb-4"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <h3 class="text-lg font-medium text-slate-900 mb-2">Enter a Plan ID or Job ID to start tracking</h3>
+                    <p class="text-slate-600 mb-2">Use the search box above, or try one of these IDs:</p>
+                    <p class="text-sm text-slate-500 font-mono">PLAN20250907-001 · JOB20250907-001-C1 · PLAN20250908-002 · JOB20250903-001</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            var r = _searchResults!;
+            var lookupKey = r.JobId ?? r.PlanId ?? string.Empty;
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+                <div class="border-b border-slate-100 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        @if (string.Equals(r.Type, "plan", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-700"><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4a1 1 0 0 1-.7-1.7L7 14h-.2a2 2 0 0 1-1.6-1l-1.7-3.4A.5.5 0 0 1 4 8h3.1a1 1 0 0 0 .9-.6l.8-2.4a2 2 0 0 1 3.6 0l.9 2.4a1 1 0 0 0 .9.6H20a.5.5 0 0 1 .4.8l-1.7 3.4a2 2 0 0 1-1.7 1Z"/></svg>
+                            <h2 class="text-lg font-semibold text-slate-900">Plan Summary</h2>
+                        }
+                        else
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-blue-600"><path d="m7.5 4.27 9 5.15"/><path d="M21 8V5a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 5v14a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 19v-3"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
+                            <h2 class="text-lg font-semibold text-slate-900">Job Summary</h2>
+                        }
+                    </div>
+                    <div class="flex items-center gap-2">
+                        @if (_isLiveMode)
+                        {
+                            <span class="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-1 text-xs font-semibold text-red-800 animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                                LIVE
+                            </span>
+                        }
+                        <button type="button" @onclick="ToggleLive" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="@(_isLiveMode ? "animate-spin" : "")"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                            @(_isLiveMode ? "Stop Live" : "Auto-refresh")
+                        </button>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">ID</p>
+                            <p class="font-medium text-slate-900">@(r.JobId ?? r.PlanId)</p>
+                            @if (!string.IsNullOrEmpty(r.ParentPlanId))
+                            {
+                                <p class="text-sm text-slate-500 mt-1">Parent: @r.ParentPlanId</p>
+                            }
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Product</p>
+                            <p class="font-medium text-slate-900">@r.Product</p>
+                            <p class="text-sm text-slate-500">@r.ProductCode</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Target / Produced</p>
+                            <p class="font-medium">
+                                <span class="text-blue-600">@r.TargetQty.ToString("N0", CultureInfo.InvariantCulture)</span>
+                                @if (r.ProducedQty is { } pq)
+                                {
+                                    <span class="text-slate-400"> / </span>
+                                    <span class="text-green-600">@pq.ToString("N0", CultureInfo.InvariantCulture)</span>
+                                }
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Current status</p>
+                            <span class="mt-1 inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStatusClass(r.Status)">@FormatStatusLabel(r.Status)</span>
+                        </div>
+                    </div>
+
+                    @if (!string.Equals(r.Type, "plan", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Good / Defect / Scrap</p>
+                                <p class="mt-1 text-sm">
+                                    <span class="text-green-600 font-semibold">@(r.GoodQty?.ToString("N0", CultureInfo.InvariantCulture) ?? "—")</span>
+                                    <span class="text-slate-400"> / </span>
+                                    <span class="text-yellow-600 font-semibold">@(r.DefectQty?.ToString("N0", CultureInfo.InvariantCulture) ?? "—")</span>
+                                    <span class="text-slate-400"> / </span>
+                                    <span class="text-red-600 font-semibold">@(r.ScrapQty?.ToString("N0", CultureInfo.InvariantCulture) ?? "—")</span>
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Machine</p>
+                                <p class="font-medium text-slate-900 mt-1">@(r.Machine ?? "—")</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Operator</p>
+                                <p class="font-medium text-slate-900 mt-1">@(r.Operator ?? "—")</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Shift</p>
+                                <p class="font-medium text-slate-900 mt-1">@(r.Shift ?? "—")</p>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100 text-sm text-slate-600">
+                        <span>Last update: @r.LastUpdate</span>
+                        @if (!string.IsNullOrEmpty(r.QrCode))
+                        {
+                            <span class="font-mono text-xs">QR: @r.QrCode</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-700"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    <h2 class="text-lg font-semibold text-slate-900">Stage Timeline</h2>
+                </div>
+                <div class="p-6 overflow-x-auto">
+                    <div class="min-w-[800px] flex items-start">
+                        @for (var i = 0; i < StageDefinitions.Length; i++)
+                        {
+                            var def = StageDefinitions[i];
+                            var sd = GetStagesForKey(lookupKey).FirstOrDefault(s => s.StageId == def.Id);
+                            var completed = sd?.Status == "completed";
+                            var current = sd?.Status == "current";
+                            <div class="flex flex-1 min-w-0 flex-col items-center relative px-1">
+                                <div class="@(completed ? "bg-green-100 text-green-700 border-green-300" : current ? "bg-blue-100 text-blue-700 border-blue-300" : "bg-slate-100 text-slate-400 border-slate-200") w-12 h-12 rounded-full border-2 flex items-center justify-center shrink-0 z-10 mb-2">
+                                    @if (completed)
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                    }
+                                    else if (current)
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/></svg>
+                                    }
+                                </div>
+                                <p class="text-xs font-medium text-center text-slate-900">@def.Name</p>
+                                @if (sd is not null)
+                                {
+                                    <p class="text-xs text-slate-600 text-center mt-0.5">@sd.Timestamp</p>
+                                    <p class="text-xs text-slate-500 text-center">@sd.Duration</p>
+                                }
+                            </div>
+                            @if (i < StageDefinitions.Length - 1)
+                            {
+                                var lineGreen = GetStagesForKey(lookupKey).FirstOrDefault(s => s.StageId == def.Id)?.Status == "completed";
+                                <div class="h-0.5 flex-1 min-w-[12px] mt-6 shrink-0 @(lineGreen ? "bg-green-300" : "bg-slate-200")"></div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (r.IsSplit && r.SplitJobs is { Count: > 0 } splits)
+            {
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+                    <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-purple-600"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m18 9-1.5-1.5"/><path d="m5 21 2.5-2.5"/><path d="M12.5 21 9 17.5"/></svg>
+                        <h2 class="text-lg font-semibold text-slate-900">Split Tracking</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4 rounded-lg bg-blue-50 border border-blue-100 p-3 text-sm text-blue-900">
+                            Parent job <span class="font-semibold">@r.JobId</span> was split into <span class="font-semibold">@splits.Count</span> jobs.
+                        </div>
+                        <button type="button" @onclick="() => ToggleSplitExpanded()" class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900">
+                            @if (_splitExpanded)
+                            {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 9 6 6 6-6"/></svg>
+                            }
+                            else
+                            {
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m9 18 6-6-6-6"/></svg>
+                            }
+                            Tree view of split jobs
+                        </button>
+                        @if (_splitExpanded)
+                        {
+                            <div class="space-y-4 ml-2">
+                                @foreach (var sj in splits)
+                                {
+                                    var pct = sj.Progress;
+                                    <div class="border-l-4 border-blue-200 pl-4">
+                                        <div class="rounded-lg border border-slate-200 bg-white p-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                                                <div>
+                                                    <p class="text-xs text-slate-500">Split job ID</p>
+                                                    <p class="font-mono font-medium">@sj.JobId</p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs text-slate-500">Machine · Qty · Status</p>
+                                                    <p>@sj.Machine</p>
+                                                    <p>@sj.TargetQty.ToString("N0", CultureInfo.InvariantCulture) pcs</p>
+                                                    <span class="mt-1 inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetStatusClass(sj.Status)">@FormatStatusLabel(sj.Status)</span>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs text-slate-500 mb-1">Progress</p>
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="flex-1 min-w-[4rem] bg-slate-200 rounded-full h-2">
+                                                            <div class="bg-green-500 h-2 rounded-full" style="width: @(pct)%"></div>
+                                                        </div>
+                                                        <span class="text-xs font-semibold">@pct%</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs text-slate-500">Operator</p>
+                                                    <p>@sj.Operator</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (string.Equals(r.Type, "plan", StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+                    <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-green-700"><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4a1 1 0 0 1-.7-1.7L7 14h-.2a2 2 0 0 1-1.6-1l-1.7-3.4A.5.5 0 0 1 4 8h3.1a1 1 0 0 0 .9-.6l.8-2.4a2 2 0 0 1 3.6 0l.9 2.4a1 1 0 0 0 .9.6H20a.5.5 0 0 1 .4.8l-1.7 3.4a2 2 0 0 1-1.7 1Z"/></svg>
+                        <h2 class="text-lg font-semibold text-slate-900">Assembly Tracking</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
+                            <div class="flex-1 min-w-[200px]">
+                                <p class="font-medium text-slate-900">@r.AssemblyProduct</p>
+                                <div class="flex items-center gap-3 mt-3">
+                                    <div class="w-32 bg-slate-200 rounded-full h-2">
+                                        <div class="bg-green-500 h-2 rounded-full" style="width: @(r.TotalJobs > 0 ? (int)Math.Round(100.0 * r.CompletedJobs / r.TotalJobs) : 0)%"></div>
+                                    </div>
+                                    <span class="text-sm font-medium text-green-700">@r.CompletedJobs / @r.TotalJobs complete</span>
+                                </div>
+                            </div>
+                            <button type="button" @onclick="() => _assemblyExpanded = !_assemblyExpanded" class="inline-flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900 shrink-0">
+                                @if (_assemblyExpanded)
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 9 6 6 6-6"/></svg>
+                                }
+                                else
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m9 18 6-6-6-6"/></svg>
+                                }
+                                View Child Jobs
+                            </button>
+                        </div>
+                        @if (r.CompletionPercentage < 100)
+                        {
+                            <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900 mb-4 flex items-start gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                                <span><strong>Parent plan incomplete</strong> — cannot release to FG warehouse until all child jobs finish.</span>
+                            </div>
+                        }
+                        @if (_assemblyExpanded && r.ChildJobs is { Count: > 0 } children)
+                        {
+                            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                <table class="min-w-full divide-y divide-slate-100 text-sm">
+                                    <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">Job ID</th>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">Component</th>
+                                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500">Target Qty</th>
+                                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500">Good Qty</th>
+                                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500">Defect Qty</th>
+                                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500">Scrap Qty</th>
+                                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500">QC Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 bg-white">
+                                    @foreach (var c in children)
+                                    {
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="px-4 py-2 font-medium font-mono text-xs">@c.JobId</td>
+                                            <td class="px-4 py-2">@c.Component</td>
+                                            <td class="px-4 py-2 text-right">@c.TargetQty.ToString("N0", CultureInfo.InvariantCulture)</td>
+                                            <td class="px-4 py-2 text-right text-green-600 font-medium">@c.GoodQty.ToString("N0", CultureInfo.InvariantCulture)</td>
+                                            <td class="px-4 py-2 text-right text-yellow-700 font-medium">@c.DefectQty.ToString("N0", CultureInfo.InvariantCulture)</td>
+                                            <td class="px-4 py-2 text-right text-red-600 font-medium">@c.ScrapQty.ToString("N0", CultureInfo.InvariantCulture)</td>
+                                            <td class="px-4 py-2"><span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium @GetQcStatusClass(c.QcStatus)">@FormatQcStatus(c.QcStatus)</span></td>
+                                        </tr>
+                                    }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+                <div class="border-b border-slate-100 px-6 py-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-amber-600"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <h2 class="text-lg font-semibold text-slate-900">Defect &amp; Scrap</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-medium text-blue-900 mb-3 text-sm">Defects</h4>
+                            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                @if (GetDefectScrap(lookupKey).Defects.Count == 0)
+                                {
+                                    <div class="py-10 text-center text-sm text-slate-500 bg-blue-50/30">No defects recorded</div>
+                                }
+                                else
+                                {
+                                    <table class="min-w-full text-sm">
+                                        <thead><tr class="bg-slate-50 border-b border-slate-100 text-xs text-slate-500">
+                                            <th class="px-3 py-2 text-left">Defect ID</th><th class="px-3 py-2 text-left">Job ID</th><th class="px-3 py-2 text-right">Qty</th><th class="px-3 py-2 text-left">Reason</th><th class="px-3 py-2 text-left">Action</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @foreach (var d in GetDefectScrap(lookupKey).Defects)
+                                        {
+                                            <tr class="bg-blue-50 border-b border-blue-100/80">
+                                                <td class="px-3 py-2 font-mono text-xs text-blue-900">@d.DefectId</td>
+                                                <td class="px-3 py-2 font-mono text-xs">@d.JobId</td>
+                                                <td class="px-3 py-2 text-right font-medium">@d.Qty</td>
+                                                <td class="px-3 py-2">@d.Reason</td>
+                                                <td class="px-3 py-2">@d.ActionTaken</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-red-900 mb-3 text-sm">Scrap</h4>
+                            <div class="overflow-x-auto rounded-lg border border-slate-200">
+                                @if (GetDefectScrap(lookupKey).Scrap.Count == 0)
+                                {
+                                    <div class="py-10 text-center text-sm text-slate-500 bg-red-50/30">No scrap recorded</div>
+                                }
+                                else
+                                {
+                                    <table class="min-w-full text-sm">
+                                        <thead><tr class="bg-slate-50 border-b border-slate-100 text-xs text-slate-500">
+                                            <th class="px-3 py-2 text-left">Scrap ID</th><th class="px-3 py-2 text-left">Job ID</th><th class="px-3 py-2 text-right">Qty</th><th class="px-3 py-2 text-left">Reason</th><th class="px-3 py-2 text-left">Date</th>
+                                        </tr></thead>
+                                        <tbody>
+                                        @foreach (var s in GetDefectScrap(lookupKey).Scrap)
+                                        {
+                                            <tr class="bg-red-50 border-b border-red-100/80">
+                                                <td class="px-3 py-2 font-mono text-xs text-red-900">@s.ScrapId</td>
+                                                <td class="px-3 py-2 font-mono text-xs">@s.JobId</td>
+                                                <td class="px-3 py-2 text-right font-medium">@s.Qty</td>
+                                                <td class="px-3 py-2">@s.Reason</td>
+                                                <td class="px-3 py-2">@s.Date</td>
+                                            </tr>
+                                        }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm mb-6">
+                <div class="border-b border-slate-100 px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-slate-700"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        <h2 class="text-lg font-semibold text-slate-900">Event History</h2>
+                    </div>
+                    <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        Export
+                    </button>
+                </div>
+                <div class="p-6 space-y-3">
+                    @foreach (var ev in GetEvents(lookupKey))
+                    {
+                        var dot = ev.EventType == "success" ? "bg-green-500" : "bg-blue-500";
+                        <div class="flex gap-3">
+                            <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 @dot"></div>
+                            <div>
+                                <p class="text-xs text-slate-500">@ev.Timestamp</p>
+                                <p class="text-sm text-slate-800">@ev.Description</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="p-6 flex flex-wrap gap-3">
+                    <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        Export PDF
+                    </button>
+                    <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        Export Excel
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string _searchTerm = string.Empty;
+    private SearchResult? _searchResults;
+    private bool _isLiveMode;
+    private bool _splitExpanded;
+    private bool _assemblyExpanded;
+    private bool _initialized;
+
+    private Dictionary<string, SearchResult> _lookup = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, List<StageEntry>> _stageData = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, DefectScrapBundle> _defectScrap = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, List<EventEntry>> _eventHistory = new(StringComparer.OrdinalIgnoreCase);
+
+    private static readonly (string Id, string Name)[] StageDefinitions =
+    [
+        ("plan-created", "Plan Created"),
+        ("authorized", "Authorized"),
+        ("material-reserved", "Material Reserved"),
+        ("material-issued", "Material Issued"),
+        ("in-production", "In Production"),
+        ("qc-inspection", "QC Inspection"),
+        ("fg-receiving", "FG Receiving"),
+        ("fg-release", "FG-WH Release"),
+    ];
+
+    /// <summary>Runs once after first render to build mock dictionaries.</summary>
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return Task.CompletedTask;
+
+        _initialized = true;
+        BuildMockData();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private void BuildMockData()
+    {
+        _lookup = new Dictionary<string, SearchResult>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["JOB20250907-001-C1"] = new SearchResult(
+                "job", "JOB20250907-001-C1", null, "PLAN20250907-001",
+                "2011 - Plastic Bottle 500ml", "2011", 10000, 10000,
+                9850, 100, 50,
+                "INJ-M001", "Operator A (OP001)", "Day Shift",
+                "completed", "2025-09-07 16:30", "QR-JOB20250907-001-C1",
+                false, null,
+                null, null, 0, 0, 0),
+            ["PLAN20250907-001"] = new SearchResult(
+                "plan", null, "PLAN20250907-001", null,
+                "2011 Box Set", "ASET001", 10000, null,
+                null, null, null,
+                null, null, null,
+                "released", "2025-09-07 17:30", "QR-PLAN20250907-001",
+                false, null,
+                new List<ChildJobEntry>
+                {
+                    new("JOB20250907-001-C1", "Cover", "2011 - Plastic Bottle 500ml", 10000, 9850, 100, 50, "passed", "completed"),
+                    new("JOB20250907-001-C2", "Container", "2021 - Plastic Cap Red", 10000, 9950, 50, 0, "passed", "completed"),
+                    new("JOB20250907-001-C3", "Liner", "2031 - Assembly Instructions", 10000, 10000, 0, 0, "passed", "completed"),
+                },
+                "2011 Box Set", 3, 3, 100),
+            ["PLAN20250908-002"] = new SearchResult(
+                "plan", null, "PLAN20250908-002", null,
+                "2012 Container Set", "ASET002", 5000, null,
+                null, null, null,
+                null, null, null,
+                "active", "2025-09-08 14:20", null,
+                false, null,
+                new List<ChildJobEntry>
+                {
+                    new("JOB20250908-002-C1", "Container", "2012 - Large Container 1L", 5000, 4800, 150, 50, "passed", "completed"),
+                    new("JOB20250908-002-C2", "Lid", "2022 - Container Lid Blue", 5000, 0, 0, 0, "waiting-qc", "active"),
+                },
+                "2012 Container Set", 1, 2, 50),
+            ["JOB20250903-001"] = new SearchResult(
+                "job", "JOB20250903-001", null, null,
+                "2013 - Plastic Cup 250ml", "2013", 15000, 15000,
+                14850, 150, 0,
+                "Multiple", "Multiple", "Multiple",
+                "completed", "2025-09-03 21:15", "QR-JOB20250903-001",
+                true,
+                new List<SplitJobEntry>
+                {
+                    new("JOB20250903-001A", "INJ-M004", "Operator E (OP005)", 8000, 8000, "completed", 100),
+                    new("JOB20250903-001B", "INJ-M005", "Operator F (OP006)", 7000, 7000, "completed", 100),
+                },
+                null, null, 0, 0, 0),
+        };
+
+        _stageData = new Dictionary<string, List<StageEntry>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["JOB20250907-001-C1"] =
+            [
+                new("plan-created", "completed", "2025-09-07 08:00", "5 min"),
+                new("authorized", "completed", "2025-09-07 08:05", "10 min"),
+                new("material-reserved", "completed", "2025-09-07 08:15", "15 min"),
+                new("material-issued", "completed", "2025-09-07 08:30", "30 min"),
+                new("in-production", "completed", "2025-09-07 09:00", "5h 30min"),
+                new("qc-inspection", "completed", "2025-09-07 14:30", "30 min"),
+                new("fg-receiving", "completed", "2025-09-07 15:00", "30 min"),
+                new("fg-release", "completed", "2025-09-07 15:30", "Completed"),
+            ],
+            ["PLAN20250907-001"] =
+            [
+                new("plan-created", "completed", "2025-09-07 07:30", "10 min"),
+                new("authorized", "completed", "2025-09-07 07:40", "20 min"),
+                new("material-reserved", "completed", "2025-09-07 08:00", "30 min"),
+                new("material-issued", "completed", "2025-09-07 08:30", "1h"),
+                new("in-production", "completed", "2025-09-07 09:30", "7h"),
+                new("qc-inspection", "completed", "2025-09-07 16:30", "30 min"),
+                new("fg-receiving", "completed", "2025-09-07 17:00", "30 min"),
+                new("fg-release", "completed", "2025-09-07 17:30", "Completed"),
+            ],
+            ["PLAN20250908-002"] =
+            [
+                new("plan-created", "completed", "2025-09-08 07:00", "8 min"),
+                new("authorized", "completed", "2025-09-08 07:10", "12 min"),
+                new("material-reserved", "completed", "2025-09-08 07:25", "20 min"),
+                new("material-issued", "completed", "2025-09-08 07:45", "45 min"),
+                new("in-production", "completed", "2025-09-08 08:30", "4h"),
+                new("qc-inspection", "current", "2025-09-08 14:20", "In progress"),
+                new("fg-receiving", "pending", "", ""),
+                new("fg-release", "pending", "", ""),
+            ],
+            ["JOB20250903-001"] =
+            [
+                new("plan-created", "completed", "2025-09-03 06:00", "5 min"),
+                new("authorized", "completed", "2025-09-03 06:10", "10 min"),
+                new("material-reserved", "completed", "2025-09-03 06:20", "12 min"),
+                new("material-issued", "completed", "2025-09-03 06:35", "25 min"),
+                new("in-production", "completed", "2025-09-03 07:00", "12h"),
+                new("qc-inspection", "completed", "2025-09-03 19:00", "45 min"),
+                new("fg-receiving", "completed", "2025-09-03 20:00", "30 min"),
+                new("fg-release", "completed", "2025-09-03 21:15", "Completed"),
+            ],
+        };
+
+        _defectScrap = new Dictionary<string, DefectScrapBundle>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["JOB20250907-001-C1"] = new DefectScrapBundle(
+                new List<DefectRow>
+                {
+                    new("DEF-20250907-001", "JOB20250907-001-C1", 80, "Surface scratches", "Sent to rework"),
+                    new("DEF-20250907-002", "JOB20250907-001-C1", 20, "Dimension variance", "Reprocessing"),
+                },
+                new List<ScrapRow> { new("SCR-20250907-001", "JOB20250907-001-C1", 50, "Material contamination", "2025-09-07"), }),
+            ["PLAN20250907-001"] = new DefectScrapBundle(
+                new List<DefectRow>
+                {
+                    new("DEF-20250907-001", "JOB20250907-001-C1", 100, "Surface scratches", "Sent to rework"),
+                    new("DEF-20250907-003", "JOB20250907-001-C2", 50, "Color mismatch", "Reprocessing"),
+                },
+                new List<ScrapRow> { new("SCR-20250907-001", "JOB20250907-001-C1", 50, "Material contamination", "2025-09-07"), }),
+            ["PLAN20250908-002"] = new DefectScrapBundle(new List<DefectRow>(), new List<ScrapRow>()),
+            ["JOB20250903-001"] = new DefectScrapBundle(
+                new List<DefectRow> { new("DEF-20250903-010", "JOB20250903-001A", 90, "Flash excess", "Trim rework"), },
+                new List<ScrapRow>()),
+        };
+
+        _eventHistory = new Dictionary<string, List<EventEntry>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["JOB20250907-001-C1"] =
+            [
+                new(1, "2025-09-07 17:30", "FG warehouse received 9,850 pcs (QR FG-20250907-001).", "success"),
+                new(2, "2025-09-07 15:00", "QC inspection passed (good 9,850, defect 100, scrap 50).", "success"),
+                new(3, "2025-09-07 14:30", "Production job completed — 10,000 units produced on INJ-M001.", "info"),
+                new(4, "2025-09-07 12:00", "50% production milestone reached (5,000 units).", "info"),
+                new(5, "2025-09-07 09:00", "Production started on INJ-M001 by Operator A.", "info"),
+                new(6, "2025-09-02 09:00", "40 kg PET resin issued by warehouse.", "info"),
+            ],
+            ["PLAN20250907-001"] =
+            [
+                new(1, "2025-09-07 17:30", "Assembly plan released to FG warehouse (QR-PLAN20250907-001).", "success"),
+                new(2, "2025-09-07 16:45", "All child jobs completed — assembly ready for release.", "success"),
+                new(3, "2025-09-07 15:30", "Final QC inspection completed for all components.", "info"),
+                new(4, "2025-09-07 08:00", "Assembly plan production started — 3 child jobs initiated.", "info"),
+            ],
+            ["PLAN20250908-002"] =
+            [
+                new(1, "2025-09-08 14:20", "Child job JOB20250908-002-C2 awaiting QC at INJ-M002.", "info"),
+                new(2, "2025-09-08 10:00", "Child job JOB20250908-002-C1 completed and received to FG staging.", "success"),
+                new(3, "2025-09-08 08:30", "Assembly plan materials issued to production lines.", "info"),
+            ],
+            ["JOB20250903-001"] =
+            [
+                new(1, "2025-09-03 21:15", "Split jobs JOB20250903-001A and JOB20250903-001B both completed.", "success"),
+                new(2, "2025-09-03 07:00", "Parent job split into two parallel runs on INJ-M004 and INJ-M005.", "info"),
+            ],
+        };
+    }
+
+    private List<StageEntry> GetStagesForKey(string key) =>
+        _stageData.TryGetValue(key, out var list) ? list : new List<StageEntry>();
+
+    private DefectScrapBundle GetDefectScrap(string key) =>
+        _defectScrap.TryGetValue(key, out var b) ? b : new DefectScrapBundle(new List<DefectRow>(), new List<ScrapRow>());
+
+    private List<EventEntry> GetEvents(string key) =>
+        _eventHistory.TryGetValue(key, out var e) ? e : new List<EventEntry>();
+
+    /// <summary>Looks up the trimmed search term in mock data (case-insensitive).</summary>
+    private void Search()
+    {
+        var key = _searchTerm.Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(key))
+        {
+            _searchResults = null;
+            StateHasChanged();
+            return;
+        }
+
+        _searchResults = _lookup.TryGetValue(key, out var r) ? r : null;
+        _splitExpanded = false;
+        _assemblyExpanded = false;
+        StateHasChanged();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Search();
+    }
+
+    private void MockScanQr()
+    {
+        _searchTerm = "JOB20250907-001-C1";
+        Search();
+    }
+
+    private void ToggleLive()
+    {
+        _isLiveMode = !_isLiveMode;
+        StateHasChanged();
+    }
+
+    private void ToggleSplitExpanded()
+    {
+        _splitExpanded = !_splitExpanded;
+        StateHasChanged();
+    }
+
+    /// <summary>Returns Tailwind classes for job/plan lifecycle status badges.</summary>
+    private static string GetStatusClass(string status) => status.ToLowerInvariant() switch
+    {
+        "active" => "bg-blue-100 text-blue-800",
+        "completed" => "bg-green-100 text-green-800",
+        "waiting-qc" => "bg-yellow-100 text-yellow-800",
+        "released" => "bg-purple-100 text-purple-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string FormatStatusLabel(string status) => status.ToLowerInvariant() switch
+    {
+        "active" => "Active",
+        "completed" => "Completed",
+        "waiting-qc" => "Waiting QC",
+        "released" => "Released",
+        _ => status,
+    };
+
+    /// <summary>Returns Tailwind classes for assembly child QC status badges.</summary>
+    private static string GetQcStatusClass(string status) => status.ToLowerInvariant() switch
+    {
+        "passed" => "bg-green-100 text-green-800",
+        "failed" => "bg-red-100 text-red-800",
+        "waiting-qc" => "bg-yellow-100 text-yellow-800",
+        _ => "bg-slate-100 text-slate-800",
+    };
+
+    private static string FormatQcStatus(string status) => status.ToLowerInvariant() switch
+    {
+        "passed" => "Passed",
+        "failed" => "Failed",
+        "waiting-qc" => "Waiting QC",
+        _ => status,
+    };
+
+    private sealed record SearchResult(
+        string Type,
+        string? JobId,
+        string? PlanId,
+        string? ParentPlanId,
+        string Product,
+        string ProductCode,
+        int TargetQty,
+        int? ProducedQty,
+        int? GoodQty,
+        int? DefectQty,
+        int? ScrapQty,
+        string? Machine,
+        string? Operator,
+        string? Shift,
+        string Status,
+        string LastUpdate,
+        string? QrCode,
+        bool IsSplit,
+        List<SplitJobEntry>? SplitJobs,
+        List<ChildJobEntry>? ChildJobs,
+        string? AssemblyProduct,
+        int CompletedJobs,
+        int TotalJobs,
+        int CompletionPercentage);
+
+    private sealed record SplitJobEntry(string JobId, string Machine, string Operator, int TargetQty, int ProducedQty, string Status, int Progress);
+
+    private sealed record ChildJobEntry(string JobId, string Component, string Product, int TargetQty, int GoodQty, int DefectQty, int ScrapQty, string QcStatus, string Status);
+
+    private sealed record StageEntry(string StageId, string Status, string Timestamp, string Duration);
+
+    private sealed record DefectRow(string DefectId, string JobId, int Qty, string Reason, string ActionTaken);
+
+    private sealed record ScrapRow(string ScrapId, string JobId, int Qty, string Reason, string Date);
+
+    private sealed record DefectScrapBundle(List<DefectRow> Defects, List<ScrapRow> Scrap);
+
+    private sealed record EventEntry(int Id, string Timestamp, string Description, string EventType);
+}
