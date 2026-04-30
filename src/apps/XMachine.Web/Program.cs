@@ -7,6 +7,7 @@ using XMachine.Module.Auth.Security;
 using XMachine.Persistence.Operational;
 using XMachine.Web.Auth;
 using XMachine.Web.Components;
+using XMachine.Web.Middleware;
 using XMachine.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -47,6 +48,11 @@ if (string.IsNullOrWhiteSpace(operationalDbCs))
 builder.Services.AddDbContext<XMachineDbContext>(options =>
     options.UseNpgsql(operationalDbCs));
 
+builder.Services.AddDbContextFactory<XMachineDbContext>(options =>
+    options.UseNpgsql(operationalDbCs));
+
+builder.Services.AddScoped<ITranslationService, TranslationService>();
+
 builder.Services.Configure<DevAuthOptions>(builder.Configuration.GetSection(DevAuthOptions.SectionPath));
 
 builder.Services.AddTransient<ForwardingAuthCookieHandler>();
@@ -80,6 +86,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+app.UseXmLanguageCookie();
 
 app.UseAuthentication();
 app.UseAuthorization();

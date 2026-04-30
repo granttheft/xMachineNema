@@ -13,6 +13,7 @@ using XMachine.Api.Production;
 using XMachine.Connectors.Runtime;
 using XMachine.Module.Auth.Security;
 using Microsoft.AspNetCore.DataProtection;
+using XMachine.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +73,8 @@ builder.Services.AddConnectorRuntime(registry =>
 builder.Services.AddHostedService<XMachine.Api.Development.DevSeedHostedService>();
 
 var app = builder.Build();
+
+app.UseXmLanguageCookie();
 
 app.UseAuthentication();
 app.UseAuthorization();

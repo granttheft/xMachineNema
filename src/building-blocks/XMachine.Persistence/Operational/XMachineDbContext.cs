@@ -25,6 +25,7 @@ public sealed class XMachineDbContext : DbContext
     public DbSet<Machine> Machines => Set<Machine>();
     public DbSet<Station> Stations => Set<Station>();
     public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
+    public DbSet<TenantTranslationOverride> TenantTranslationOverrides => Set<TenantTranslationOverride>();
     public DbSet<BrandingProfile> BrandingProfiles => Set<BrandingProfile>();
 
     // auth
