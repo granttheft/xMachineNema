@@ -1,7 +1,7 @@
 # xMachineNema — Project Status Document
 
 > Paste this file as the first message in every new Claude conversation.
-> Last updated: 2026-04-24
+> Last updated: 2026-05-01
 
 This is the **single source of truth** for conversations.
 Canonical architecture reference: `docs/00_MASTER_ARCHITECTURE_SNAPSHOT.md`.
@@ -320,8 +320,8 @@ All TSX sources: `figma-reference/src/app/components/`
 ### Eventing (`eventing`)
 | Figma TSX | Blazor Route | Status |
 |-----------|-------------|--------|
-| LiveMonitoring.tsx | /monitoring/live | ⚠️ Mock data |
-| MachineOverviewDashboard.tsx | /monitoring/machines | ⚠️ Mock data |
+| LiveMonitoring.tsx | /monitoring/live | ✅ Real API |
+| MachineOverviewDashboard.tsx | /monitoring/machines | ✅ Real API |
 | — | /eventing/alarms | ✅ Real API |
 | — | /eventing/downtimes | ✅ Real API |
 | — | /eventing/oee | ✅ Real API |
@@ -446,7 +446,7 @@ All TSX sources: `figma-reference/src/app/components/`
 - Sidebar redesign (Layout.tsx → NavMenu.razor)
 - Dashboard (ExecutiveDashboard + FactoryDashboard → Dashboard.razor)
 - All list pages Tailwind tables + StatusBadge pills
-- LiveMonitoring + MachineOverview pages (mock data)
+- LiveMonitoring + MachineOverview pages (Sprint 5 Step 1 → real API; was mock in Sprint 2)
 - MONITORING nav section added
 
 ### ✅ Sprint 3a — Engineering Dashboard UI (Mock)
@@ -519,10 +519,9 @@ All TSX sources: `figma-reference/src/app/components/`
 - Tenant default language setting
 - Sprint 6+ new pages built with i18n from the start
 
-### 📋 Sprint 5 — Live Monitoring (Real Data)
-- LiveMonitoring.razor → real DowntimeRecord + OEE
-- MachineOverview.razor → real Machine + OperationalStatus
-- OperatorDashboard.razor
+### 📋 Sprint 5 — Live Monitoring (Real Data) 🚧
+- **Step 1 (done):** LiveMonitoring.razor + MachineOverview.razor → real Eventing + Production API, i18n titles
+- **Steps 2–3 (pending):** SignalR live tiles; OperatorDashboard.razor wiring as planned
 - SignalR hub for real-time dashboard tiles
 
 ### 📋 Sprint 5-W — Live Monitoring Write

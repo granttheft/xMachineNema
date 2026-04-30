@@ -24,7 +24,22 @@ public sealed record QualityCheckRowDto(Guid Id, string CheckType, DateTimeOffse
 
 public sealed record NonconformanceRowDto(Guid Id, Guid QualityCheckId, string NcCode, string Description, string Severity, string NcStatus, string Status);
 
-public sealed record AlarmRowDto(Guid Id, string AlarmCode, string AlarmText, string Severity, string Category, DateTimeOffset StartTime, DateTimeOffset? EndTime, long? DurationMs, Guid? SiteId, Guid? LineId, Guid? MachineId, string AlarmStatus, string Status);
+public sealed record AlarmRowDto(
+    Guid Id,
+    string AlarmCode,
+    string AlarmText,
+    string Severity,
+    string Category,
+    DateTimeOffset StartTime,
+    DateTimeOffset? EndTime,
+    long? DurationMs,
+    Guid? SiteId,
+    Guid? LineId,
+    Guid? MachineId,
+    string AlarmStatus,
+    string Status,
+    Guid? AckBy = null,
+    DateTimeOffset? AckTime = null);
 
 public sealed record DowntimeRowDto(Guid Id, string DowntimeReasonCode, string? DowntimeReasonText, bool PlannedFlag, DateTimeOffset StartTime, DateTimeOffset? EndTime, long? DurationMs, Guid? MachineId, Guid? LineId, Guid? ProductionOrderId, Guid? EnteredBy, string Status);
 

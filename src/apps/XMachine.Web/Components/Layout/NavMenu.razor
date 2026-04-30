@@ -1,8 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
-@using Microsoft.JSInterop
 @using XMachine.Web.Services
 @inject ITranslationService T
-@inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <nav class="shrink-0 flex flex-col h-screen bg-white border-r border-black/10 transition-[width] duration-300 @(_open ? "w-[280px]" : "w-16")"
      style="min-height: 100vh;">
@@ -97,10 +96,10 @@
             @if (_open)
             {
                 <div class="flex flex-wrap gap-1 justify-center">
-                    <button type="button" @onclick='() => SetLanguageAsync("en")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("en") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇬🇧 EN</button>
-                    <button type="button" @onclick='() => SetLanguageAsync("tr")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("tr") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇹🇷 TR</button>
-                    <button type="button" @onclick='() => SetLanguageAsync("de")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("de") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇩🇪 DE</button>
-                    <button type="button" @onclick='() => SetLanguageAsync("pl")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("pl") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇵🇱 PL</button>
+                    <a href="@LangSwitchHref("en")" data-enhance-nav="false" class="px-2 py-1 text-xs font-medium rounded-md no-underline inline-flex items-center justify-center @(LangActive("en") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇬🇧 EN</a>
+                    <a href="@LangSwitchHref("tr")" data-enhance-nav="false" class="px-2 py-1 text-xs font-medium rounded-md no-underline inline-flex items-center justify-center @(LangActive("tr") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇹🇷 TR</a>
+                    <a href="@LangSwitchHref("de")" data-enhance-nav="false" class="px-2 py-1 text-xs font-medium rounded-md no-underline inline-flex items-center justify-center @(LangActive("de") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇩🇪 DE</a>
+                    <a href="@LangSwitchHref("pl")" data-enhance-nav="false" class="px-2 py-1 text-xs font-medium rounded-md no-underline inline-flex items-center justify-center @(LangActive("pl") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇵🇱 PL</a>
                 </div>
             }
             else
@@ -129,12 +128,13 @@
     private bool LangActive(string code) =>
         string.Equals(T.CurrentLanguage, code, StringComparison.OrdinalIgnoreCase);
 
-    private async Task SetLanguageAsync(string langCode)
+    /// <summary>Builds a full navigation URL that sets UI language cookie and returns to the current page.</summary>
+    private string LangSwitchHref(string code)
     {
-        await JS.InvokeVoidAsync(
-            "eval",
-            $"document.cookie='xm_lang={langCode};path=/;max-age=31536000';" +
-            "window.location.reload();");
+        var pathAndQuery = new Uri(Navigation.Uri).PathAndQuery;
+        if (string.IsNullOrEmpty(pathAndQuery))
+            pathAndQuery = "/";
+        return $"/ui-lang/{code}?returnUrl={Uri.EscapeDataString(pathAndQuery)}";
     }
 
     private void Toggle()

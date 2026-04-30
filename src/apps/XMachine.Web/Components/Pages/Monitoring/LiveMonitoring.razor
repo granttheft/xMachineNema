@@ -1,67 +1,251 @@
 @page "/monitoring/live"
 @rendermode InteractiveServer
+@using System.Globalization
+@using XMachine.Web.Services
 @inject XMachineApiClient Api
+@inject ITranslationService T
 
-<PageTitle>Live monitoring</PageTitle>
+<PageTitle>@T["page.live_monitoring.title"]</PageTitle>
 
-<PageHeader Title="Live monitoring"
-            Subtitle="Machine cards derived from open alarms and production orders on shared lines.">
-    <TopSlot>
-        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
-            <ol class="breadcrumb small mb-0">
-                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-                <li class="breadcrumb-item active">Monitoring</li>
-                <li class="breadcrumb-item active">Live</li>
-            </ol>
+<div class="min-h-screen bg-slate-50">
+    <div class="border-b border-slate-200 bg-white px-6 py-4">
+        <nav class="mb-2 text-xs text-slate-500" aria-label="breadcrumb">
+            <a href="/dashboard" class="text-blue-600 hover:underline">Dashboard</a>
+            <span class="mx-1">/</span>
+            <span>Monitoring</span>
+            <span class="mx-1">/</span>
+            <span class="text-slate-800">@T["nav.live_monitoring"]</span>
         </nav>
-    </TopSlot>
-</PageHeader>
+        <h1 class="text-2xl font-semibold text-slate-900">@T["page.live_monitoring.title"]</h1>
+        <p class="mt-1 text-sm text-slate-600">@T["page.live_monitoring.subtitle"]</p>
+    </div>
 
-<ApiStateDisplay Loading="_loading" Error="@_error">
-    @if (_error is null && !_loading && _cards.Count == 0)
-    {
-        <EmptyState Message="No machines could be inferred from alarms or production lines." />
-    }
-    else if (_error is null && !_loading)
-    {
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            @foreach (var c in _cards)
+    <div class="mx-auto max-w-7xl space-y-6 p-6">
+        <!-- KPI strip -->
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
+            @foreach (var k in BuildKpis())
             {
-                <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</div>
-                            <div class="mt-1 truncate text-sm font-semibold text-slate-900">@c.Title</div>
-                        </div>
-                        <StatusBadge Text="@c.StatusLabel" Tone="@c.StatusTone" />
-                    </div>
-                    @if (!string.IsNullOrEmpty(c.OrderHint))
+                <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                    <div class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">@k.Title</div>
+                    @if (k.Loading)
                     {
-                        <div class="mt-2 text-xs text-slate-500">Order <span class="font-mono text-slate-700">@c.OrderHint</span></div>
+                        <div class="mt-2 h-8 animate-pulse rounded bg-slate-100"></div>
                     }
-                    <div class="mt-4 space-y-1.5">
-                        <div class="flex items-center justify-between text-xs text-slate-500">
-                            <span>Progress</span>
-                            <span class="tabular-nums text-slate-700">@c.ProgressPct%</span>
-                        </div>
-                        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                            <div class="h-2 rounded-full bg-blue-600 transition-all" style="width: @(c.ProgressPct)%"></div>
-                        </div>
-                        <div class="flex items-center justify-between pt-1 text-xs text-slate-500">
-                            <span>Efficiency</span>
-                            <span class="tabular-nums font-medium text-slate-900">@c.EfficiencyPct%</span>
-                        </div>
-                    </div>
+                    else if (!string.IsNullOrEmpty(k.Err))
+                    {
+                        <div class="mt-2 text-xs text-red-600">@T["common.error"]</div>
+                    }
+                    else
+                    {
+                        <div class="mt-1 text-xl font-bold tabular-nums text-slate-900">@k.Value</div>
+                    }
                 </div>
             }
         </div>
-    }
-</ApiStateDisplay>
+
+        @if (!string.IsNullOrEmpty(_summaryErr))
+        {
+            <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">@T["page.live_monitoring.summary_eventing"]: @_summaryErr</div>
+        }
+
+        <!-- Active alarms -->
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                <h2 class="text-sm font-semibold text-slate-900">@T["page.live_monitoring.section_alarms"]</h2>
+            </div>
+            <div class="p-4">
+                @if (_loadAlarms)
+                {
+                    <div class="h-32 animate-pulse rounded-lg bg-slate-100"></div>
+                }
+                else if (!string.IsNullOrEmpty(_alarmsErr))
+                {
+                    <p class="text-sm text-red-700">@_alarmsErr</p>
+                }
+                else if (_activeAlarms.Count == 0)
+                {
+                    <p class="text-sm text-slate-600">@T["page.live_monitoring.no_active_alarms"]</p>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_machine"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_code"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_message"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_severity"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_triggered"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_status"]</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                            @foreach (var a in _activeAlarms)
+                            {
+                                <tr class="hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-800">@MachineLabel(a.MachineId)</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm font-mono text-slate-700">@a.AlarmCode</td>
+                                    <td class="max-w-xs truncate px-4 py-2 text-sm text-slate-700" title="@a.AlarmText">@a.AlarmText</td>
+                                    <td class="px-4 py-2 text-sm"><span class="@SeverityBadgeClass(a.Severity) rounded-md px-2 py-0.5 text-xs font-medium">@a.Severity</span></td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-600">@FormatUtc(a.StartTime)</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-700">@a.AlarmStatus</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Downtimes today -->
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                <h2 class="text-sm font-semibold text-slate-900">@T["page.live_monitoring.section_downtimes"]</h2>
+            </div>
+            <div class="p-4">
+                @if (_loadDowntimes)
+                {
+                    <div class="h-32 animate-pulse rounded-lg bg-slate-100"></div>
+                }
+                else if (!string.IsNullOrEmpty(_downtimesErr))
+                {
+                    <p class="text-sm text-red-700">@_downtimesErr</p>
+                }
+                else if (_downtimesToday.Count == 0)
+                {
+                    <p class="text-sm text-slate-600">@T["page.live_monitoring.no_downtime_today"]</p>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_machine"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_reason"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_started"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_duration"]</th>
+                                <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_status"]</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                            @foreach (var d in _downtimesToday)
+                            {
+                                <tr class="hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-800">@MachineLabel(d.MachineId)</td>
+                                    <td class="px-4 py-2 text-sm text-slate-700">@(string.IsNullOrEmpty(d.DowntimeReasonText) ? d.DowntimeReasonCode : d.DowntimeReasonText)</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-600">@FormatUtc(d.StartTime)</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-700">
+                                        @if (d.EndTime is null)
+                                        {
+                                            <span class="inline-flex items-center gap-1 rounded-md bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+                                                <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500"></span>
+                                                @T["page.live_monitoring.ongoing"]
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span>@FormatDowntimeMinutes(d)</span>
+                                        }
+                                    </td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-700">@d.Status</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- OEE by machine -->
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                <h2 class="text-sm font-semibold text-slate-900">@T["page.live_monitoring.section_oee"]</h2>
+            </div>
+            <div class="p-4">
+                @if (_loadOee || _loadMachines)
+                {
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        @for (var i = 0; i < 6; i++)
+                        {
+                            <div class="h-24 animate-pulse rounded-lg bg-slate-100"></div>
+                        }
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(_oeeErr) && _latestOeeByMachine.Count == 0)
+                {
+                    <p class="text-sm text-red-700">@_oeeErr</p>
+                }
+                else if (_oeeMachineTiles.Count == 0)
+                {
+                    <p class="text-sm text-slate-600">@T["page.live_monitoring.no_oee"]</p>
+                }
+                else
+                {
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        @foreach (var t in _oeeMachineTiles)
+                        {
+                            <div class="rounded-lg border border-slate-200 p-4">
+                                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">@t.MachineLabel</div>
+                                @if (t.Snapshot is null)
+                                {
+                                    <div class="mt-2 text-sm text-slate-500">@T["page.live_monitoring.no_oee_data"]</div>
+                                }
+                                else
+                                {
+                                    <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
+                                        <div><span class="text-slate-500">A</span> <span class="font-medium @OeeTextClass(t.Snapshot.Availability)">@Pct(t.Snapshot.Availability)</span></div>
+                                        <div><span class="text-slate-500">P</span> <span class="font-medium @OeeTextClass(t.Snapshot.Performance)">@Pct(t.Snapshot.Performance)</span></div>
+                                        <div><span class="text-slate-500">Q</span> <span class="font-medium @OeeTextClass(t.Snapshot.Quality)">@Pct(t.Snapshot.Quality)</span></div>
+                                        <div><span class="text-slate-500">OEE</span> <span class="font-semibold @OeeTextClass(t.Snapshot.OeeValue)">@Pct(t.Snapshot.OeeValue)</span></div>
+                                    </div>
+                                    <div class="mt-1 text-xs text-slate-400">@FormatUtc(t.Snapshot.PeriodStart)</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
 
 @code {
-    private bool _loading = true;
-    private string? _error;
-    private IReadOnlyList<LiveMachineCardVm> _cards = [];
+    private bool _loadSummary = true;
+    private bool _loadMachines = true;
+    private bool _loadAlarms = true;
+    private bool _loadDowntimes = true;
+    private bool _loadOee = true;
+
+    private string? _summaryErr;
+    private string? _machinesErr;
+    private string? _alarmsErr;
+    private string? _downtimesErr;
+    private string? _oeeErr;
+
+    private EventingSummaryDto? _summary;
+    private List<ApiMachineWithJob> _machines = [];
+    private List<AlarmRowDto> _allAlarms = [];
+    private List<DowntimeRowDto> _allDowntimes = [];
+    private List<OeeRowDto> _allOee = [];
+
+    private IReadOnlyList<AlarmRowDto> _activeAlarms = [];
+    private IReadOnlyList<DowntimeRowDto> _downtimesToday = [];
+    private Dictionary<Guid, OeeRowDto> _latestOeeByMachine = new();
+    private IReadOnlyList<OeeMachineTileVm> _oeeMachineTiles = [];
+
+    private int? _activeAlarmCount;
+    private int? _downtimeTodayMinutes;
+    private decimal? _avgOeePct;
+    private int? _runCount;
+    private int? _pausedCount;
+    private int? _idleCount;
+    private int? _downCount;
+
+    private Dictionary<Guid, string> _machineLabels = new();
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -69,156 +253,185 @@
         if (!firstRender)
             return;
 
-        var tAlarms = Api.GetAlarmsAsync();
-        var tOrders = Api.GetProductionOrdersAsync();
-        await Task.WhenAll(tAlarms, tOrders);
-        var alarmsRes = await tAlarms;
-        var ordersRes = await tOrders;
-        _loading = false;
+        await T.EnsureInitializedAsync();
+        await InvokeAsync(StateHasChanged);
 
-        if (alarmsRes.Error is not null && ordersRes.Error is not null)
-            _error = string.Join("; ", new[] { alarmsRes.Error, ordersRes.Error }.Where(s => !string.IsNullOrEmpty(s)));
-        else
-        {
-            _error = null;
-            _cards = BuildCards(alarmsRes.Data, ordersRes.Data);
-        }
-
-        StateHasChanged();
+        await LoadSummaryAsync();
+        await LoadMachinesAsync();
+        await LoadAlarmsAsync();
+        await LoadDowntimesAsync();
+        await LoadOeeAsync();
+        RebuildDerived();
+        await InvokeAsync(StateHasChanged);
     }
 
-    /// <summary>
-    /// View model for a single live machine card.
-    /// </summary>
-    private sealed record LiveMachineCardVm(
-        string Title,
-        string StatusLabel,
-        StatusBadgeTone StatusTone,
-        int EfficiencyPct,
-        int ProgressPct,
-        string? OrderHint);
-
-    /// <summary>
-    /// Derives machine cards from alarm and production order rows.
-    /// </summary>
-    private static IReadOnlyList<LiveMachineCardVm> BuildCards(
-        List<AlarmRowDto>? alarms,
-        List<ProductionOrderRowDto>? orders)
+    private async Task LoadSummaryAsync()
     {
-        alarms ??= [];
-        orders ??= [];
+        var res = await Api.GetEventingSummaryAsync();
+        _loadSummary = false;
+        _summaryErr = res.Error;
+        _summary = res.Data;
+        RebuildDerived();
+        await InvokeAsync(StateHasChanged);
+    }
 
-        var machineIds = alarms
-            .Where(a => a.MachineId.HasValue)
-            .Select(a => a.MachineId!.Value)
-            .Distinct()
+    private async Task LoadMachinesAsync()
+    {
+        var res = await Api.GetProductionMachinesAsync();
+        _loadMachines = false;
+        _machinesErr = res.Error;
+        _machines = res.Data ?? [];
+        _machineLabels = _machines.ToDictionary(m => m.Id, m => $"{m.Code} · {m.Name}");
+        RebuildDerived();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAlarmsAsync()
+    {
+        var res = await Api.GetAlarmsAsync();
+        _loadAlarms = false;
+        _alarmsErr = res.Error;
+        _allAlarms = res.Data ?? [];
+        RebuildDerived();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadDowntimesAsync()
+    {
+        var res = await Api.GetDowntimesAsync();
+        _loadDowntimes = false;
+        _downtimesErr = res.Error;
+        _allDowntimes = res.Data ?? [];
+        RebuildDerived();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadOeeAsync()
+    {
+        var res = await Api.GetOeeSnapshotsAsync();
+        _loadOee = false;
+        _oeeErr = res.Error;
+        _allOee = res.Data ?? [];
+        RebuildDerived();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RebuildDerived()
+    {
+        var todayStart = new DateTimeOffset(DateTime.UtcNow.Date, TimeSpan.Zero);
+        var todayEnd = todayStart.AddDays(1);
+
+        _activeAlarms = _allAlarms
+            .Where(a => a.EndTime is null)
+            .OrderByDescending(a => a.StartTime)
+            .Take(10)
+            .ToList();
+        _activeAlarmCount = _allAlarms.Count(a => a.EndTime is null);
+
+        _downtimesToday = _allDowntimes
+            .Where(d => d.StartTime >= todayStart && d.StartTime < todayEnd)
+            .OrderByDescending(d => d.StartTime)
             .Take(10)
             .ToList();
 
-        if (machineIds.Count > 0)
+        _downtimeTodayMinutes = 0;
+        foreach (var d in _allDowntimes.Where(x => x.StartTime >= todayStart && x.StartTime < todayEnd))
         {
-            var list = new List<LiveMachineCardVm>();
-            foreach (var machineId in machineIds)
-            {
-                var lineId = alarms.FirstOrDefault(a => a.MachineId == machineId)?.LineId;
-                var openForMachine = alarms.Where(a => a.MachineId == machineId && a.EndTime is null).ToList();
-                var (label, tone) = ResolveMachineStatus(openForMachine);
-
-                var lineOrders = orders
-                    .Where(o => lineId is not null && o.LineId == lineId)
-                    .ToList();
-                if (lineOrders.Count == 0 && lineId is null)
-                {
-                    var siteId = alarms.FirstOrDefault(a => a.MachineId == machineId)?.SiteId;
-                    if (siteId is not null)
-                        lineOrders = orders.Where(o => o.SiteId == siteId).ToList();
-                }
-
-                var (progress, orderNo) = OrderProgress(lineOrders);
-                list.Add(new LiveMachineCardVm(
-                    $"Machine {machineId.ToString("N")[..8]}",
-                    label,
-                    tone,
-                    progress,
-                    progress,
-                    orderNo));
-            }
-
-            return list;
+            if (d.DurationMs is long ms && ms > 0)
+                _downtimeTodayMinutes += (int)(ms / 60000);
+            else if (d.EndTime is { } end)
+                _downtimeTodayMinutes += (int)Math.Max(0, (end - d.StartTime).TotalMinutes);
+            else
+                _downtimeTodayMinutes += (int)Math.Max(0, (DateTimeOffset.UtcNow - d.StartTime).TotalMinutes);
         }
 
-        var lineIds = orders
-            .Where(o => o.LineId.HasValue)
-            .Select(o => o.LineId!.Value)
-            .Distinct()
-            .Take(8)
-            .ToList();
+        _latestOeeByMachine = new Dictionary<Guid, OeeRowDto>();
+        foreach (var row in _allOee.OrderByDescending(x => x.PeriodStart))
+        {
+            if (row.MachineId is not { } mid)
+                continue;
+            if (!_latestOeeByMachine.ContainsKey(mid))
+                _latestOeeByMachine[mid] = row;
+        }
 
-        return lineIds
-            .Select(lineId =>
-            {
-                var lineOrders = orders.Where(o => o.LineId == lineId).ToList();
-                var (progress, orderNo) = OrderProgress(lineOrders);
-                var running = lineOrders.Any(o =>
-                    o.OrderStatus.Contains("Run", StringComparison.OrdinalIgnoreCase) ||
-                    o.OrderStatus.Contains("Progress", StringComparison.OrdinalIgnoreCase));
-                var label = running ? "Running" : "Idle";
-                var tone = running ? StatusBadgeTone.Success : StatusBadgeTone.Warning;
-                return new LiveMachineCardVm(
-                    $"Line {lineId.ToString("N")[..8]}",
-                    label,
-                    tone,
-                    progress,
-                    progress,
-                    orderNo);
-            })
+        var oeeValues = _latestOeeByMachine.Values.Select(x => NormalizeOeePercent(x.OeeValue)).Where(v => v >= 0).ToList();
+        _avgOeePct = oeeValues.Count == 0 ? null : Math.Round(oeeValues.Average(), 1);
+
+        _runCount = _machines.Count(m => string.Equals(m.OperationalStatus, "Running", StringComparison.OrdinalIgnoreCase));
+        _pausedCount = _machines.Count(m =>
+            m.ActiveJob is { } j && string.Equals(j.ExecutionStatus, "Paused", StringComparison.OrdinalIgnoreCase));
+        _idleCount = _machines.Count(m => string.Equals(m.OperationalStatus, "Idle", StringComparison.OrdinalIgnoreCase));
+        _downCount = _machines.Count(m =>
+            string.Equals(m.OperationalStatus, "Down", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(m.OperationalStatus, "PmDue", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(m.OperationalStatus, "WaitingParts", StringComparison.OrdinalIgnoreCase));
+
+        _oeeMachineTiles = _machines
+            .OrderBy(m => m.Code)
+            .Take(12)
+            .Select(m => new OeeMachineTileVm(
+                _machineLabels.GetValueOrDefault(m.Id, m.Code),
+                _latestOeeByMachine.TryGetValue(m.Id, out var snap) ? snap : null))
             .ToList();
     }
 
-    /// <summary>
-    /// Maps open alarms for a machine to a coarse status label and badge tone.
-    /// </summary>
-    private static (string Label, StatusBadgeTone Tone) ResolveMachineStatus(IReadOnlyList<AlarmRowDto> openAlarms)
+    private sealed record OeeMachineTileVm(string MachineLabel, OeeRowDto? Snapshot);
+
+    private IEnumerable<(string Title, string Value, bool Loading, string? Err)> BuildKpis()
     {
-        if (openAlarms.Count == 0)
-            return ("Running", StatusBadgeTone.Success);
-
-        if (openAlarms.Any(a => IsCriticalSeverity(a.Severity)))
-            return ("Down", StatusBadgeTone.Danger);
-
-        return ("Idle", StatusBadgeTone.Warning);
+        yield return (T["page.live_monitoring.kpi_eventing_total"], _summary?.Alarms.ToString(CultureInfo.InvariantCulture) ?? "—", _loadSummary, _summaryErr);
+        yield return (T["page.live_monitoring.kpi_active_alarms"], _activeAlarmCount?.ToString(CultureInfo.InvariantCulture) ?? "—", _loadAlarms, _alarmsErr);
+        yield return (T["page.live_monitoring.kpi_downtime_today_min"], _downtimeTodayMinutes?.ToString(CultureInfo.InvariantCulture) ?? "—", _loadDowntimes, _downtimesErr);
+        yield return (T["page.live_monitoring.kpi_avg_oee"], _avgOeePct is null ? "—" : $"{_avgOeePct:0}%", _loadOee, _oeeErr);
+        yield return (T["page.live_monitoring.kpi_running"], _runCount?.ToString(CultureInfo.InvariantCulture) ?? "—", _loadMachines, _machinesErr);
+        yield return (T["page.live_monitoring.kpi_paused"], _pausedCount?.ToString(CultureInfo.InvariantCulture) ?? "—", _loadMachines, _machinesErr);
+        yield return (T["page.live_monitoring.kpi_idle"], _idleCount?.ToString(CultureInfo.InvariantCulture) ?? "—", _loadMachines, _machinesErr);
+        yield return (T["page.live_monitoring.kpi_down"], _downCount?.ToString(CultureInfo.InvariantCulture) ?? "—", _loadMachines, _machinesErr);
     }
 
-    /// <summary>
-    /// Returns true when the alarm severity should be treated as down / critical.
-    /// </summary>
-    private static bool IsCriticalSeverity(string severity)
+    private string MachineLabel(Guid? machineId) =>
+        machineId is { } id && _machineLabels.TryGetValue(id, out var label) ? label : machineId?.ToString("N")[..8] ?? "—";
+
+    private static string FormatUtc(DateTimeOffset t) =>
+        t.ToUniversalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC";
+
+    private static string FormatDowntimeMinutes(DowntimeRowDto d)
+    {
+        if (d.DurationMs is long ms && ms > 0)
+            return $"{ms / 60000} min";
+        if (d.EndTime is { } end)
+            return $"{(int)Math.Round((end - d.StartTime).TotalMinutes)} min";
+        return "—";
+    }
+
+    private static string SeverityBadgeClass(string severity)
     {
         var s = severity.ToLowerInvariant();
-        return s.Contains("crit") || s.Contains("fatal") || s.Contains("high");
+        if (s.Contains("crit") || s.Contains("fatal"))
+            return "bg-red-100 text-red-800";
+        if (s.Contains("high"))
+            return "bg-orange-100 text-orange-800";
+        if (s.Contains("med") || s.Contains("warn"))
+            return "bg-yellow-100 text-yellow-800";
+        if (s.Contains("low") || s.Contains("info"))
+            return "bg-blue-100 text-blue-800";
+        return "bg-slate-100 text-slate-700";
     }
 
-    /// <summary>
-    /// Computes average completion ratio and picks a representative order number.
-    /// </summary>
-    private static (int ProgressPct, string? OrderNo) OrderProgress(IReadOnlyList<ProductionOrderRowDto> lineOrders)
+    private static decimal NormalizeOeePercent(decimal v) =>
+        v is > 0m and <= 1m ? v * 100m : v;
+
+    private static string OeeTextClass(decimal v)
     {
-        if (lineOrders.Count == 0)
-            return (0, null);
+        var p = NormalizeOeePercent(v);
+        if (p >= 85m) return "text-green-600";
+        if (p >= 65m) return "text-yellow-600";
+        return "text-red-600";
+    }
 
-        decimal sum = 0;
-        var n = 0;
-        foreach (var o in lineOrders)
-        {
-            if (o.QuantityPlanned <= 0)
-                continue;
-            sum += decimal.Min(1m, o.QuantityCompleted / o.QuantityPlanned);
-            n++;
-        }
-
-        var pct = n == 0 ? 0 : (int)Math.Round((double)(sum / n) * 100.0);
-        pct = Math.Clamp(pct, 0, 100);
-        var order = lineOrders.FirstOrDefault()?.OrderNo;
-        return (pct, order);
+    private static string Pct(decimal v)
+    {
+        var p = NormalizeOeePercent(v);
+        return $"{Math.Round(p, 1)}%";
     }
 }

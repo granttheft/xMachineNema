@@ -19,7 +19,7 @@ public sealed class TranslationService : ITranslationService
 
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IWebHostEnvironment _environment;
-    private readonly IDbContextFactory<XMachineDbContext> _dbContextFactory;
+    private readonly XMachineDbContext _db;
     private readonly ICurrentUser _currentUser;
     private readonly ILogger<TranslationService> _logger;
 
@@ -27,16 +27,17 @@ public sealed class TranslationService : ITranslationService
     private Dictionary<string, string> _strings = new(StringComparer.Ordinal);
     private bool _initialized;
 
+    /// <summary>Creates the translation service (scoped <see cref="XMachineDbContext"/> for override reads).</summary>
     public TranslationService(
         IHttpContextAccessor httpContextAccessor,
         IWebHostEnvironment environment,
-        IDbContextFactory<XMachineDbContext> dbContextFactory,
+        XMachineDbContext db,
         ICurrentUser currentUser,
         ILogger<TranslationService> logger)
     {
         _httpContextAccessor = httpContextAccessor;
         _environment = environment;
-        _dbContextFactory = dbContextFactory;
+        _db = db;
         _currentUser = currentUser;
         _logger = logger;
     }
@@ -112,8 +113,7 @@ public sealed class TranslationService : ITranslationService
             var tenantId = _currentUser.TenantId;
             if (tenantId is not null)
             {
-                using var db = _dbContextFactory.CreateDbContext();
-                var rows = db.TenantTranslationOverrides.AsNoTracking()
+                var rows = _db.TenantTranslationOverrides.AsNoTracking()
                     .Where(x =>
                         x.TenantId == tenantId &&
                         x.LanguageCode == lang &&

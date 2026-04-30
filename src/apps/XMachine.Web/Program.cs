@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using XMachine.Module.Auth.Security;
 using XMachine.Persistence.Operational;
@@ -46,9 +47,6 @@ if (string.IsNullOrWhiteSpace(operationalDbCs))
 }
 
 builder.Services.AddDbContext<XMachineDbContext>(options =>
-    options.UseNpgsql(operationalDbCs));
-
-builder.Services.AddDbContextFactory<XMachineDbContext>(options =>
     options.UseNpgsql(operationalDbCs));
 
 builder.Services.AddScoped<ITranslationService, TranslationService>();
@@ -101,6 +99,33 @@ app.MapGet("/auth/logout", async (HttpContext ctx) =>
 {
     await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/");
+}).AllowAnonymous();
+
+app.MapGet("/ui-lang/{code}", (HttpContext http, string code, string? returnUrl) =>
+{
+    var c = code.Trim().ToLowerInvariant();
+    if (c is not ("en" or "tr" or "de" or "pl"))
+        return Results.BadRequest();
+    var dest = "/";
+    if (!string.IsNullOrEmpty(returnUrl)
+        && returnUrl.StartsWith('/')
+        && !returnUrl.StartsWith("//", StringComparison.Ordinal)
+        && !returnUrl.Contains("://", StringComparison.Ordinal))
+    {
+        dest = returnUrl;
+    }
+    http.Response.Cookies.Append(
+        "xm_lang",
+        c,
+        new CookieOptions
+        {
+            Path = "/",
+            MaxAge = TimeSpan.FromDays(365),
+            IsEssential = true,
+            SameSite = SameSiteMode.Lax,
+            HttpOnly = true,
+        });
+    return Results.Redirect(dest);
 }).AllowAnonymous();
 
 app.MapStaticAssets();

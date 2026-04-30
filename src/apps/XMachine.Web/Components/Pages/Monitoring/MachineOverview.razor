@@ -1,80 +1,145 @@
 @page "/monitoring/machines"
 @rendermode InteractiveServer
+@using System.Globalization
+@using XMachine.Web.Services
+@inject XMachineApiClient Api
+@inject ITranslationService T
 
-<PageTitle>Machine overview</PageTitle>
+<PageTitle>@T["page.machine_overview.title"]</PageTitle>
 
-<PageHeader Title="Machine overview"
-            Subtitle="Mock fleet view until PLC connectors are wired to live telemetry.">
-    <TopSlot>
-        <nav aria-label="breadcrumb" class="xm-breadcrumb-nav">
-            <ol class="breadcrumb small mb-0">
-                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
-                <li class="breadcrumb-item active">Monitoring</li>
-                <li class="breadcrumb-item active">Machines</li>
-            </ol>
+<div class="min-h-screen bg-slate-50">
+    <div class="border-b border-slate-200 bg-white px-6 py-4">
+        <nav class="mb-2 text-xs text-slate-500" aria-label="breadcrumb">
+            <a href="/dashboard" class="text-blue-600 hover:underline">Dashboard</a>
+            <span class="mx-1">/</span>
+            <span>Monitoring</span>
+            <span class="mx-1">/</span>
+            <span class="text-slate-800">@T["nav.machine_overview"]</span>
         </nav>
-    </TopSlot>
-</PageHeader>
+        <h1 class="text-2xl font-semibold text-slate-900">@T["page.machine_overview.title"]</h1>
+        <p class="mt-1 text-sm text-slate-600">@T["page.machine_overview.subtitle"]</p>
+    </div>
 
-<ApiStateDisplay Loading="_loading" Error="@_error">
-    @if (_error is null && !_loading)
-    {
-        <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total</div>
-                <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900">@_rows.Count</div>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Running</div>
-                <div class="mt-1 text-2xl font-bold tabular-nums text-green-700">@_rows.Count(r => r.Status == "Running")</div>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Idle</div>
-                <div class="mt-1 text-2xl font-bold tabular-nums text-amber-700">@_rows.Count(r => r.Status == "Idle")</div>
-            </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Down</div>
-                <div class="mt-1 text-2xl font-bold tabular-nums text-red-700">@_rows.Count(r => r.Status == "Down")</div>
-            </div>
-        </div>
-
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-slate-100">
-                    <thead class="bg-slate-50">
-                    <tr>
-                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Machine</th>
-                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
-                        <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Current order</th>
-                    </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 bg-white">
-                    @foreach (var r in _rows)
+    <div class="mx-auto max-w-7xl space-y-6 p-6">
+        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            @foreach (var k in BuildSummaryKpis())
+            {
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">@k.Title</div>
+                    @if (k.Loading)
                     {
-                        <tr class="transition-colors hover:bg-slate-50">
-                            <td class="px-4 py-3 text-sm font-medium text-slate-900">@r.Name</td>
-                            <td class="px-4 py-3 text-sm text-slate-700">
-                                <StatusBadge Text="@r.Status" Tone="@StatusTone(r.Status)" />
-                            </td>
-                            <td class="px-4 py-3 text-sm text-slate-600">@(r.CurrentOrder ?? "—")</td>
-                        </tr>
+                        <div class="mt-2 h-9 animate-pulse rounded bg-slate-100"></div>
                     }
-                    </tbody>
-                </table>
-            </div>
+                    else if (!string.IsNullOrEmpty(k.Err))
+                    {
+                        <div class="mt-2 text-xs text-red-600">@T["common.error"]</div>
+                    }
+                    else
+                    {
+                        <div class="mt-1 text-2xl font-bold tabular-nums text-slate-900">@k.Value</div>
+                    }
+                </div>
+            }
         </div>
-    }
-</ApiStateDisplay>
+
+        @if (_loadMachines && _machines.Count == 0)
+        {
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @for (var i = 0; i < 6; i++)
+                {
+                    <div class="h-56 animate-pulse rounded-xl border border-slate-200 bg-slate-100"></div>
+                }
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(_machinesErr) && _machines.Count == 0)
+        {
+            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">@_machinesErr</div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @foreach (var m in _machines.OrderBy(x => x.Code))
+                {
+                    var border = BorderClass(m.OperationalStatus);
+                    var ac = _activeAlarmCountByMachine.GetValueOrDefault(m.Id, 0);
+                    _latestOeeByMachine.TryGetValue(m.Id, out var snap);
+                    <div class="rounded-xl border-2 bg-white p-5 shadow-sm @border">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="font-mono text-sm font-semibold text-slate-900">@m.Code</div>
+                                <div class="truncate text-sm text-slate-600">@m.Name</div>
+                            </div>
+                            <span class="@OpStatusBadgeClass(m.OperationalStatus) shrink-0 rounded-md px-2 py-0.5 text-xs font-medium">@m.OperationalStatus</span>
+                        </div>
+
+                        <div class="mt-4 border-t border-slate-100 pt-3">
+                            @if (m.ActiveJob is { } job)
+                            {
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-xs font-medium text-slate-500">@job.JobNo</span>
+                                    <span class="@JobStatusBadgeClass(job.ExecutionStatus) rounded-md px-2 py-0.5 text-xs font-medium">@job.ExecutionStatus</span>
+                                </div>
+                                <div class="mt-2 text-xs text-slate-500">@T["page.machine_overview.progress"]</div>
+                                <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                                    <div class="h-2 rounded-full bg-blue-600" style="width: @(JobProgressPct(job))%"></div>
+                                </div>
+                                <div class="mt-1 text-xs text-slate-600">
+                                    @T["page.machine_overview.operator"]:
+                                    @(job.OperatorId is { } oid ? $"{oid:N}"[..8] + "…" : "—")
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-slate-500">@T["page.machine_overview.no_job"]</p>
+                            }
+                        </div>
+
+                        <div class="mt-4 border-t border-slate-100 pt-3">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">OEE</div>
+                            @if (snap is null)
+                            {
+                                <div class="mt-1 text-sm text-slate-400">— / — / — / —</div>
+                            }
+                            else
+                            {
+                                <div class="mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+                                    <span><span class="text-slate-500">@T["page.machine_overview.lbl_a"]</span> <span class="font-medium @OeeTextClass(snap.Availability)">@FmtPct(snap.Availability)</span></span>
+                                    <span><span class="text-slate-500">@T["page.machine_overview.lbl_p"]</span> <span class="font-medium @OeeTextClass(snap.Performance)">@FmtPct(snap.Performance)</span></span>
+                                    <span><span class="text-slate-500">@T["page.machine_overview.lbl_q"]</span> <span class="font-medium @OeeTextClass(snap.Quality)">@FmtPct(snap.Quality)</span></span>
+                                    <span><span class="text-slate-500">@T["page.machine_overview.lbl_oee"]</span> <span class="font-semibold @OeeTextClass(snap.OeeValue)">@FmtPct(snap.OeeValue)</span></span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mt-3">
+                            @if (ac > 0)
+                            {
+                                <span class="inline-flex items-center rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900">
+                                    @string.Format(CultureInfo.InvariantCulture, T["page.machine_overview.badges_alarms"], ac)
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
 
 @code {
-    private bool _loading = true;
-    private string? _error;
-    private IReadOnlyList<MockMachineRow> _rows = [];
+    private bool _loadMachines = true;
+    private bool _loadAlarms = true;
 
-    /// <summary>
-    /// Static mock machine row for the overview table.
-    /// </summary>
-    private sealed record MockMachineRow(string Name, string Status, string? CurrentOrder);
+    private string? _machinesErr;
+    private string? _oeeErr;
+    private string? _alarmsErr;
+
+    private List<ApiMachineWithJob> _machines = [];
+    private List<OeeRowDto> _allOee = [];
+    private List<AlarmRowDto> _allAlarms = [];
+
+    private Dictionary<Guid, OeeRowDto> _latestOeeByMachine = new();
+    private Dictionary<Guid, int> _activeAlarmCountByMachine = new();
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -82,29 +147,123 @@
         if (!firstRender)
             return;
 
-        await Task.CompletedTask;
-        _error = null;
-        _rows =
-        [
-            new MockMachineRow("CNC Assembly A", "Running", "PO-2847"),
-            new MockMachineRow("Press Line 2", "Idle", null),
-            new MockMachineRow("Packaging Cell B", "Running", "PO-2901"),
-            new MockMachineRow("Welding Station 4", "Down", "PO-2799"),
-            new MockMachineRow("Mixer Train 1", "Running", null),
-            new MockMachineRow("QC Buffer", "Idle", "PO-2910"),
-        ];
-        _loading = false;
-        StateHasChanged();
+        await T.EnsureInitializedAsync();
+        await InvokeAsync(StateHasChanged);
+
+        await LoadMachinesAsync();
+        await LoadOeeAsync();
+        await LoadAlarmsAsync();
+        RebuildLookups();
+        await InvokeAsync(StateHasChanged);
     }
 
-    /// <summary>
-    /// Maps mock status strings to badge tones.
-    /// </summary>
-    private static StatusBadgeTone StatusTone(string status) => status switch
+    private async Task LoadMachinesAsync()
     {
-        "Running" => StatusBadgeTone.Success,
-        "Idle" => StatusBadgeTone.Warning,
-        "Down" => StatusBadgeTone.Danger,
-        _ => StatusBadgeTone.Neutral,
+        var res = await Api.GetProductionMachinesAsync();
+        _loadMachines = false;
+        _machinesErr = res.Error;
+        _machines = res.Data ?? [];
+        RebuildLookups();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadOeeAsync()
+    {
+        var res = await Api.GetOeeSnapshotsAsync();
+        _oeeErr = res.Error;
+        _allOee = res.Data ?? [];
+        RebuildLookups();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAlarmsAsync()
+    {
+        var res = await Api.GetAlarmsAsync();
+        _loadAlarms = false;
+        _alarmsErr = res.Error;
+        _allAlarms = res.Data ?? [];
+        RebuildLookups();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RebuildLookups()
+    {
+        _latestOeeByMachine = new Dictionary<Guid, OeeRowDto>();
+        foreach (var row in _allOee.OrderByDescending(x => x.PeriodStart))
+        {
+            if (row.MachineId is not { } mid)
+                continue;
+            if (!_latestOeeByMachine.ContainsKey(mid))
+                _latestOeeByMachine[mid] = row;
+        }
+
+        _activeAlarmCountByMachine = _allAlarms
+            .Where(a => a.EndTime is null && a.MachineId is not null)
+            .GroupBy(a => a.MachineId!.Value)
+            .ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    private IEnumerable<(string Title, string Value, bool Loading, string? Err)> BuildSummaryKpis()
+    {
+        var total = _machines.Count.ToString(CultureInfo.InvariantCulture);
+        var running = _machines.Count(m => string.Equals(m.OperationalStatus, "Running", StringComparison.OrdinalIgnoreCase))
+            .ToString(CultureInfo.InvariantCulture);
+        var down = _machines.Count(m =>
+                string.Equals(m.OperationalStatus, "Down", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.OperationalStatus, "PmDue", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.OperationalStatus, "WaitingParts", StringComparison.OrdinalIgnoreCase))
+            .ToString(CultureInfo.InvariantCulture);
+        var withAlarms = _machines.Count(m => _activeAlarmCountByMachine.GetValueOrDefault(m.Id, 0) > 0)
+            .ToString(CultureInfo.InvariantCulture);
+
+        yield return (T["page.machine_overview.kpi_total"], total, _loadMachines, _machinesErr);
+        yield return (T["page.machine_overview.kpi_running"], running, _loadMachines, _machinesErr);
+        yield return (T["page.machine_overview.kpi_down"], down, _loadMachines, _machinesErr);
+        yield return (T["page.machine_overview.kpi_with_alarms"], withAlarms, _loadMachines || _loadAlarms, _machinesErr ?? _alarmsErr);
+    }
+
+    private static int JobProgressPct(ApiActiveJob job)
+    {
+        if (job.PlannedQty <= 0)
+            return 0;
+        var p = (int)Math.Round(100.0 * job.ProducedQty / (double)job.PlannedQty);
+        return Math.Clamp(p, 0, 100);
+    }
+
+    private static string BorderClass(string op) => op switch
+    {
+        var x when string.Equals(x, "Running", StringComparison.OrdinalIgnoreCase) => "border-green-200",
+        var x when string.Equals(x, "Idle", StringComparison.OrdinalIgnoreCase) => "border-slate-200",
+        var x when string.Equals(x, "Down", StringComparison.OrdinalIgnoreCase) => "border-red-200",
+        var x when string.Equals(x, "PmDue", StringComparison.OrdinalIgnoreCase) => "border-orange-200",
+        var x when string.Equals(x, "WaitingParts", StringComparison.OrdinalIgnoreCase) => "border-yellow-200",
+        _ => "border-slate-200",
     };
+
+    private static string OpStatusBadgeClass(string op) => op switch
+    {
+        var x when string.Equals(x, "Running", StringComparison.OrdinalIgnoreCase) => "bg-green-100 text-green-800",
+        var x when string.Equals(x, "Idle", StringComparison.OrdinalIgnoreCase) => "bg-slate-100 text-slate-600",
+        var x when string.Equals(x, "Down", StringComparison.OrdinalIgnoreCase) => "bg-red-100 text-red-800",
+        var x when string.Equals(x, "PmDue", StringComparison.OrdinalIgnoreCase) => "bg-orange-100 text-orange-800",
+        var x when string.Equals(x, "WaitingParts", StringComparison.OrdinalIgnoreCase) => "bg-yellow-100 text-yellow-800",
+        _ => "bg-slate-100 text-slate-700",
+    };
+
+    private static string JobStatusBadgeClass(string exec) =>
+        string.Equals(exec, "Running", StringComparison.OrdinalIgnoreCase) ? "bg-green-100 text-green-800"
+        : string.Equals(exec, "Paused", StringComparison.OrdinalIgnoreCase) ? "bg-amber-100 text-amber-900"
+        : "bg-slate-100 text-slate-700";
+
+    private static decimal NormalizePct(decimal v) => v is > 0m and <= 1m ? v * 100m : v;
+
+    private static string OeeTextClass(decimal v)
+    {
+        var p = NormalizePct(v);
+        if (p >= 85m) return "text-green-600";
+        if (p >= 65m) return "text-yellow-600";
+        return "text-red-600";
+    }
+
+    private static string FmtPct(decimal v) => $"{Math.Round(NormalizePct(v), 1)}%";
 }
