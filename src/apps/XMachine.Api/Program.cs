@@ -10,6 +10,7 @@ using XMachine.Api.Commercial;
 using XMachine.Api.Workflow;
 using XMachine.Api.Engineering;
 using XMachine.Api.Production;
+using XMachine.Api.Admin;
 using XMachine.Connectors.Runtime;
 using XMachine.Module.Auth.Security;
 using Microsoft.AspNetCore.DataProtection;
@@ -125,5 +126,6 @@ app.MapCommercialEndpoints();
 app.MapWorkflowEndpoints();
 app.MapEngineeringEndpoints();
 app.MapProductionEndpoints();
+app.MapLanguageEndpoints();
 
 app.Run();

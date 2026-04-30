@@ -5,6 +5,7 @@
 @using XMachine.Web.Services
 @inject ApiConnectivityState ApiConnectivity
 @inject IWebHostEnvironment HostEnv
+@inject ITranslationService T
 
 <div class="flex h-screen overflow-hidden bg-slate-50">
     <NavMenu />
@@ -54,7 +55,9 @@
                     </div>
                 </div>
             }
-            @Body
+            <CascadingValue Value="T" Name="Translation">
+                @Body
+            </CascadingValue>
         </main>
     </div>
 </div>
@@ -70,6 +73,9 @@
     {
         if (!firstRender)
             return;
+
+        await T.EnsureInitializedAsync();
+        await InvokeAsync(StateHasChanged);
 
         var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 25;
         while (!ApiConnectivity.HasResult && Stopwatch.GetTimestamp() < deadline)

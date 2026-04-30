@@ -87,5 +87,22 @@
   "lang.en": "İngilizce",
   "lang.tr": "Türkçe",
   "lang.de": "Almanca",
-  "lang.pl": "Lehçe"
+  "lang.pl": "Lehçe",
+  "page.languages_mgmt.title": "Dil Yönetimi",
+  "page.languages_mgmt.subtitle": "Çok dilli destek ve çeviri geçersiz kılmalarını yönetin",
+  "page.languages_mgmt.view_overrides": "Geçersiz Kılmaları Görüntüle",
+  "page.languages_mgmt.translation_overrides": "Çeviri Geçersiz Kılmaları",
+  "page.languages_mgmt.add_override": "Geçersiz Kılma Ekle",
+  "page.languages_mgmt.table.key": "Anahtar",
+  "page.languages_mgmt.table.translation": "Çeviri",
+  "page.languages_mgmt.table.actions": "İşlemler",
+  "page.languages_mgmt.empty": "Bu dil için özel geçersiz kılma yok. Yerel dosyadaki varsayılan çeviriler kullanılır.",
+  "page.languages_mgmt.modal_title": "Çeviri geçersiz kılması ekle",
+  "page.languages_mgmt.key_label": "Anahtar",
+  "page.languages_mgmt.value_label": "Çeviri",
+  "page.languages_mgmt.key_placeholder": "örn. nav.dashboard",
+  "page.languages_mgmt.success_saved": "Geçersiz kılma kaydedildi.",
+  "page.languages_mgmt.success_deleted": "Geçersiz kılma kaldırıldı.",
+  "page.languages_mgmt.error_load": "Dil verisi yüklenemedi.",
+  "page.languages_mgmt.error_save": "Geçersiz kılma kaydedilemedi."
 }

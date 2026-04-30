@@ -87,5 +87,22 @@
   "lang.en": "English",
   "lang.tr": "Türkçe",
   "lang.de": "Deutsch",
-  "lang.pl": "Polski"
+  "lang.pl": "Polski",
+  "page.languages_mgmt.title": "Language Management",
+  "page.languages_mgmt.subtitle": "Manage multi-language support and translation overrides",
+  "page.languages_mgmt.view_overrides": "View Overrides",
+  "page.languages_mgmt.translation_overrides": "Translation Overrides",
+  "page.languages_mgmt.add_override": "Add Override",
+  "page.languages_mgmt.table.key": "Key",
+  "page.languages_mgmt.table.translation": "Translation",
+  "page.languages_mgmt.table.actions": "Actions",
+  "page.languages_mgmt.empty": "No custom overrides for this language. The default translations from the locale file are used.",
+  "page.languages_mgmt.modal_title": "Add translation override",
+  "page.languages_mgmt.key_label": "Key",
+  "page.languages_mgmt.value_label": "Translation",
+  "page.languages_mgmt.key_placeholder": "e.g. nav.dashboard",
+  "page.languages_mgmt.success_saved": "Override saved.",
+  "page.languages_mgmt.success_deleted": "Override removed.",
+  "page.languages_mgmt.error_load": "Could not load language data.",
+  "page.languages_mgmt.error_save": "Could not save override."
 }

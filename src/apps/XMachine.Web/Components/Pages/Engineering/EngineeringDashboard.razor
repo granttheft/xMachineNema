@@ -3,6 +3,7 @@
 @using System.Globalization
 @using Microsoft.AspNetCore.Components
 @inject XMachineApiClient Api
+@inject ITranslationService T
 
 <PageTitle>Engineering Dashboard · xMachine</PageTitle>
 
@@ -37,7 +38,8 @@ else
     <div class="bg-white border-b border-slate-200 px-6 py-4">
         <div class="flex justify-between items-center flex-wrap gap-4">
             <div>
-                <h1 class="text-2xl font-semibold text-slate-900">Engineering Dashboard</h1>
+                <h1 class="text-2xl font-semibold text-slate-900">@T["page.engineering.title"]</h1>
+                <p class="text-sm text-slate-500 mt-1">@T["page.engineering.subtitle"]</p>
             </div>
 
             <div class="flex items-center gap-3 flex-wrap">
@@ -358,6 +360,8 @@ else
     {
         if (!firstRender)
             return;
+
+        await T.EnsureInitializedAsync();
 
         try
         {

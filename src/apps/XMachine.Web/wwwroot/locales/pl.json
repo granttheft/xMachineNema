@@ -87,5 +87,22 @@
   "lang.en": "Angielski",
   "lang.tr": "Turecki",
   "lang.de": "Niemiecki",
-  "lang.pl": "Polski"
+  "lang.pl": "Polski",
+  "page.languages_mgmt.title": "Zarządzanie językami",
+  "page.languages_mgmt.subtitle": "Obsługa wielu języków i nadpisania tłumaczeń",
+  "page.languages_mgmt.view_overrides": "Pokaż nadpisania",
+  "page.languages_mgmt.translation_overrides": "Nadpisania tłumaczeń",
+  "page.languages_mgmt.add_override": "Dodaj nadpisanie",
+  "page.languages_mgmt.table.key": "Klucz",
+  "page.languages_mgmt.table.translation": "Tłumaczenie",
+  "page.languages_mgmt.table.actions": "Akcje",
+  "page.languages_mgmt.empty": "Brak niestandardowych nadpisań dla tego języka. Używane są domyślne tłumaczenia z pliku locale.",
+  "page.languages_mgmt.modal_title": "Dodaj nadpisanie tłumaczenia",
+  "page.languages_mgmt.key_label": "Klucz",
+  "page.languages_mgmt.value_label": "Tłumaczenie",
+  "page.languages_mgmt.key_placeholder": "np. nav.dashboard",
+  "page.languages_mgmt.success_saved": "Nadpisanie zapisane.",
+  "page.languages_mgmt.success_deleted": "Nadpisanie usunięte.",
+  "page.languages_mgmt.error_load": "Nie udało się wczytać danych języków.",
+  "page.languages_mgmt.error_save": "Nie udało się zapisać nadpisania."
 }

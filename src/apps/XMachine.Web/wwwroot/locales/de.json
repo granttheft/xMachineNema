@@ -87,5 +87,22 @@
   "lang.en": "Englisch",
   "lang.tr": "Türkisch",
   "lang.de": "Deutsch",
-  "lang.pl": "Polnisch"
+  "lang.pl": "Polnisch",
+  "page.languages_mgmt.title": "Sprachverwaltung",
+  "page.languages_mgmt.subtitle": "Mehrsprachige Unterstützung und Überschreibungen verwalten",
+  "page.languages_mgmt.view_overrides": "Überschreibungen anzeigen",
+  "page.languages_mgmt.translation_overrides": "Übersetzungsüberschreibungen",
+  "page.languages_mgmt.add_override": "Überschreibung hinzufügen",
+  "page.languages_mgmt.table.key": "Schlüssel",
+  "page.languages_mgmt.table.translation": "Übersetzung",
+  "page.languages_mgmt.table.actions": "Aktionen",
+  "page.languages_mgmt.empty": "Keine benutzerdefinierten Überschreibungen für diese Sprache. Es gelten die Standardübersetzungen aus der Locale-Datei.",
+  "page.languages_mgmt.modal_title": "Übersetzungsüberschreibung hinzufügen",
+  "page.languages_mgmt.key_label": "Schlüssel",
+  "page.languages_mgmt.value_label": "Übersetzung",
+  "page.languages_mgmt.key_placeholder": "z. B. nav.dashboard",
+  "page.languages_mgmt.success_saved": "Überschreibung gespeichert.",
+  "page.languages_mgmt.success_deleted": "Überschreibung entfernt.",
+  "page.languages_mgmt.error_load": "Sprachdaten konnten nicht geladen werden.",
+  "page.languages_mgmt.error_save": "Überschreibung konnte nicht gespeichert werden."
 }

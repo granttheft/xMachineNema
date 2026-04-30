@@ -1,4 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.JSInterop
+@using XMachine.Web.Services
+@inject ITranslationService T
+@inject IJSRuntime JS
 
 <nav class="shrink-0 flex flex-col h-screen bg-white border-r border-black/10 transition-[width] duration-300 @(_open ? "w-[280px]" : "w-16")"
      style="min-height: 100vh;">
@@ -28,67 +32,110 @@
         </button>
     </div>
 
-    <!-- Navigation -->
-    <div class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 min-h-0">
+    <div class="flex-1 flex flex-col min-h-0">
+        <!-- Navigation (scrollable) -->
+        <div class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 min-h-0">
 
-        @SectionHeader("OVERVIEW")
-        @NavItem("/dashboard", GridSvg, "Dashboard", NavLinkMatch.All)
+            @SectionHeader(T["nav.section.overview"].ToUpper())
+            @NavItem("/dashboard", GridSvg, T["nav.dashboard"], NavLinkMatch.All)
 
-        @SectionHeader("MES")
-        @NavItem("/mes/orders", ClipboardSvg, "Production orders")
-        @NavItem("/mes/recipes", BookSvg, "Recipes")
-        @NavItem("/mes/lots", LayersSvg, "Lots")
-        @NavItem("/mes/shifts", ClockSvg, "Shifts")
+            @SectionHeader(T["nav.section.mes"].ToUpper())
+            @NavItem("/mes/orders", ClipboardSvg, T["nav.production_orders"])
+            @NavItem("/mes/recipes", BookSvg, T["nav.recipes"])
+            @NavItem("/mes/lots", LayersSvg, T["nav.lots"])
+            @NavItem("/mes/shifts", ClockSvg, T["nav.shifts"])
 
-        @SectionHeader("QUALITY")
-        @NavItem("/quality/checks", CheckSvg, "Checks")
-        @NavItem("/quality/nonconformances", AlertSvg, "Nonconformances")
+            @SectionHeader(T["nav.section.quality"].ToUpper())
+            @NavItem("/quality/checks", CheckSvg, T["nav.checks"])
+            @NavItem("/quality/nonconformances", AlertSvg, T["nav.nonconformances"])
 
-        @SectionHeader("EVENTING")
-        @NavItem("/eventing/alarms", BellSvg, "Alarms")
-        @NavItem("/eventing/downtimes", PauseSvg, "Downtimes")
-        @NavItem("/eventing/oee", ActivitySvg, "OEE snapshots")
-        @NavItem("/eventing/kpis", TrendingSvg, "KPIs")
+            @SectionHeader(T["nav.section.eventing"].ToUpper())
+            @NavItem("/eventing/alarms", BellSvg, T["nav.alarms"])
+            @NavItem("/eventing/downtimes", PauseSvg, T["nav.downtimes"])
+            @NavItem("/eventing/oee", ActivitySvg, T["nav.oee"])
+            @NavItem("/eventing/kpis", TrendingSvg, T["nav.kpis"])
 
-        @SectionHeader("MONITORING")
-        @NavItem("/monitoring/live", MonitorSvg, "Live Monitoring")
-        @NavItem("/monitoring/machines", LayoutGridNavSvg, "Machine Overview")
+            @SectionHeader(T["nav.section.monitoring"].ToUpper())
+            @NavItem("/monitoring/live", MonitorSvg, T["nav.live_monitoring"])
+            @NavItem("/monitoring/machines", LayoutGridNavSvg, T["nav.machine_overview"])
 
-        @SectionHeader("PRODUCTION")
-        @NavItem("/production", ProductionOverviewNavSvg, "Module Overview", NavLinkMatch.All)
-        @NavItem("/production/control", ProductionControlNavSvg, "Control", NavLinkMatch.All)
-        @NavItem("/production/mcr", ProductionMcrNavSvg, "MCR", NavLinkMatch.All)
-        @NavItem("/production/kiosk", ProductionKioskNavSvg, "Operator Kiosk", NavLinkMatch.All)
-        @NavItem("/production/supervisor", ProductionSupervisorNavSvg, "Supervisor", NavLinkMatch.All)
-        @NavItem("/production/jobs", ProductionJobsNavSvg, "Job Tracker", NavLinkMatch.All)
+            @SectionHeader(T["nav.section.production"].ToUpper())
+            @NavItem("/production", ProductionOverviewNavSvg, T["nav.module_overview"], NavLinkMatch.All)
+            @NavItem("/production/control", ProductionControlNavSvg, T["nav.control"], NavLinkMatch.All)
+            @NavItem("/production/mcr", ProductionMcrNavSvg, T["nav.mcr"], NavLinkMatch.All)
+            @NavItem("/production/kiosk", ProductionKioskNavSvg, T["nav.operator_kiosk"], NavLinkMatch.All)
+            @NavItem("/production/supervisor", ProductionSupervisorNavSvg, T["nav.supervisor"], NavLinkMatch.All)
+            @NavItem("/production/jobs", ProductionJobsNavSvg, T["nav.job_tracker"], NavLinkMatch.All)
 
-        @SectionHeader("ENGINEERING")
-        @NavItem("/engineering", WrenchNavSvg, "Module", NavLinkMatch.All)
-        @NavItem("/engineering/dashboard", WrenchNavSvg, "Engineering Dashboard")
-        @NavItem("/engineering/calendar", CalendarNavSvg, "Calendar")
-        @NavItem("/engineering/mold-changes", CogNavSvg, "Mold Changes")
+            @SectionHeader(T["nav.section.engineering"].ToUpper())
+            @NavItem("/engineering", WrenchNavSvg, T["nav.engineering_module"], NavLinkMatch.All)
+            @NavItem("/engineering/dashboard", WrenchNavSvg, T["nav.eng_dashboard"])
+            @NavItem("/engineering/calendar", CalendarNavSvg, T["nav.calendar"])
+            @NavItem("/engineering/mold-changes", CogNavSvg, T["nav.mold_changes"])
 
-        @SectionHeader("WORKFLOW")
-        @NavItem("/workflow/definitions", GitSvg, "Definitions")
-        @NavItem("/workflow/instances", PlaySvg, "Instances")
+            @SectionHeader(T["nav.section.workflow"].ToUpper())
+            @NavItem("/workflow/definitions", GitSvg, T["nav.definitions"])
+            @NavItem("/workflow/instances", PlaySvg, T["nav.instances"])
 
-        @SectionHeader("INTEGRATION")
-        @NavItem("/integration/connectors", PlugSvg, "Connectors")
-        @NavItem("/integration/mappings", ArrowSvg, "Mappings")
-        @NavItem("/integration/health", HeartPulseSvg, "Health")
+            @SectionHeader(T["nav.section.integration"].ToUpper())
+            @NavItem("/integration/connectors", PlugSvg, T["nav.connectors"])
+            @NavItem("/integration/mappings", ArrowSvg, T["nav.mappings"])
+            @NavItem("/integration/health", HeartPulseSvg, T["nav.health"])
 
-        <AuthorizeView Policy="@AuthPolicies.AdminArea">
-            <Authorized>
-                @SectionHeader("ADMIN")
-                @NavItem("/admin/tenants", BuildingSvg, "Tenants")
-                @NavItem("/admin/licenses", KeySvg, "Licenses")
-            </Authorized>
-        </AuthorizeView>
+            <AuthorizeView Policy="@AuthPolicies.AdminArea">
+                <Authorized>
+                    @SectionHeader(T["nav.section.admin"].ToUpper())
+                    @NavItem("/admin/tenants", BuildingSvg, T["nav.tenants"])
+                    @NavItem("/admin/licenses", KeySvg, T["nav.licenses"])
+                    @NavItem("/admin/languages", GlobeSvg, T["nav.languages"], NavLinkMatch.All)
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+        <!-- Language (footer) -->
+        <div class="border-t border-slate-100 py-3 px-2 shrink-0">
+            @if (_open)
+            {
+                <div class="flex flex-wrap gap-1 justify-center">
+                    <button type="button" @onclick='() => SetLanguageAsync("en")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("en") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇬🇧 EN</button>
+                    <button type="button" @onclick='() => SetLanguageAsync("tr")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("tr") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇹🇷 TR</button>
+                    <button type="button" @onclick='() => SetLanguageAsync("de")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("de") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇩🇪 DE</button>
+                    <button type="button" @onclick='() => SetLanguageAsync("pl")' class="px-2 py-1 text-xs font-medium rounded-md @(LangActive("pl") ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100")">🇵🇱 PL</button>
+                </div>
+            }
+            else
+            {
+                <div class="flex justify-center text-slate-500" aria-hidden="true">
+                    <span class="shrink-0 w-4 h-4 inline-flex items-center justify-center [&>svg]:block">@((MarkupString)GlobeSvg)</span>
+                </div>
+            }
+        </div>
     </div>
 </nav>
 
 @code {
     private bool _open = true;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await T.EnsureInitializedAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool LangActive(string code) =>
+        string.Equals(T.CurrentLanguage, code, StringComparison.OrdinalIgnoreCase);
+
+    private async Task SetLanguageAsync(string langCode)
+    {
+        await JS.InvokeVoidAsync(
+            "eval",
+            $"document.cookie='xm_lang={langCode};path=/;max-age=31536000';" +
+            "window.location.reload();");
+    }
 
     private void Toggle()
     {
@@ -180,4 +227,6 @@
     private const string BuildingSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>""";
 
     private const string KeySvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>""";
+
+    private const string GlobeSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>""";
 }

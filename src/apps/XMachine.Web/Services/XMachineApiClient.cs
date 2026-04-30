@@ -123,6 +123,38 @@ public sealed class XMachineApiClient(HttpClient http)
         }
     }
 
+    private async Task<ApiFetch<bool>> DeleteAsync(string relativeUrl, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await http.DeleteAsync(relativeUrl, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                var detail = string.IsNullOrWhiteSpace(body)
+                    ? response.ReasonPhrase ?? ""
+                    : TrimErrorBody(body);
+                var code = (int)response.StatusCode;
+                var message = string.IsNullOrWhiteSpace(detail)
+                    ? $"{code} {response.StatusCode}"
+                    : $"{code}: {detail}";
+                message += StatusCodeHint(code);
+                return ApiFetch<bool>.Fail(message);
+            }
+
+            return ApiFetch<bool>.Ok(true);
+        }
+        catch (HttpRequestException ex)
+        {
+            return ApiFetch<bool>.Fail(
+                $"Could not reach the API at {http.BaseAddress?.AbsoluteUri.TrimEnd('/') ?? "?"}. {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return ApiFetch<bool>.Fail(ex.Message);
+        }
+    }
+
     private static string TrimErrorBody(string body)
     {
         var t = body.Trim();
@@ -311,5 +343,37 @@ public sealed class XMachineApiClient(HttpClient http)
         PutJsonAsync<UpdateMachineJobDto, UpdateMachineJobResponse>(
             $"api/production/machines/{id}/job",
             dto,
+            cancellationToken);
+
+    /// <summary>Lists supported languages and active override counts (GET /api/admin/languages).</summary>
+    public Task<ApiFetch<List<LanguageSummaryRowDto>>> GetAdminLanguagesAsync(
+        CancellationToken cancellationToken = default) =>
+        GetAsync<List<LanguageSummaryRowDto>>("api/admin/languages", cancellationToken);
+
+    /// <summary>Lists active translation overrides for a language (GET /api/admin/languages/{code}/overrides).</summary>
+    public Task<ApiFetch<List<TranslationOverrideRowDto>>> GetTranslationOverridesAsync(
+        string languageCode,
+        CancellationToken cancellationToken = default) =>
+        GetAsync<List<TranslationOverrideRowDto>>(
+            $"api/admin/languages/{Uri.EscapeDataString(languageCode)}/overrides",
+            cancellationToken);
+
+    /// <summary>Creates or updates a translation override (POST /api/admin/languages/{code}/overrides).</summary>
+    public Task<ApiFetch<UpsertTranslationOverrideResponseDto>> UpsertTranslationOverrideAsync(
+        string languageCode,
+        UpsertTranslationOverrideRequestDto body,
+        CancellationToken cancellationToken = default) =>
+        PostJsonAsync<UpsertTranslationOverrideRequestDto, UpsertTranslationOverrideResponseDto>(
+            $"api/admin/languages/{Uri.EscapeDataString(languageCode)}/overrides",
+            body,
+            cancellationToken);
+
+    /// <summary>Soft-deletes a translation override (DELETE /api/admin/languages/{code}/overrides/{key}).</summary>
+    public Task<ApiFetch<bool>> DeleteTranslationOverrideAsync(
+        string languageCode,
+        string key,
+        CancellationToken cancellationToken = default) =>
+        DeleteAsync(
+            $"api/admin/languages/{Uri.EscapeDataString(languageCode)}/overrides/{Uri.EscapeDataString(key)}",
             cancellationToken);
 }

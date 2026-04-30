@@ -1,0 +1,290 @@
+@page "/admin/languages"
+@attribute [Authorize(Policy = AuthPolicies.AdminArea)]
+@rendermode InteractiveServer
+@inject ITranslationService T
+@inject XMachineApiClient Api
+
+<PageTitle>@T["page.languages_mgmt.title"] · xMachine</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <div class="bg-white border-b border-slate-200 px-6 py-4">
+        <h1 class="text-2xl font-semibold text-slate-900">@T["page.languages_mgmt.title"]</h1>
+        <p class="text-sm text-slate-500 mt-1">@T["page.languages_mgmt.subtitle"]</p>
+        @if (!string.IsNullOrEmpty(_bannerMessage))
+        {
+            <div class="mt-3 rounded-lg px-4 py-2 text-sm @(_bannerSuccess ? "border border-emerald-200 bg-emerald-50 text-emerald-900" : "border border-red-200 bg-red-50 text-red-800")"
+                 role="status">
+                @_bannerMessage
+            </div>
+        }
+    </div>
+
+    <div class="p-6 max-w-7xl mx-auto space-y-6">
+        @if (_loadingSummaries)
+        {
+            <p class="text-sm text-slate-600">@T["common.loading"]</p>
+        }
+        else if (!string.IsNullOrEmpty(_summaryLoadError))
+        {
+            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">@_summaryLoadError</div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                @foreach (var row in _summaries)
+                {
+                    var active = string.Equals(T.CurrentLanguage, row.Code, StringComparison.OrdinalIgnoreCase);
+                    <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4 @(active ? "ring-2 ring-blue-500" : "")">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="text-2xl" aria-hidden="true">@FlagEmoji(row.Code)</div>
+                                <div class="font-semibold text-slate-900 mt-2">@T[$"lang.{row.Code}"]</div>
+                                <div class="text-xs font-mono text-slate-500 mt-0.5">@row.Code.ToUpperInvariant()</div>
+                            </div>
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">@row.OverrideCount</span>
+                        </div>
+                        <button type="button"
+                                @onclick="() => SelectLanguageAsync(row.Code)"
+                                class="mt-4 w-full inline-flex justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                            @T["page.languages_mgmt.view_overrides"]
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_selectedLang is not null)
+        {
+            <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="text-2xl shrink-0" aria-hidden="true">@FlagEmoji(_selectedLang)</span>
+                        <div class="min-w-0">
+                            <h2 class="text-lg font-semibold text-slate-900 truncate">@T[$"lang.{_selectedLang}"] — @T["page.languages_mgmt.translation_overrides"]</h2>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @onclick="OpenAddModal"
+                            class="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 shrink-0">
+                        @T["page.languages_mgmt.add_override"]
+                    </button>
+                </div>
+
+                <div class="p-4">
+                    @if (_loadingOverrides)
+                    {
+                        <p class="text-sm text-slate-600">@T["common.loading"]</p>
+                    }
+                    else if (_overrides.Count == 0)
+                    {
+                        <p class="text-sm text-slate-600">@T["page.languages_mgmt.empty"]</p>
+                    }
+                    else
+                    {
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-100">
+                                <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.languages_mgmt.table.key"]</th>
+                                    <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.languages_mgmt.table.translation"]</th>
+                                    <th class="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.languages_mgmt.table.actions"]</th>
+                                </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 bg-white">
+                                @foreach (var o in _overrides)
+                                {
+                                    <tr>
+                                        <td class="whitespace-nowrap px-4 py-3 text-sm font-mono text-slate-800">@o.Key</td>
+                                        <td class="px-4 py-3 text-sm text-slate-700">@o.Value</td>
+                                        <td class="whitespace-nowrap px-4 py-3 text-right">
+                                            <button type="button"
+                                                    @onclick="() => DeleteOverrideAsync(o.Key)"
+                                                    class="inline-flex items-center justify-center rounded-md border border-red-600 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">
+                                                @T["common.delete"]
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (_showModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+        <div class="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-xl">
+            <div class="border-b border-slate-100 px-4 py-3">
+                <h3 class="text-lg font-semibold text-slate-900">@T["page.languages_mgmt.modal_title"]</h3>
+            </div>
+            <div class="space-y-4 px-4 py-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">@T["page.languages_mgmt.key_label"]</label>
+                    <input type="text" @bind="_modalKey" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm" placeholder="@T["page.languages_mgmt.key_placeholder"]" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">@T["page.languages_mgmt.value_label"]</label>
+                    <input type="text" @bind="_modalValue" class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm" />
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 border-t border-slate-100 px-4 py-3">
+                <button type="button" @onclick="CloseModal" class="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">@T["common.cancel"]</button>
+                <button type="button" @onclick="SaveModalAsync" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">@T["common.save"]</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<LanguageSummaryRowDto> _summaries = new();
+    private bool _loadingSummaries = true;
+    private string? _summaryLoadError;
+    private string? _selectedLang;
+    private List<TranslationOverrideRowDto> _overrides = new();
+    private bool _loadingOverrides;
+    private bool _showModal;
+    private string _modalKey = "";
+    private string _modalValue = "";
+    private string? _bannerMessage;
+    private bool _bannerSuccess;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        await T.EnsureInitializedAsync();
+        await LoadSummariesAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static string FlagEmoji(string code) =>
+        code.Trim().ToLowerInvariant() switch
+        {
+            "en" => "🇬🇧",
+            "tr" => "🇹🇷",
+            "de" => "🇩🇪",
+            "pl" => "🇵🇱",
+            _ => "🌐",
+        };
+
+    private async Task LoadSummariesAsync()
+    {
+        _loadingSummaries = true;
+        _summaryLoadError = null;
+        var res = await Api.GetAdminLanguagesAsync();
+        _loadingSummaries = false;
+        if (res.Error is not null)
+        {
+            _summaryLoadError = $"{T["page.languages_mgmt.error_load"]} {res.Error}";
+            _summaries = [];
+        }
+        else
+            _summaries = res.Data ?? [];
+    }
+
+    private async Task SelectLanguageAsync(string code)
+    {
+        _selectedLang = code;
+        await LoadOverridesAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadOverridesAsync()
+    {
+        if (_selectedLang is null)
+            return;
+
+        _loadingOverrides = true;
+        await InvokeAsync(StateHasChanged);
+        var res = await Api.GetTranslationOverridesAsync(_selectedLang);
+        _loadingOverrides = false;
+        if (res.Error is not null)
+        {
+            SetBanner($"{T["page.languages_mgmt.error_load"]} {res.Error}", false);
+            _overrides = [];
+        }
+        else
+            _overrides = res.Data ?? [];
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OpenAddModal()
+    {
+        _modalKey = "";
+        _modalValue = "";
+        _showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+    }
+
+    private async Task SaveModalAsync()
+    {
+        if (_selectedLang is null)
+            return;
+
+        var key = _modalKey.Trim();
+        var value = _modalValue.Trim();
+        if (key.Length == 0 || value.Length == 0)
+            return;
+
+        var res = await Api.UpsertTranslationOverrideAsync(
+            _selectedLang,
+            new UpsertTranslationOverrideRequestDto(key, value));
+
+        if (res.Error is not null)
+        {
+            SetBanner($"{T["page.languages_mgmt.error_save"]} {res.Error}", false);
+            return;
+        }
+
+        _showModal = false;
+        SetBanner(T["page.languages_mgmt.success_saved"], true);
+        await LoadSummariesAsync();
+        await LoadOverridesAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DeleteOverrideAsync(string key)
+    {
+        if (_selectedLang is null)
+            return;
+
+        var res = await Api.DeleteTranslationOverrideAsync(_selectedLang, key);
+        if (res.Error is not null)
+        {
+            SetBanner(res.Error, false);
+            return;
+        }
+
+        SetBanner(T["page.languages_mgmt.success_deleted"], true);
+        await LoadSummariesAsync();
+        await LoadOverridesAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SetBanner(string message, bool success)
+    {
+        _bannerMessage = message;
+        _bannerSuccess = success;
+        _ = BannerDismissFlowAsync();
+    }
+
+    private async Task BannerDismissFlowAsync()
+    {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(3000);
+        _bannerMessage = null;
+        await InvokeAsync(StateHasChanged);
+    }
+}
