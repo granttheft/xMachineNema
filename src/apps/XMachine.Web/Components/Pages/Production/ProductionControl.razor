@@ -1,6 +1,7 @@
 @page "/production/control"
 @rendermode InteractiveServer
 @implements IDisposable
+@inject XMachineApiClient Api
 
 <PageTitle>Production Control · xMachine</PageTitle>
 
@@ -22,6 +23,10 @@
         @if (!string.IsNullOrEmpty(_planSuccessMessage))
         {
             <div class="@_successBannerCss">@_planSuccessMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(_jobActionError))
+        {
+            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800">@_jobActionError</div>
         }
 
         @if (_activeTab == "jobs")
@@ -143,11 +148,11 @@
                                         <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-2 hover:bg-slate-50">View</button>
                                         @if (string.Equals(job.Status, "Running", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-yellow-600 text-yellow-600 h-8 px-2 hover:bg-yellow-50">Pause</button>
+                                            <button type="button" @onclick="() => PauseJobAsync(job)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-yellow-600 text-yellow-600 h-8 px-2 hover:bg-yellow-50">Pause</button>
                                         }
                                         @if (string.Equals(job.Status, "Paused", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 px-2 hover:bg-green-50">Resume</button>
+                                            <button type="button" @onclick="() => ResumeJobAsync(job)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 px-2 hover:bg-green-50">Resume</button>
                                         }
                                     </div>
                                 </td>
@@ -252,11 +257,11 @@
                                 <button type="button" class="inline-flex flex-1 items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white h-8 px-2 hover:bg-slate-50">View Details</button>
                                 @if (string.Equals(job.Status, "Running", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-yellow-600 text-yellow-600 h-8 px-2 hover:bg-yellow-50">Pause</button>
+                                    <button type="button" @onclick="() => PauseJobAsync(job)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-yellow-600 text-yellow-600 h-8 px-2 hover:bg-yellow-50">Pause</button>
                                 }
                                 @if (string.Equals(job.Status, "Paused", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <button type="button" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 px-2 hover:bg-green-50">Resume</button>
+                                    <button type="button" @onclick="() => ResumeJobAsync(job)" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-green-600 text-green-600 h-8 px-2 hover:bg-green-50">Resume</button>
                                 }
                             </div>
                         </div>
@@ -762,6 +767,8 @@
     private string _activeTab = "jobs";
     private bool _initialized;
     private string? _planSuccessMessage;
+    private string? _jobActionError;
+    private readonly Dictionary<string, Guid> _apiJobExecutionIdByJobNo = new();
     private string _successBannerCss = "rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800";
     private CancellationTokenSource? _successBannerCts;
     private string? _rejectModalError;
@@ -842,8 +849,65 @@
             return;
 
         _initialized = true;
-        await Task.CompletedTask;
-        StateHasChanged();
+        var fetch = await Api.GetProductionJobsAsync().ConfigureAwait(false);
+        if (fetch.Error is null && fetch.Data is { } jobs)
+        {
+            foreach (var j in jobs)
+                _apiJobExecutionIdByJobNo[j.JobNo] = j.Id;
+        }
+
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private async Task PauseJobAsync(JobMonitoringRow job)
+    {
+        _jobActionError = null;
+        if (_apiJobExecutionIdByJobNo.TryGetValue(job.JobId, out var id))
+        {
+            var fetch = await Api.PutJobStatusAsync(id, new UpdateJobStatusDto("Paused", "OperatorBreak", null)).ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                if (fetch.Error is null)
+                    SetJobStatusLocal(job.JobId, "Paused");
+                else
+                    _jobActionError = fetch.Error ?? "Pause failed.";
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        SetJobStatusLocal(job.JobId, "Paused");
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private async Task ResumeJobAsync(JobMonitoringRow job)
+    {
+        _jobActionError = null;
+        if (_apiJobExecutionIdByJobNo.TryGetValue(job.JobId, out var id))
+        {
+            var fetch = await Api.PutJobStatusAsync(id, new UpdateJobStatusDto("Running", null, null)).ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                if (fetch.Error is null)
+                    SetJobStatusLocal(job.JobId, "Running");
+                else
+                    _jobActionError = fetch.Error ?? "Resume failed.";
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        SetJobStatusLocal(job.JobId, "Running");
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private void SetJobStatusLocal(string jobId, string newStatus)
+    {
+        var idx = _jobMonitoring.FindIndex(j => j.JobId == jobId);
+        if (idx < 0)
+            return;
+
+        _jobMonitoring[idx] = _jobMonitoring[idx] with { Status = newStatus };
     }
 
     /// <inheritdoc />

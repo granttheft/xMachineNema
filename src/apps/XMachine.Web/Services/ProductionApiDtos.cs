@@ -66,3 +66,47 @@ public sealed record ApiProductionSummary(
     int CompletedToday,
     int TotalProducedToday,
     int TotalScrapToday);
+
+/// <summary>Request body for POST /api/production/jobs.</summary>
+public sealed record CreateJobDto(
+    Guid MachineId,
+    Guid LineId,
+    Guid ProductionOrderId,
+    Guid? RecipeId,
+    Guid? ShiftId,
+    int PlannedQty,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt,
+    string? Notes);
+
+/// <summary>Request body for PUT /api/production/jobs/{id}/status.</summary>
+public sealed record UpdateJobStatusDto(string NewStatus, string? PauseReason, string? PauseNotes);
+
+/// <summary>Request body for POST /api/production/declarations.</summary>
+public sealed record CreateDeclarationDto(
+    Guid JobExecutionId,
+    Guid MachineId,
+    int DeclaredQty,
+    int ScrapQty,
+    int DefectQty,
+    string? Notes);
+
+/// <summary>Request body for PUT /api/production/machines/{id}/job.</summary>
+public sealed record UpdateMachineJobDto(Guid? JobExecutionId, Guid? OperatorId);
+
+/// <summary>Response from POST /api/production/jobs.</summary>
+public sealed record CreateProductionJobResponse(Guid Id, string JobNo);
+
+/// <summary>Response from PUT /api/production/jobs/{id}/status.</summary>
+public sealed record UpdateJobStatusResponse(Guid Id, string JobNo, string ExecutionStatus);
+
+/// <summary>Response from POST /api/production/declarations.</summary>
+public sealed record CreateDeclarationResponse(
+    Guid Id,
+    DateTimeOffset DeclaredAt,
+    [property: JsonPropertyName("newProducedQty")] int NewProducedQty);
+
+/// <summary>Response from PUT /api/production/machines/{id}/job.</summary>
+public sealed record UpdateMachineJobResponse(
+    [property: JsonPropertyName("machineId")] Guid MachineId,
+    [property: JsonPropertyName("operatorId")] Guid? OperatorId);

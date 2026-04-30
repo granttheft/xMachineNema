@@ -3,6 +3,7 @@
 @implements IDisposable
 @using System.Globalization
 @using System.Threading
+@inject XMachineApiClient Api
 
 <PageTitle>Operator Kiosk · xMachine</PageTitle>
 
@@ -112,6 +113,10 @@
                                 <button type="button" disabled="@(!CanAdjustQuantity)" @onclick="() => AdjustEntry(25)" class="flex-1 h-12 rounded-lg border border-slate-300 text-slate-800 font-semibold hover:bg-slate-50 disabled:opacity-40">+25</button>
                             </div>
                             <button type="button" disabled="@(!CanSubmitEntry)" @onclick="SubmitEntry" class="w-full h-16 rounded-xl bg-blue-600 text-white text-xl font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed">Submit</button>
+                            @if (!string.IsNullOrEmpty(_submitError))
+                            {
+                                <p class="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2">@_submitError</p>
+                            }
                             @if (_machineStatus != "running")
                             {
                                 <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Machine is not running — piece entry is disabled.</p>
@@ -122,6 +127,10 @@
             </div>
 
             <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-6">
+                @if (!string.IsNullOrEmpty(_actionError))
+                {
+                    <p class="text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">@_actionError</p>
+                }
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div>
                         <div class="rounded-xl p-4 text-center text-white font-bold text-xl mb-4 @MachineStatusBannerClass">
@@ -208,7 +217,13 @@
 }
 
 @code {
-    /// <summary>Shop-floor kiosk (mock); live clock via <see cref="Timer"/>.</summary>
+    /// <summary>Running job on M-102 from dev seed (<c>DevSeedProductionIds.JobRunningOnM102</c>).</summary>
+    private static readonly Guid KioskJobExecutionId = Guid.Parse("b0000001-0000-4000-8000-000000000001");
+
+    /// <summary>Machine M-102 from dev seed (<c>DevSeedProductionIds.MachineM102</c>).</summary>
+    private static readonly Guid KioskMachineId = Guid.Parse("a0000001-0000-4000-8000-000000000102");
+
+    /// <summary>Shop-floor kiosk; live clock via <see cref="Timer"/>.</summary>
     private string _operatorStatus = "logged-in";
     private string _machineStatus = "running";
     private DateTime _currentTime = DateTime.Now;
@@ -222,11 +237,13 @@
     private bool _showQcApproval;
     private Timer? _timer;
     private bool _initialized;
+    private string? _submitError;
+    private string? _actionError;
 
     private string _productCode = "PC-001";
     private string _productName = "Plastic Container 500ml";
     private int _targetQty = 500;
-    private int _producedQty = 347;
+    private int _producedQty = 213;
     private int _defectQty = 3;
     private int _leftoverMaterial = 25;
 
@@ -318,22 +335,36 @@
 
     private void AdjustEntry(int delta)
     {
+        _submitError = null;
         _entryQuantity = Math.Max(0, _entryQuantity + delta);
         StateHasChanged();
     }
 
-    private void SubmitEntry()
+    private async Task SubmitEntry()
     {
         if (!CanSubmitEntry)
             return;
 
-        _producedQty += _entryQuantity;
-        var hitTarget = _producedQty >= _targetQty;
-        _entryQuantity = 0;
-        if (hitTarget)
-            _showQcApproval = true;
+        _submitError = null;
+        var qty = _entryQuantity;
+        var fetch = await Api.PostDeclarationAsync(
+            new CreateDeclarationDto(KioskJobExecutionId, KioskMachineId, qty, 0, 0, null)).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (fetch.Error is not null || fetch.Data is null)
+            {
+                _submitError = fetch.Error ?? "Submit failed.";
+                StateHasChanged();
+                return;
+            }
 
-        StateHasChanged();
+            _producedQty = fetch.Data.NewProducedQty;
+            _entryQuantity = 0;
+            if (_producedQty >= _targetQty)
+                _showQcApproval = true;
+
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
     private void QcApprovedContinue()
@@ -342,20 +373,60 @@
         StateHasChanged();
     }
 
-    private void StartBreak()
+    private async Task StartBreak()
     {
+        _actionError = null;
+        var previousOp = _operatorStatus;
+        var previousBreakStart = _breakStartTime;
+        var previousMachine = _machineStatus;
         _operatorStatus = "on-break";
         _breakStartTime = DateTime.Now;
         _machineStatus = "idle";
         StateHasChanged();
+
+        var fetch = await Api.PutJobStatusAsync(
+            KioskJobExecutionId,
+            new UpdateJobStatusDto("Paused", "OperatorBreak", null)).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (fetch.Error is not null)
+            {
+                _operatorStatus = previousOp;
+                _breakStartTime = previousBreakStart;
+                _machineStatus = previousMachine;
+                _actionError = fetch.Error ?? "Could not start break.";
+            }
+
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
-    private void ResumeFromBreak()
+    private async Task ResumeFromBreak()
     {
+        _actionError = null;
+        var previousOp = _operatorStatus;
+        var previousBreakStart = _breakStartTime;
+        var previousMachine = _machineStatus;
         _operatorStatus = "logged-in";
         _breakStartTime = null;
         _machineStatus = "running";
         StateHasChanged();
+
+        var fetch = await Api.PutJobStatusAsync(
+            KioskJobExecutionId,
+            new UpdateJobStatusDto("Running", null, null)).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (fetch.Error is not null)
+            {
+                _operatorStatus = previousOp;
+                _breakStartTime = previousBreakStart;
+                _machineStatus = previousMachine;
+                _actionError = fetch.Error ?? "Could not resume.";
+            }
+
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
     private void OpenMachineDownModal()
@@ -371,16 +442,34 @@
         StateHasChanged();
     }
 
-    private void ConfirmMachineDown()
+    private async Task ConfirmMachineDown()
     {
         if (string.IsNullOrWhiteSpace(_modalBreakdownReason))
             return;
 
+        _actionError = null;
         _selectedBreakdownReason = _modalBreakdownReason;
+        var previousStatus = _machineStatus;
+        var previousDownTime = _machineDownTime;
         _machineStatus = "down";
         _machineDownTime = DateTime.Now;
         _showMachineDownModal = false;
         StateHasChanged();
+
+        var fetch = await Api.PutJobStatusAsync(
+            KioskJobExecutionId,
+            new UpdateJobStatusDto("Paused", _selectedBreakdownReason, null)).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (fetch.Error is not null)
+            {
+                _machineStatus = previousStatus;
+                _machineDownTime = previousDownTime;
+                _actionError = fetch.Error ?? "Could not report machine down.";
+            }
+
+            StateHasChanged();
+        }).ConfigureAwait(false);
     }
 
     private void ConfirmLogout()

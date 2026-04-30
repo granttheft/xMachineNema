@@ -3,6 +3,7 @@
 @implements IDisposable
 @using System.Globalization
 @using System.Threading
+@inject XMachineApiClient Api
 
 <PageTitle>Operator Dashboard · xMachine</PageTitle>
 
@@ -21,7 +22,7 @@
 
         @if (!string.IsNullOrEmpty(_successMessage))
         {
-            <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">@_successMessage</div>
+            <div class="mb-4 rounded-lg border px-4 py-2 text-sm @(_successIsError ? "border-red-200 bg-red-50 text-red-800" : "border-green-200 bg-green-50 text-green-800")">@_successMessage</div>
         }
         @if (!string.IsNullOrEmpty(_calendarMessage))
         {
@@ -197,9 +198,15 @@
 }
 
 @code {
-    /// <summary>Operator-to-machine assignment dashboard (mock; button assignment only).</summary>
+    /// <summary>Demo operator user id from dev seed (<c>DevSeedProductionIds.DemoOperatorUser</c>).</summary>
+    private static readonly Guid DemoSeedOperatorUserId = Guid.Parse("c0000001-0000-4000-8000-000000000001");
+
+    /// <summary>Operator-to-machine assignment dashboard (mock list + optional production API sync).</summary>
     private List<MachineRow> _machines = new();
     private List<OperatorRow> _operators = new();
+
+    /// <summary>Maps mock machine card <see cref="MachineRow.Id"/> to platform machine Guid when API <c>Code</c> matches <see cref="MachineRow.ApiMachineCode"/>.</summary>
+    private readonly Dictionary<string, Guid> _machineGuids = new();
 
     private string _searchTerm = string.Empty;
     private string _filterDept = "all";
@@ -212,6 +219,7 @@
     private string _assignNote = string.Empty;
 
     private string? _successMessage;
+    private bool _successIsError;
     private string? _calendarMessage;
     private Timer? _bannerTimer;
     private CancellationTokenSource? _bannerCts;
@@ -233,16 +241,16 @@
         _bannerCts = null;
     }
 
-    /// <summary>Seeds mock machines and operators once.</summary>
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    /// <summary>Seeds mock machines and operators, then merges production machine API data when codes match.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _initialized)
-            return Task.CompletedTask;
+            return;
 
         _initialized = true;
         _machines = new List<MachineRow>
         {
-            new("MCH-01", "Injection Machine 1", "running", "Plastic Bottle 500ml", "JOB-2024-001", 7500, 10000, "OP-001", "Ko Thant", "Injection", "Day Shift"),
+            new("MCH-01", "Injection Machine 1", "running", "Plastic Bottle 500ml", "JOB-2024-001", 7500, 10000, "OP-001", "Ko Thant", "Injection", "Day Shift", ApiMachineCode: "M-102"),
             new("MCH-02", "Injection Machine 2", "idle", "Plastic Cup 250ml", "JOB-2024-002", 8000, 8000, "OP-002", "Ma Hla", "Injection", "Day Shift"),
             new("MCH-03", "Injection Machine 3", "down", null, null, 0, 0, null, null, null, null),
             new("MCH-04", "Injection Machine 4", "unassigned", "Plastic Container 1L", "JOB-2024-004", 0, 5000, null, null, null, null),
@@ -251,7 +259,7 @@
         };
         _operators = new List<OperatorRow>
         {
-            new("OP-001", "Ko Thant", "busy", "Injection", "Day Shift", "MCH-01", "Expert", "5 years"),
+            new("OP-001", "Ko Thant", "busy", "Injection", "Day Shift", "MCH-01", "Expert", "5 years", ApiUserAccountId: DemoSeedOperatorUserId),
             new("OP-002", "Ma Hla", "busy", "Injection", "Day Shift", "MCH-02", "Advanced", "3 years"),
             new("OP-003", "Ko Aung", "busy", "Injection", "Day Shift", "MCH-05", "Intermediate", "2 years"),
             new("OP-004", "Ma Su", "free", "Injection", "Day Shift", null, "Advanced", "4 years"),
@@ -260,9 +268,47 @@
             new("OP-007", "Ko Min", "free", "Extrusion", "Day Shift", null, "Advanced", "3.5 years"),
         };
 
-        StateHasChanged();
-        return Task.CompletedTask;
+        var fetch = await Api.GetProductionMachinesAsync().ConfigureAwait(false);
+        if (fetch.Error is null && fetch.Data is { } apiMachines)
+        {
+            foreach (var mock in _machines)
+            {
+                if (string.IsNullOrWhiteSpace(mock.ApiMachineCode))
+                    continue;
+
+                var api = apiMachines.FirstOrDefault(x =>
+                    string.Equals(x.Code, mock.ApiMachineCode, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(x.Name, mock.ApiMachineCode, StringComparison.OrdinalIgnoreCase));
+                if (api is null)
+                    continue;
+
+                _machineGuids[mock.Id] = api.Id;
+                var idx = _machines.FindIndex(x => x.Id == mock.Id);
+                if (idx < 0)
+                    continue;
+
+                var row = _machines[idx];
+                _machines[idx] = row with
+                {
+                    Status = MapApiOperationalStatus(api.OperationalStatus),
+                    ActiveJobExecutionApiId = api.ActiveJob?.Id,
+                };
+            }
+        }
+
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
     }
+
+    private static string MapApiOperationalStatus(string operationalStatus) =>
+        operationalStatus switch
+        {
+            "Running" => "running",
+            "Idle" => "idle",
+            "Down" => "down",
+            "PmDue" => "down",
+            "WaitingParts" => "idle",
+            _ => "unassigned",
+        };
 
     private IEnumerable<OperatorRow> FilteredOperators()
     {
@@ -355,6 +401,7 @@
 
     private void OnExportLog()
     {
+        _successIsError = false;
         _successMessage = "Export log (mock) — check downloads.";
         StateHasChanged();
         ScheduleClearSuccess();
@@ -375,7 +422,7 @@
         StateHasChanged();
     }
 
-    private void ConfirmAssign()
+    private async Task ConfirmAssign()
     {
         if (string.IsNullOrEmpty(_selectedOperatorId) || string.IsNullOrEmpty(_assigningMachineId))
             return;
@@ -386,6 +433,9 @@
             return;
 
         var m = _machines[mi];
+        var machinesBefore = _machines.ToList();
+        var operatorsBefore = _operators.ToList();
+
         var newMachineStatus = string.Equals(m.Status, "unassigned", StringComparison.OrdinalIgnoreCase) ? "idle" : m.Status;
         _machines[mi] = m with
         {
@@ -404,13 +454,31 @@
         }
 
         _reassignmentsToday++;
-        _successMessage = $"Assigned {op.Name} to {_assigningMachineId}.";
         _showAssignModal = false;
+        _successIsError = false;
+        _successMessage = $"Assigned {op.Name} to {_assigningMachineId}.";
+        StateHasChanged();
+
+        if (_machineGuids.TryGetValue(_assigningMachineId, out var machineGuid) &&
+            m.ActiveJobExecutionApiId is { } jobGuid &&
+            op.ApiUserAccountId is { } operatorGuid)
+        {
+            var fetch = await Api.PutMachineJobAsync(machineGuid, new UpdateMachineJobDto(jobGuid, operatorGuid)).ConfigureAwait(false);
+            if (fetch.Error is not null)
+            {
+                _machines = machinesBefore;
+                _operators = operatorsBefore;
+                _reassignmentsToday--;
+                _successIsError = true;
+                _successMessage = fetch.Error ?? "Assign failed.";
+            }
+        }
+
         StateHasChanged();
         ScheduleClearSuccess();
     }
 
-    private void Unassign(string machineId)
+    private async Task Unassign(string machineId)
     {
         var mi = _machines.FindIndex(x => x.Id == machineId);
         if (mi < 0)
@@ -420,6 +488,9 @@
         var opId = m.OperatorId;
         if (string.IsNullOrEmpty(opId))
             return;
+
+        var machinesBefore = _machines.ToList();
+        var operatorsBefore = _operators.ToList();
 
         var newMachineStatus = string.Equals(m.Status, "running", StringComparison.OrdinalIgnoreCase) ? "idle" : m.Status;
         _machines[mi] = m with
@@ -438,7 +509,22 @@
             _operators[oi] = o with { Status = "free", CurrentMachineId = null };
         }
 
+        _successIsError = false;
         _successMessage = $"Unassigned operator from {machineId}.";
+        StateHasChanged();
+
+        if (_machineGuids.TryGetValue(machineId, out var machineGuid))
+        {
+            var fetch = await Api.PutMachineJobAsync(machineGuid, new UpdateMachineJobDto(null, null)).ConfigureAwait(false);
+            if (fetch.Error is not null)
+            {
+                _machines = machinesBefore;
+                _operators = operatorsBefore;
+                _successIsError = true;
+                _successMessage = fetch.Error ?? "Unassign failed.";
+            }
+        }
+
         StateHasChanged();
         ScheduleClearSuccess();
     }
@@ -458,6 +544,7 @@
                 if (!token.IsCancellationRequested)
                 {
                     _successMessage = null;
+                    _successIsError = false;
                     StateHasChanged();
                 }
             });
@@ -476,7 +563,9 @@
         string? OperatorId,
         string? OperatorName,
         string? OperatorDept,
-        string? OperatorShift);
+        string? OperatorShift,
+        string? ApiMachineCode = null,
+        Guid? ActiveJobExecutionApiId = null);
 
     /// <summary>Operator sidebar row.</summary>
     private sealed record OperatorRow(
@@ -487,5 +576,6 @@
         string Shift,
         string? CurrentMachineId,
         string SkillLevel,
-        string Experience);
+        string Experience,
+        Guid? ApiUserAccountId = null);
 }

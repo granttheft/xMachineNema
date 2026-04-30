@@ -15,6 +15,16 @@ using XMachine.SharedKernel;
 
 namespace XMachine.Api.Development;
 
+/// <summary>
+/// Stable identifiers for demo production rows (M-102 running job, kiosk operator). Keep in sync with Web kiosk/dashboard constants.
+/// </summary>
+internal static class DevSeedProductionIds
+{
+    internal static readonly Guid DemoOperatorUser = Guid.Parse("c0000001-0000-4000-8000-000000000001");
+    internal static readonly Guid MachineM102 = Guid.Parse("a0000001-0000-4000-8000-000000000102");
+    internal static readonly Guid JobRunningOnM102 = Guid.Parse("b0000001-0000-4000-8000-000000000001");
+}
+
 internal sealed class DevSeedHostedService : IHostedService
 {
     private readonly IServiceProvider _services;
@@ -107,6 +117,8 @@ internal sealed class DevSeedHostedService : IHostedService
             new Machine { TenantId = tenant.Id, LineId = line2.Id, Code = "M-202", Name = "Machine 202", Status = EntityStatus.Active },
         };
 
+        machines[1].Id = DevSeedProductionIds.MachineM102;
+
         var roleSuperAdmin = new Role
         {
             TenantId = tenant.Id,
@@ -165,6 +177,7 @@ internal sealed class DevSeedHostedService : IHostedService
 
         var userOperator = new UserAccount
         {
+            Id = DevSeedProductionIds.DemoOperatorUser,
             TenantId = tenant.Id,
             Username = "operator1",
             DisplayName = "Demo Operator",
@@ -1540,6 +1553,7 @@ internal sealed class DevSeedHostedService : IHostedService
 
         var seedJob1 = new JobExecution
         {
+            Id = DevSeedProductionIds.JobRunningOnM102,
             TenantId = tenant.Id,
             MachineId = machines[1].Id,
             LineId = machines[1].LineId,

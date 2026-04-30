@@ -280,4 +280,36 @@ public sealed class XMachineApiClient(HttpClient http)
 
     public Task<ApiFetch<CreateFaultResponse>> PostFaultAsync(CreateFaultDto dto, CancellationToken cancellationToken = default) =>
         PostJsonAsync<CreateFaultDto, CreateFaultResponse>("api/engineering/faults", dto, cancellationToken);
+
+    /// <summary>Creates a queued job execution (POST /api/production/jobs).</summary>
+    public Task<ApiFetch<CreateProductionJobResponse>> PostProductionJobAsync(
+        CreateJobDto dto,
+        CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreateJobDto, CreateProductionJobResponse>("api/production/jobs", dto, cancellationToken);
+
+    /// <summary>Updates job execution status (PUT /api/production/jobs/{id}/status).</summary>
+    public Task<ApiFetch<UpdateJobStatusResponse>> PutJobStatusAsync(
+        Guid id,
+        UpdateJobStatusDto dto,
+        CancellationToken cancellationToken = default) =>
+        PutJsonAsync<UpdateJobStatusDto, UpdateJobStatusResponse>(
+            $"api/production/jobs/{id}/status",
+            dto,
+            cancellationToken);
+
+    /// <summary>Posts an operator production declaration (POST /api/production/declarations).</summary>
+    public Task<ApiFetch<CreateDeclarationResponse>> PostDeclarationAsync(
+        CreateDeclarationDto dto,
+        CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreateDeclarationDto, CreateDeclarationResponse>("api/production/declarations", dto, cancellationToken);
+
+    /// <summary>Assigns or unassigns a job/operator on a machine (PUT /api/production/machines/{id}/job).</summary>
+    public Task<ApiFetch<UpdateMachineJobResponse>> PutMachineJobAsync(
+        Guid id,
+        UpdateMachineJobDto dto,
+        CancellationToken cancellationToken = default) =>
+        PutJsonAsync<UpdateMachineJobDto, UpdateMachineJobResponse>(
+            $"api/production/machines/{id}/job",
+            dto,
+            cancellationToken);
 }
