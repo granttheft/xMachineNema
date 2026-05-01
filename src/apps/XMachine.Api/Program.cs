@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using XMachine.Api.Hubs;
 using XMachine.Api.Integration;
 using XMachine.Api.Mes;
 using XMachine.Api.Quality;
@@ -50,6 +52,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization(o => XMachineAuthorizationPolicies.AddPolicies(o));
 
+builder.Services.AddCors(options =>
+    options.AddPolicy("BlazorClient", policy =>
+        policy.WithOrigins("https://localhost:5197", "http://localhost:5197")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials()));
+
+builder.Services.AddSignalR();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<XMachine.Module.Auth.Security.ICurrentUser,
     XMachine.Module.Auth.Security.CurrentUser>();
@@ -76,6 +87,8 @@ builder.Services.AddHostedService<XMachine.Api.Development.DevSeedHostedService>
 var app = builder.Build();
 
 app.UseXmLanguageCookie();
+
+app.UseCors("BlazorClient");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -127,5 +140,7 @@ app.MapWorkflowEndpoints();
 app.MapEngineeringEndpoints();
 app.MapProductionEndpoints();
 app.MapLanguageEndpoints();
+
+app.MapHub<XMachineHub>("/hubs/xmachine");
 
 app.Run();

@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\XMachine.ServiceDefaults\XMachine.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\building-blocks\XMachine.Persistence\XMachine.Persistence.csproj" />
     <ProjectReference Include="..\..\modules\XMachine.Module.Auth\XMachine.Module.Auth.csproj" />

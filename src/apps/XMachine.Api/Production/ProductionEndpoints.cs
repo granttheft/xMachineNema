@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using XMachine.Api.Hubs;
 using XMachine.Module.Auth.Security;
 using XMachine.Module.Platform.Domain;
 using XMachine.Module.Production.Domain;
@@ -284,7 +286,13 @@ public static class ProductionEndpoints
             return Results.Created($"/api/production/jobs/{job.Id}", new { job.Id, job.JobNo });
         });
 
-        g.MapPut("jobs/{id:guid}/status", async (Guid id, UpdateJobStatusRequest body, XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
+        g.MapPut("jobs/{id:guid}/status", async (
+            Guid id,
+            UpdateJobStatusRequest body,
+            XMachineDbContext db,
+            ICurrentUser currentUser,
+            IHubContext<XMachineHub, IXMachineHubClient> hub,
+            CancellationToken ct) =>
         {
             if (currentUser.TenantId is null) return Results.Unauthorized();
             var tenantId = currentUser.TenantId.Value;
@@ -300,16 +308,57 @@ public static class ProductionEndpoints
             var machine = await db.Machines
                 .FirstOrDefaultAsync(m => m.Id == job.MachineId && m.TenantId == tenantId, ct);
 
+            var oldJobStatus = job.ExecutionStatus;
+            var oldMachineOp = machine?.OperationalStatus;
+
             var transitionError = ApplyJobStatusTransition(job, machine, newStatus, body.PauseReason, body.PauseNotes);
             if (transitionError is not null)
                 return Results.BadRequest(transitionError);
 
             await db.SaveChangesAsync(ct);
 
+            try
+            {
+                await hub.Clients.All.JobStatusChanged(new JobStatusChangedEvent(
+                    job.Id,
+                    job.JobNo,
+                    job.MachineId,
+                    oldJobStatus.ToString(),
+                    job.ExecutionStatus.ToString(),
+                    DateTimeOffset.UtcNow,
+                    job.ProducedQty,
+                    job.PlannedQty));
+            }
+            catch
+            {
+            }
+
+            if (machine is not null && machine.OperationalStatus != oldMachineOp)
+            {
+                try
+                {
+                    await hub.Clients.All.MachineStatusChanged(new MachineStatusChangedEvent(
+                        machine.Id,
+                        machine.Code,
+                        machine.Name,
+                        oldMachineOp?.ToString() ?? string.Empty,
+                        machine.OperationalStatus.ToString(),
+                        DateTimeOffset.UtcNow));
+                }
+                catch
+                {
+                }
+            }
+
             return Results.Ok(new { job.Id, job.JobNo, ExecutionStatus = job.ExecutionStatus.ToString() });
         });
 
-        g.MapPost("declarations", async (CreateDeclarationRequest body, XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
+        g.MapPost("declarations", async (
+            CreateDeclarationRequest body,
+            XMachineDbContext db,
+            ICurrentUser currentUser,
+            IHubContext<XMachineHub, IXMachineHubClient> hub,
+            CancellationToken ct) =>
         {
             if (currentUser.TenantId is null) return Results.Unauthorized();
             if (currentUser.UserId is null)
@@ -349,6 +398,23 @@ public static class ProductionEndpoints
             db.OperatorDeclarations.Add(decl);
             await db.SaveChangesAsync(ct);
 
+            try
+            {
+                var st = job.ExecutionStatus.ToString();
+                await hub.Clients.All.JobStatusChanged(new JobStatusChangedEvent(
+                    job.Id,
+                    job.JobNo,
+                    job.MachineId,
+                    st,
+                    st,
+                    DateTimeOffset.UtcNow,
+                    job.ProducedQty,
+                    job.PlannedQty));
+            }
+            catch
+            {
+            }
+
             return Results.Created($"/api/production/declarations/{decl.Id}", new
             {
                 decl.Id,
@@ -357,7 +423,13 @@ public static class ProductionEndpoints
             });
         });
 
-        g.MapPut("machines/{id:guid}/job", async (Guid id, UpdateMachineJobRequest body, XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
+        g.MapPut("machines/{id:guid}/job", async (
+            Guid id,
+            UpdateMachineJobRequest body,
+            XMachineDbContext db,
+            ICurrentUser currentUser,
+            IHubContext<XMachineHub, IXMachineHubClient> hub,
+            CancellationToken ct) =>
         {
             if (currentUser.TenantId is null) return Results.Unauthorized();
             var tenantId = currentUser.TenantId.Value;
@@ -366,6 +438,8 @@ public static class ProductionEndpoints
                 .FirstOrDefaultAsync(m => m.Id == id && m.TenantId == tenantId && m.Status == EntityStatus.Active, ct);
             if (machine is null)
                 return Results.NotFound();
+
+            var oldMachineStatus = machine.OperationalStatus;
 
             if (body.JobExecutionId is null)
             {
@@ -410,6 +484,23 @@ public static class ProductionEndpoints
             }
 
             await db.SaveChangesAsync(ct);
+
+            if (machine.OperationalStatus != oldMachineStatus)
+            {
+                try
+                {
+                    await hub.Clients.All.MachineStatusChanged(new MachineStatusChangedEvent(
+                        machine.Id,
+                        machine.Code,
+                        machine.Name,
+                        oldMachineStatus.ToString(),
+                        machine.OperationalStatus.ToString(),
+                        DateTimeOffset.UtcNow));
+                }
+                catch
+                {
+                }
+            }
 
             return Results.Ok(new { machineId = machine.Id, operatorId = body.OperatorId });
         });

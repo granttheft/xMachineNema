@@ -86,6 +86,8 @@
   "page.production.subtitle": "Live production jobs and machine status",
   "page.live_monitoring.title": "Live Monitoring",
   "page.live_monitoring.subtitle": "Alarms, downtime, OEE and machine status from operational data.",
+  "page.live_monitoring.hub_live": "Live",
+  "page.live_monitoring.hub_reconnecting": "Reconnecting…",
   "page.live_monitoring.kpi_eventing_total": "Alarm events (tenant)",
   "page.live_monitoring.kpi_active_alarms": "Active alarms",
   "page.live_monitoring.kpi_downtime_today_min": "Downtime today (min)",

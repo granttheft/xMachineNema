@@ -86,6 +86,8 @@
   "page.production.subtitle": "Aktywne zlecenia produkcji i status maszyn",
   "page.live_monitoring.title": "Monitorowanie na żywo",
   "page.live_monitoring.subtitle": "Alarmy, przestoje, OEE i status maszyn.",
+  "page.live_monitoring.hub_live": "Na żywo",
+  "page.live_monitoring.hub_reconnecting": "Ponowne łączenie…",
   "page.live_monitoring.kpi_eventing_total": "Zdarzenia alarmów (tenant)",
   "page.live_monitoring.kpi_active_alarms": "Aktywne alarmy",
   "page.live_monitoring.kpi_downtime_today_min": "Przestoje dziś (min)",

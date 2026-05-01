@@ -1,9 +1,11 @@
 @page "/monitoring/live"
 @rendermode InteractiveServer
+@implements IDisposable
 @using System.Globalization
 @using XMachine.Web.Services
 @inject XMachineApiClient Api
 @inject ITranslationService T
+@inject XMachineHubClient Hub
 
 <PageTitle>@T["page.live_monitoring.title"]</PageTitle>
 
@@ -16,8 +18,26 @@
             <span class="mx-1">/</span>
             <span class="text-slate-800">@T["nav.live_monitoring"]</span>
         </nav>
-        <h1 class="text-2xl font-semibold text-slate-900">@T["page.live_monitoring.title"]</h1>
-        <p class="mt-1 text-sm text-slate-600">@T["page.live_monitoring.subtitle"]</p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+                <h1 class="text-2xl font-semibold text-slate-900">@T["page.live_monitoring.title"]</h1>
+                <p class="mt-1 text-sm text-slate-600">@T["page.live_monitoring.subtitle"]</p>
+            </div>
+            @if (Hub.IsConnected)
+            {
+                <span class="inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2 text-xs font-medium text-green-700" title="SignalR">
+                    <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600"></span>
+                    @T["page.live_monitoring.hub_live"]
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full bg-orange-100 px-2 text-xs font-medium text-orange-700" title="SignalR">
+                    <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                    @T["page.live_monitoring.hub_reconnecting"]
+                </span>
+            }
+        </div>
     </div>
 
     <div class="mx-auto max-w-7xl space-y-6 p-6">
@@ -247,6 +267,8 @@
 
     private Dictionary<Guid, string> _machineLabels = new();
 
+    private bool _hubHandlersAttached;
+
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -263,6 +285,84 @@
         await LoadOeeAsync();
         RebuildDerived();
         await InvokeAsync(StateHasChanged);
+
+        AttachHubHandlers();
+    }
+
+    /// <inheritdoc />
+    void IDisposable.Dispose() => DetachHubHandlers();
+
+    private void AttachHubHandlers()
+    {
+        if (_hubHandlersAttached)
+            return;
+        _hubHandlersAttached = true;
+        Hub.OnMachineStatusChanged += HandleMachineStatusChanged;
+        Hub.OnJobStatusChanged += HandleJobStatusChanged;
+        Hub.OnAlarmTriggered += HandleAlarmTriggered;
+        Hub.ConnectionStateChanged += HandleHubConnectionStateChanged;
+    }
+
+    private void DetachHubHandlers()
+    {
+        if (!_hubHandlersAttached)
+            return;
+        Hub.OnMachineStatusChanged -= HandleMachineStatusChanged;
+        Hub.OnJobStatusChanged -= HandleJobStatusChanged;
+        Hub.OnAlarmTriggered -= HandleAlarmTriggered;
+        Hub.ConnectionStateChanged -= HandleHubConnectionStateChanged;
+        _hubHandlersAttached = false;
+    }
+
+    private void HandleHubConnectionStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void HandleMachineStatusChanged(MachineStatusChangedEvent evt)
+    {
+        var idx = _machines.FindIndex(m => m.Id == evt.MachineId);
+        if (idx >= 0)
+            _machines[idx] = _machines[idx] with { OperationalStatus = evt.NewStatus };
+        _machineLabels[evt.MachineId] = $"{evt.MachineCode} · {evt.MachineName}";
+        RebuildDerived();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleJobStatusChanged(JobStatusChangedEvent evt)
+    {
+        var idx = _machines.FindIndex(m => m.Id == evt.MachineId);
+        if (idx < 0)
+        {
+            _ = InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var m = _machines[idx];
+        if (m.ActiveJob is { } j && j.Id == evt.JobId)
+            _machines[idx] = m with { ActiveJob = j with { ExecutionStatus = evt.NewStatus, ProducedQty = evt.ProducedQty, PlannedQty = evt.PlannedQty } };
+
+        RebuildDerived();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleAlarmTriggered(AlarmTriggeredEvent evt)
+    {
+        var row = new AlarmRowDto(
+            evt.AlarmId,
+            evt.AlarmCode,
+            evt.Message,
+            evt.Severity,
+            "Hub",
+            evt.TriggeredAt,
+            null,
+            null,
+            null,
+            null,
+            evt.MachineId,
+            "Active",
+            "Active");
+        _allAlarms.RemoveAll(a => a.Id == evt.AlarmId);
+        _allAlarms.Insert(0, row);
+        RebuildDerived();
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadSummaryAsync()

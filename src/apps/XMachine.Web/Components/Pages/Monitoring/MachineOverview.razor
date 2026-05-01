@@ -1,9 +1,11 @@
 @page "/monitoring/machines"
 @rendermode InteractiveServer
+@implements IDisposable
 @using System.Globalization
 @using XMachine.Web.Services
 @inject XMachineApiClient Api
 @inject ITranslationService T
+@inject XMachineHubClient Hub
 
 <PageTitle>@T["page.machine_overview.title"]</PageTitle>
 
@@ -141,6 +143,8 @@
     private Dictionary<Guid, OeeRowDto> _latestOeeByMachine = new();
     private Dictionary<Guid, int> _activeAlarmCountByMachine = new();
 
+    private bool _hubHandlersAttached;
+
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -155,6 +159,53 @@
         await LoadAlarmsAsync();
         RebuildLookups();
         await InvokeAsync(StateHasChanged);
+
+        AttachHubHandlers();
+    }
+
+    /// <inheritdoc />
+    void IDisposable.Dispose() => DetachHubHandlers();
+
+    private void AttachHubHandlers()
+    {
+        if (_hubHandlersAttached)
+            return;
+        _hubHandlersAttached = true;
+        Hub.OnMachineStatusChanged += HandleMachineStatusChanged;
+        Hub.OnJobStatusChanged += HandleJobStatusChanged;
+    }
+
+    private void DetachHubHandlers()
+    {
+        if (!_hubHandlersAttached)
+            return;
+        Hub.OnMachineStatusChanged -= HandleMachineStatusChanged;
+        Hub.OnJobStatusChanged -= HandleJobStatusChanged;
+        _hubHandlersAttached = false;
+    }
+
+    private void HandleMachineStatusChanged(MachineStatusChangedEvent evt)
+    {
+        var idx = _machines.FindIndex(m => m.Id == evt.MachineId);
+        if (idx >= 0)
+            _machines[idx] = _machines[idx] with { OperationalStatus = evt.NewStatus };
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleJobStatusChanged(JobStatusChangedEvent evt)
+    {
+        var idx = _machines.FindIndex(m => m.Id == evt.MachineId);
+        if (idx < 0)
+        {
+            _ = InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        var m = _machines[idx];
+        if (m.ActiveJob is { } j && j.Id == evt.JobId)
+            _machines[idx] = m with { ActiveJob = j with { ExecutionStatus = evt.NewStatus, ProducedQty = evt.ProducedQty, PlannedQty = evt.PlannedQty } };
+
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadMachinesAsync()

@@ -521,8 +521,8 @@ All TSX sources: `figma-reference/src/app/components/`
 
 ### 📋 Sprint 5 — Live Monitoring (Real Data) 🚧
 - **Step 1 (done):** LiveMonitoring.razor + MachineOverview.razor → real Eventing + Production API, i18n titles
-- **Steps 2–3 (pending):** SignalR live tiles; OperatorDashboard.razor wiring as planned
-- SignalR hub for real-time dashboard tiles
+- **Step 2 (done):** `XMachineHub` + `IXMachineHubClient` pushes from Engineering/Production writes; Web `XMachineHubClient` + LiveMonitoring/MachineOverview subscribe; CORS `BlazorClient` on Api
+- **Step 3 (pending):** OperatorDashboard.razor wiring as planned
 
 ### 📋 Sprint 5-W — Live Monitoring Write
 - Downtime entry form (operator reports stop reason)
@@ -728,6 +728,14 @@ _timer = new System.Threading.Timer(_ =>
     InvokeAsync(() => { _currentTime = DateTime.Now; StateHasChanged(); }),
     null, 0, 1000);
 void IDisposable.Dispose() => _timer?.Dispose();
+
+### 11.8 SignalR pattern (live monitoring)
+- **Server:** `IHubContext<THub, TClient>` injected in minimal API handlers → `await hub.Clients.All.SomeClientMethod(event)` after `SaveChangesAsync`.
+- Hub push failures are wrapped in `try`/`catch` so HTTP responses stay 200/201.
+- **Client (Web):** `XMachineHubClient` singleton builds `HubConnection` with `WithAutomaticReconnect()`, URL from `XMachine:HubUrl` (or derived from API base + `/hubs/xmachine`).
+- Monitoring pages subscribe to `OnMachineStatusChanged` / `OnJobStatusChanged` / `OnAlarmTriggered`, handle with `_ = InvokeAsync(StateHasChanged)`, and **`@implements IDisposable`** to unsubscribe and avoid leaks.
+- `MainLayout` starts the hub once when not connected (after `EnsureInitializedAsync`).
+
 ---
 
 ## 12. Known Tensions & Open Questions

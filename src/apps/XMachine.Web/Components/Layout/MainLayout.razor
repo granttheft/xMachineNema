@@ -2,10 +2,13 @@
 @using System.Diagnostics
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Configuration
 @using XMachine.Web.Services
 @inject ApiConnectivityState ApiConnectivity
 @inject IWebHostEnvironment HostEnv
 @inject ITranslationService T
+@inject IConfiguration Configuration
+@inject XMachineHubClient Hub
 
 <div class="flex h-screen overflow-hidden bg-slate-50">
     <NavMenu />
@@ -76,6 +79,12 @@
 
         await T.EnsureInitializedAsync();
         await InvokeAsync(StateHasChanged);
+
+        if (!Hub.IsConnected)
+        {
+            var hubUrl = XMachineHubClient.ResolveConfiguredHubUrl(Configuration);
+            await Hub.StartAsync(hubUrl);
+        }
 
         var deadline = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 25;
         while (!ApiConnectivity.HasResult && Stopwatch.GetTimestamp() < deadline)

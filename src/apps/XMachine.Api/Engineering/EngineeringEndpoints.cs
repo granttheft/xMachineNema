@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using XMachine.Api.Hubs;
 using XMachine.Module.Auth.Security;
 using XMachine.Module.Engineering.Domain;
 using XMachine.Module.Platform.Domain;
@@ -307,7 +309,13 @@ public static class EngineeringEndpoints
             return Results.Ok(new { wo.Id, wo.WorkOrderNo, WorkOrderStatus = wo.WorkOrderStatus.ToString() });
         });
 
-        g.MapPut("machine-status/{id:guid}", async (Guid id, UpdateMachineStatusRequest body, XMachineDbContext db, ICurrentUser currentUser, CancellationToken ct) =>
+        g.MapPut("machine-status/{id:guid}", async (
+            Guid id,
+            UpdateMachineStatusRequest body,
+            XMachineDbContext db,
+            ICurrentUser currentUser,
+            IHubContext<XMachineHub, IXMachineHubClient> hub,
+            CancellationToken ct) =>
         {
             if (currentUser.TenantId is null) return Results.Unauthorized();
             var tenantId = currentUser.TenantId.Value;
@@ -321,10 +329,26 @@ public static class EngineeringEndpoints
             if (machine is null)
                 return Results.NotFound();
 
+            var oldStatus = machine.OperationalStatus;
             machine.OperationalStatus = opStatus;
             machine.UpdatedAt = DateTimeOffset.UtcNow;
 
             await db.SaveChangesAsync(ct);
+
+            try
+            {
+                await hub.Clients.All.MachineStatusChanged(new MachineStatusChangedEvent(
+                    machine.Id,
+                    machine.Code,
+                    machine.Name,
+                    oldStatus.ToString(),
+                    machine.OperationalStatus.ToString(),
+                    DateTimeOffset.UtcNow));
+            }
+            catch
+            {
+                // Hub failures must not affect HTTP result
+            }
 
             return Results.Ok(new { machine.Id, machine.Code, OperationalStatus = machine.OperationalStatus.ToString() });
         });

@@ -86,6 +86,8 @@
   "page.production.subtitle": "Canlı üretim işleri ve makine durumu",
   "page.live_monitoring.title": "Canlı İzleme",
   "page.live_monitoring.subtitle": "Alarmlar, duruşlar, OEE ve makine durumu.",
+  "page.live_monitoring.hub_live": "Canlı",
+  "page.live_monitoring.hub_reconnecting": "Yeniden bağlanıyor…",
   "page.live_monitoring.kpi_eventing_total": "Alarm kayıtları (kiracı)",
   "page.live_monitoring.kpi_active_alarms": "Aktif alarmlar",
   "page.live_monitoring.kpi_downtime_today_min": "Bugünkü duruş (dk)",

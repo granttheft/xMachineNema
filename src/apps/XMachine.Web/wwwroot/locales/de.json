@@ -86,6 +86,8 @@
   "page.production.subtitle": "Live-Produktionsaufträge und Maschinenstatus",
   "page.live_monitoring.title": "Live-Überwachung",
   "page.live_monitoring.subtitle": "Alarme, Stillstände, OEE und Maschinenstatus.",
+  "page.live_monitoring.hub_live": "Live",
+  "page.live_monitoring.hub_reconnecting": "Verbindung wird wiederhergestellt…",
   "page.live_monitoring.kpi_eventing_total": "Alarmereignisse (Mandant)",
   "page.live_monitoring.kpi_active_alarms": "Aktive Alarme",
   "page.live_monitoring.kpi_downtime_today_min": "Stillstand heute (Min)",
