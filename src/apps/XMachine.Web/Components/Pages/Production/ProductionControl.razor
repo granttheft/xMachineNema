@@ -271,6 +271,14 @@
         }
         else if (_activeTab == "demand")
         {
+            @if (_showDemandApiBanner && _demandApiJobCount > 0)
+            {
+                <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
+                    <span>Showing @_demandApiJobCount jobs from production API</span>
+                    <button type="button" @onclick="DismissDemandApiBanner" class="text-green-700 underline text-xs font-medium hover:text-green-900">Dismiss</button>
+                </div>
+            }
+
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
                     <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">Pending Approval</p>
@@ -310,7 +318,13 @@
                         @foreach (var p in _plans)
                         {
                             <tr class="transition-colors hover:bg-slate-50">
-                                <td class="whitespace-nowrap px-4 py-3 font-mono text-slate-700">@p.PlanId</td>
+                                <td class="whitespace-nowrap px-4 py-3 font-mono text-slate-700">
+                                    @p.PlanId
+                                    @if (p.SourceJobId is not null)
+                                    {
+                                        <span class="ml-2 inline-flex rounded px-2 py-0.5 text-[10px] font-medium bg-green-100 text-green-700">Live Data</span>
+                                    }
+                                </td>
                                 <td class="px-4 py-3 text-slate-700">@p.ProductCode — @p.ProductName</td>
                                 <td class="whitespace-nowrap px-4 py-3">@p.Qty.ToString("N0") @p.Unit</td>
                                 <td class="whitespace-nowrap px-4 py-3 text-slate-700">@p.Planner</td>
@@ -325,10 +339,14 @@
                                         </button>
                                         @if (string.Equals(p.Status, "Pending", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <button type="button" @onclick="() => ApprovePlan(p.PlanId)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-2 hover:bg-green-700">✓</button>
+                                            <button type="button" @onclick="async () => await ApprovePlanAsync(p.PlanId)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-green-600 text-white h-8 px-2 hover:bg-green-700">✓</button>
                                             <button type="button" @onclick="() => OpenRejectModal(p)" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-red-600 text-white h-8 px-2 hover:bg-red-700">✗</button>
                                         }
                                     </div>
+                                    @if (_demandRowErrors.TryGetValue(p.PlanId, out var rowErr) && !string.IsNullOrEmpty(rowErr))
+                                    {
+                                        <p class="mt-1 text-xs text-red-600">@rowErr</p>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -574,7 +592,7 @@
             {
                 <div class="flex justify-end gap-2">
                     <button type="button" @onclick="ClosePlanDetail" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Close</button>
-                    <button type="button" @onclick="() => { ApprovePlan(sp.PlanId); ClosePlanDetail(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-green-600 text-white h-9 px-4 hover:bg-green-700">Approve</button>
+                    <button type="button" @onclick="async () => { await ApprovePlanAsync(sp.PlanId); ClosePlanDetail(); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-green-600 text-white h-9 px-4 hover:bg-green-700">Approve</button>
                     <button type="button" @onclick="() => { ClosePlanDetail(); OpenRejectModal(sp); }" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Reject</button>
                 </div>
             }
@@ -601,7 +619,7 @@
             <textarea @bind="_rejectReason" rows="4" class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm mb-4"></textarea>
             <div class="flex justify-end gap-2">
                 <button type="button" @onclick="CloseRejectModal" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-slate-200 bg-white h-9 px-4 hover:bg-slate-50">Cancel</button>
-                <button type="button" @onclick="RejectPlan" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Confirm Reject</button>
+                <button type="button" @onclick="RejectPlanAsync" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-red-600 text-white h-9 px-4 hover:bg-red-700">Confirm Reject</button>
             </div>
         </div>
     </div>
@@ -769,6 +787,10 @@
     private string? _planSuccessMessage;
     private string? _jobActionError;
     private readonly Dictionary<string, Guid> _apiJobExecutionIdByJobNo = new();
+    private List<PlanRow> _mockPlansBackup = new();
+    private bool _showDemandApiBanner;
+    private int _demandApiJobCount;
+    private readonly Dictionary<string, string?> _demandRowErrors = new(StringComparer.Ordinal);
     private string _successBannerCss = "rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800";
     private CancellationTokenSource? _successBannerCts;
     private string? _rejectModalError;
@@ -849,14 +871,125 @@
             return;
 
         _initialized = true;
-        var fetch = await Api.GetProductionJobsAsync().ConfigureAwait(false);
-        if (fetch.Error is null && fetch.Data is { } jobs)
+        try
         {
-            foreach (var j in jobs)
-                _apiJobExecutionIdByJobNo[j.JobNo] = j.Id;
+            var fetch = await Api.GetProductionJobsAsync().ConfigureAwait(false);
+            if (fetch.Error is null && fetch.Data is { } jobs)
+            {
+                foreach (var j in jobs)
+                    _apiJobExecutionIdByJobNo[j.JobNo] = j.Id;
+
+                var mach = await Api.GetProductionMachinesAsync().ConfigureAwait(false);
+                var machineCodes = mach.Data?.ToDictionary(m => m.Id, m => m.Code) ?? new Dictionary<Guid, string>();
+                if (jobs.Count > 0)
+                {
+                    MergeDemandPlansFromApi(jobs, machineCodes);
+                    _demandApiJobCount = jobs.Count;
+                    _showDemandApiBanner = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() =>
+            {
+                _jobActionError = $"Could not load production jobs: {ex.Message}";
+                StateHasChanged();
+            }).ConfigureAwait(false);
         }
 
         await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private void DismissDemandApiBanner()
+    {
+        _showDemandApiBanner = false;
+        StateHasChanged();
+    }
+
+    private void ClearDemandRowError(string planId) => _demandRowErrors.Remove(planId);
+
+    private void SetDemandRowError(string planId, string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+            _demandRowErrors.Remove(planId);
+        else
+            _demandRowErrors[planId] = message;
+    }
+
+    /// <summary>Combines API job rows with seeded mock plans when the API returns jobs.</summary>
+    private void MergeDemandPlansFromApi(List<ApiJobExecution> jobs, Dictionary<Guid, string> machineCodes)
+    {
+        var apiRows = jobs.Select(j => MapJobExecutionToDemandPlanRow(j, machineCodes)).ToList();
+        _plans = apiRows.Count > 0
+            ? apiRows.Concat(_mockPlansBackup).ToList()
+            : _mockPlansBackup.ToList();
+    }
+
+    /// <summary>Maps a job execution to a demand-authorization plan row.</summary>
+    private static PlanRow MapJobExecutionToDemandPlanRow(ApiJobExecution job, Dictionary<Guid, string> machineCodes)
+    {
+        var status = MapExecutionStatusToDemandPlanStatus(job.ExecutionStatus);
+        var submitted = job.PlannedStartAt?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+        var po = job.ProductionOrderId.ToString("N");
+        var poShort = po.Length >= 8 ? po[..8] : po;
+        var machineLabel = machineCodes.GetValueOrDefault(job.MachineId, job.MachineId.ToString("N")[..8]);
+        return new PlanRow(
+            job.JobNo,
+            "Parent",
+            poShort,
+            $"{machineLabel} · order {poShort}",
+            job.PlannedQty,
+            "pcs",
+            "supervisor1",
+            submitted,
+            "Medium",
+            status,
+            null,
+            null,
+            new List<string>(),
+            false,
+            new List<PlanMaterialRow>
+            {
+                new("—", "BOM not loaded", job.PlannedQty, "pcs", 0, 0),
+            },
+            null,
+            job.Id);
+    }
+
+    private static string MapExecutionStatusToDemandPlanStatus(string executionStatus)
+    {
+        if (string.Equals(executionStatus, "Queued", StringComparison.OrdinalIgnoreCase))
+            return "Pending";
+        if (string.Equals(executionStatus, "Setup", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Running", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Paused", StringComparison.OrdinalIgnoreCase))
+            return "Approved";
+        if (string.Equals(executionStatus, "Done", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            return "Completed";
+        return "Pending";
+    }
+
+    private async Task ReloadDemandPlansFromApiAsync()
+    {
+        try
+        {
+            var fetch = await Api.GetProductionJobsAsync().ConfigureAwait(false);
+            var mach = await Api.GetProductionMachinesAsync().ConfigureAwait(false);
+            if (fetch.Error is null && fetch.Data is { } jobs)
+            {
+                foreach (var j in jobs)
+                    _apiJobExecutionIdByJobNo[j.JobNo] = j.Id;
+                var machineCodes = mach.Data?.ToDictionary(m => m.Id, m => m.Code) ?? new Dictionary<Guid, string>();
+                MergeDemandPlansFromApi(jobs, machineCodes);
+                _demandApiJobCount = jobs.Count;
+            }
+        }
+        catch
+        {
+            // Leave current _plans unchanged
+        }
     }
 
     private async Task PauseJobAsync(JobMonitoringRow job)
@@ -1022,19 +1155,49 @@
         StateHasChanged();
     }
 
-    private async void ApprovePlan(string planId)
+    private async Task ApprovePlanAsync(string planId)
     {
+        ClearDemandRowError(planId);
+        var idx = _plans.FindIndex(p => p.PlanId == planId);
+        if (idx < 0)
+            return;
+
+        var p = _plans[idx];
+        if (p.SourceJobId is { } execId)
+        {
+            var setup = await Api.PutJobStatusAsync(execId, new UpdateJobStatusDto("Setup", null, null)).ConfigureAwait(false);
+            if (setup.Error is not null)
+            {
+                SetDemandRowError(planId, setup.Error);
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return;
+            }
+
+            var running = await Api.PutJobStatusAsync(execId, new UpdateJobStatusDto("Running", null, null)).ConfigureAwait(false);
+            if (running.Error is not null)
+            {
+                SetDemandRowError(planId, running.Error);
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return;
+            }
+
+            await ReloadDemandPlansFromApiAsync().ConfigureAwait(false);
+            await ShowSuccessBannerAsync($"Plan {planId} approved.", true).ConfigureAwait(false);
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            return;
+        }
+
         var jobNo = $"JOB-{DateTime.UtcNow:yyyyMMdd}-{_jobSeq++:000}";
         for (var i = 0; i < _plans.Count; i++)
         {
             if (_plans[i].PlanId != planId)
                 continue;
 
-            var p = _plans[i];
-            _plans[i] = p with { Status = "Approved", JobId = jobNo };
-            if (IsParent(p) && p.Children.Count > 0)
+            var row = _plans[i];
+            _plans[i] = row with { Status = "Approved", JobId = jobNo };
+            if (IsParent(row) && row.Children.Count > 0)
             {
-                foreach (var childId in p.Children)
+                foreach (var childId in row.Children)
                 {
                     var ci = _plans.FindIndex(x => x.PlanId == childId);
                     if (ci >= 0)
@@ -1049,11 +1212,11 @@
             break;
         }
 
-        StateHasChanged();
-        await ShowSuccessBannerAsync($"Plan {planId} approved. Job {jobNo} created.");
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        await ShowSuccessBannerAsync($"Plan {planId} approved. Job {jobNo} created.", true).ConfigureAwait(false);
     }
 
-    private async void RejectPlan()
+    private async Task RejectPlanAsync()
     {
         if (string.IsNullOrWhiteSpace(_rejectReason))
         {
@@ -1066,12 +1229,29 @@
             return;
 
         var id = _selectedPlan.PlanId;
-        for (var i = 0; i < _plans.Count; i++)
+        ClearDemandRowError(id);
+
+        if (_selectedPlan.SourceJobId is { } execId)
         {
-            if (_plans[i].PlanId == id)
+            var res = await Api.PutJobStatusAsync(execId, new UpdateJobStatusDto("Cancelled", null, null)).ConfigureAwait(false);
+            if (res.Error is not null)
             {
-                _plans[i] = _plans[i] with { Status = "Rejected", RejectionReason = _rejectReason.Trim() };
-                break;
+                _rejectModalError = res.Error;
+                StateHasChanged();
+                return;
+            }
+
+            await ReloadDemandPlansFromApiAsync().ConfigureAwait(false);
+        }
+        else
+        {
+            for (var i = 0; i < _plans.Count; i++)
+            {
+                if (_plans[i].PlanId == id)
+                {
+                    _plans[i] = _plans[i] with { Status = "Rejected", RejectionReason = _rejectReason.Trim() };
+                    break;
+                }
             }
         }
 
@@ -1079,7 +1259,7 @@
         _rejectReason = string.Empty;
         _rejectModalError = null;
         StateHasChanged();
-        await ShowSuccessBannerAsync($"Plan {id} rejected.", false);
+        await ShowSuccessBannerAsync($"Plan {id} rejected.", false).ConfigureAwait(false);
     }
 
     /// <summary>Shows a temporary banner message (auto-dismiss after 3 seconds).</summary>
@@ -1445,6 +1625,8 @@
             new("RL-REQ-003", "RL-20250908-003", "JOB20250903-003", "INJ-M003", "2012 - Plastic Container 1L", "PP002", "PP Blue Compound", "Blue", 18, 2.5m, "kg", "Material Change", "Rejected"),
             new("RL-REQ-004", "RL-20250908-004", "JOB20250903-004", "INJ-M004", "2011 - Plastic Bottle 500ml", "PET001", "PET Resin Clear", "Clear", 32, 0, "kg", "Machine Issue", "Pending"),
         };
+
+        _mockPlansBackup = _plans.ToList();
     }
 
     /// <summary>Mock raw material line on a monitored job.</summary>
@@ -1479,7 +1661,7 @@
     /// <summary>Mock BOM line on a production plan.</summary>
     private sealed record PlanMaterialRow(string MaterialCode, string MaterialName, decimal RequiredQty, string Unit, decimal AvailableStock, decimal Shortage);
 
-    /// <summary>Mock production plan for demand authorization.</summary>
+    /// <summary>Mock or API-backed production plan for demand authorization.</summary>
     private sealed record PlanRow(
         string PlanId,
         string PlanType,
@@ -1496,7 +1678,8 @@
         List<string> Children,
         bool HasShortage,
         List<PlanMaterialRow> RawMaterials,
-        string? RejectionReason = null);
+        string? RejectionReason = null,
+        Guid? SourceJobId = null);
 
     /// <summary>Mock reserved material on an active job.</summary>
     private sealed record ReservedMaterialRow(string MaterialCode, string MaterialName, string Color, decimal Qty, string Unit);

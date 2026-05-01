@@ -333,7 +333,7 @@ All TSX sources: `figma-reference/src/app/components/`
 | EngineeringDashboard.tsx | /engineering/dashboard | ✅ Real API |
 | Engineering.tsx | /engineering | ✅ Built (mock data · write phase pending) |
 | EngineeringModule.tsx | /engineering | ✅ Merged into Engineering.razor |
-| MachineCalendarView.tsx | /engineering/calendar | ✅ Built (simplified · mock) |
+| MachineCalendarView.tsx | /engineering/calendar | ✅ Real API (PM + WO) |
 | MoldChangeRequests.tsx | /engineering/mold-changes | ✅ Built (mock state · write phase pending) |
 | AssignmentCalendarModal.tsx | modal component | ⏳ Deferred to Planning sprint |
 | EngineeringMobile.tsx | /mobile/engineering | 🔴 Sprint 14 (PWA) |
@@ -343,13 +343,13 @@ All TSX sources: `figma-reference/src/app/components/`
 | Figma TSX | Blazor Route | Status |
 |-----------|-------------|--------|
 | ProductionModule.tsx | /production | ✅ Real API |
-| ProductionControl.tsx | /production/control | ✅ Built (mock · write pending) |
+| ProductionControl.tsx | /production/control | ✅ Real API (DA tab wired · other tabs mixed) |
 | ProductionControlMCR.tsx | /production/mcr | ✅ Built (mock) |
 | ProductionControlFixed.tsx | — | ⏳ Evaluate |
 | OperatorDashboard.tsx | /production/operator | ✅ Built (button assignment) |
 | OperatorKiosk.tsx | /production/kiosk | ✅ Built (live timer) |
 | SupervisorScreen.tsx | /production/supervisor | ✅ Built (QR/RFID flow) |
-| JobTracker.tsx | /production/jobs | ✅ Built (search + timeline) |
+| JobTracker.tsx | /production/jobs | ✅ Real API (search wired) |
 | SplitJobManagement.tsx | /production/split-jobs | ✅ Built (modal) |
 | LiveSchedule.tsx | /production/live | ⏳ Empty (stub file) |
 | LiveProductionSchedule.tsx | /production/live-schedule | ⏳ Empty (stub file) |
@@ -463,7 +463,7 @@ All TSX sources: `figma-reference/src/app/components/`
 **UI pages built:**
 - `/engineering/dashboard` → ✅ Real API (EngineeringDashboard.razor)
 - `/engineering` → ✅ Tabbed: Breakdowns · PM · Spare Parts · Process Setup · Reports (mock)
-- `/engineering/calendar` → ✅ Maintenance calendar, month/day view (mock)
+- `/engineering/calendar` → ✅ Maintenance calendar, month/day view (Sprint 5 Step 3 → real PM + WO API)
 - `/engineering/mold-changes` → ✅ MCR lifecycle with 3 modals (mock state)
 
 ### ✅ Sprint 3b-W — Engineering Module — Write Phase
@@ -489,15 +489,15 @@ All TSX sources: `figma-reference/src/app/components/`
 
 **UI pages built:**
 - /production → ✅ ProductionModule.razor (real API)
-- /production/control → ✅ ProductionControl.razor (3 tabs, mock)
+- /production/control → ✅ ProductionControl.razor (Demand tab + jobs API; Material tab mock)
 - /production/mcr → ✅ ProductionControlMCR.razor (mock)
 - /production/operator → ✅ OperatorDashboard.razor (button assignment)
 - /production/kiosk → ✅ OperatorKiosk.razor (live timer, IDisposable)
 - /production/supervisor → ✅ SupervisorScreen.razor (QR/RFID finalization)
-- /production/jobs → ✅ JobTracker.razor (search, 8-stage timeline, split/assembly)
+- /production/jobs → ✅ JobTracker.razor (mock + API job search, 8-stage timeline, split/assembly)
 - /production/split-jobs → ✅ SplitJobManagement.razor (split request management)
 
-### 🚧 Sprint 4-W — Production Control — Write Phase (CURRENT)
+### 🚧 Sprint 4-W — Production Control — Write Phase
 **New API endpoints needed:**
 - POST /api/production/jobs — create job execution
 - PUT /api/production/jobs/{id}/status — start/pause/resume/complete
@@ -519,12 +519,13 @@ All TSX sources: `figma-reference/src/app/components/`
 - Tenant default language setting
 - Sprint 6+ new pages built with i18n from the start
 
-### 📋 Sprint 5 — Live Monitoring (Real Data) 🚧
+### ✅ Sprint 5 — Live Monitoring (Real Data)
 - **Step 1 (done):** LiveMonitoring.razor + MachineOverview.razor → real Eventing + Production API, i18n titles
 - **Step 2 (done):** `XMachineHub` + `IXMachineHubClient` pushes from Engineering/Production writes; Web `XMachineHubClient` + LiveMonitoring/MachineOverview subscribe; CORS `BlazorClient` on Api
-- **Step 3 (pending):** OperatorDashboard.razor wiring as planned
+- **Step 3 (done):** MachineCalendarView.razor (engineering PM + WO), ProductionControl Demand Authorization (jobs + approve/reject), JobTracker API search + Live Data badge
+- **Follow-up:** OperatorDashboard.razor wiring (backlog)
 
-### 📋 Sprint 5-W — Live Monitoring Write
+### 🚧 Sprint 5-W — Live Monitoring Write (CURRENT)
 - Downtime entry form (operator reports stop reason)
 - Alarm acknowledgement endpoint + UI button
 - OEE manual correction form

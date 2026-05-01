@@ -1,5 +1,7 @@
 @page "/engineering/calendar"
 @rendermode InteractiveServer
+@using XMachine.Web.Services
+@inject XMachineApiClient Api
 
 <PageTitle>Machine Maintenance Calendar · xMachine</PageTitle>
 
@@ -39,6 +41,19 @@
     </div>
 
     <div class="p-6">
+        @if (_loading)
+        {
+            <div class="flex h-48 items-center justify-center text-slate-500">
+                <span class="mr-2 animate-spin" aria-hidden="true">⏳</span>
+                Loading calendar data...
+            </div>
+        }
+        else if (_loadError is not null)
+        {
+            <div class="rounded-lg bg-red-50 px-4 py-3 text-red-700">@_loadError</div>
+        }
+        else
+        {
         @if (_viewMode == "month")
         {
             <div class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -134,6 +149,7 @@
                 }
             </div>
         }
+        }
     </div>
 </div>
 
@@ -142,9 +158,13 @@
     private DateOnly _selectedDate = DateOnly.FromDateTime(DateTime.Today);
     private DateOnly _currentMonth = DateOnly.FromDateTime(DateTime.Today);
 
-    private static readonly IReadOnlyList<CalendarEvent> MockEvents = BuildMockEvents();
+    private List<CalendarEvent> _events = [];
+    private bool _loading = true;
+    private string? _loadError;
 
-    private static IReadOnlyList<CalendarEvent> BuildMockEvents()
+    private static readonly CalendarEvent[] FallbackCalendarEvents = BuildFallbackCalendarEvents();
+
+    private static CalendarEvent[] BuildFallbackCalendarEvents()
     {
         var t = DateOnly.FromDateTime(DateTime.Today);
         return
@@ -219,7 +239,7 @@
         date.Month == _currentMonth.Month && date.Year == _currentMonth.Year;
 
     private IEnumerable<CalendarEvent> GetEventsForDate(DateOnly date) =>
-        MockEvents.Where(e => e.EventDate == date);
+        _events.Where(e => e.EventDate == date);
 
     private static string GetEventBgClass(string eventType) => eventType switch
     {
@@ -267,8 +287,88 @@
         if (!firstRender)
             return;
 
-        await Task.CompletedTask;
-        StateHasChanged();
+        try
+        {
+            var machinesRes = await Api.GetEngineeringMachineStatusAsync().ConfigureAwait(false);
+            var machineNames = machinesRes.Error is null && machinesRes.Data is { } machines
+                ? machines.ToDictionary(m => m.Id, m => m.Code)
+                : new Dictionary<Guid, string>();
+
+            var pmRes = await Api.GetEngineeringPmSchedulesAsync().ConfigureAwait(false);
+            var woRes = await Api.GetEngineeringWorkOrdersAsync().ConfigureAwait(false);
+
+            if (pmRes.Error is not null)
+                _loadError = pmRes.Error;
+            else if (woRes.Error is not null)
+                _loadError = woRes.Error;
+            else
+            {
+                var list = new List<CalendarEvent>();
+                foreach (var schedule in pmRes.Data ?? [])
+                {
+                    if (schedule.NextDueAt is not { } nextDue)
+                        continue;
+                    var eventDate = DateOnly.FromDateTime(nextDue.LocalDateTime);
+                    var eventType = nextDue < DateTimeOffset.UtcNow ? "pm-overdue" : "pm-scheduled";
+                    var machineName = machineNames.GetValueOrDefault(schedule.MachineId, "Unknown Machine");
+                    list.Add(new CalendarEvent(
+                        schedule.Id.ToString(),
+                        schedule.Name,
+                        machineName,
+                        eventType,
+                        eventDate,
+                        8,
+                        12,
+                        schedule.OwnerRole));
+                }
+
+                foreach (var wo in woRes.Data ?? [])
+                {
+                    var title = wo.Description.Length > 40 ? wo.Description[..40] + "…" : wo.Description;
+                    var machineName = machineNames.GetValueOrDefault(wo.MachineId, wo.MachineId.ToString("N")[..8]);
+                    var eventType = MapWorkOrderEventType(wo.WorkOrderStatus);
+                    var reported = wo.ReportedAt.LocalDateTime;
+                    var startHour = reported.Hour;
+                    var endHour = Math.Min(23, startHour + 4);
+                    list.Add(new CalendarEvent(
+                        wo.Id.ToString(),
+                        title,
+                        machineName,
+                        eventType,
+                        DateOnly.FromDateTime(reported),
+                        startHour,
+                        endHour,
+                        wo.ClosingNotes));
+                }
+
+                list.Sort((a, b) => a.EventDate.CompareTo(b.EventDate));
+                _events = list.Count > 0 ? list : [..FallbackCalendarEvents];
+            }
+        }
+        catch (Exception ex)
+        {
+            _loadError = ex.Message;
+            _events = [..FallbackCalendarEvents];
+        }
+        finally
+        {
+            _loading = false;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    private static string MapWorkOrderEventType(string workOrderStatus)
+    {
+        if (string.Equals(workOrderStatus, "Open", StringComparison.OrdinalIgnoreCase))
+            return "work-order-down";
+        if (string.Equals(workOrderStatus, "InProgress", StringComparison.OrdinalIgnoreCase))
+            return "work-order-inprogress";
+        if (string.Equals(workOrderStatus, "Done", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(workOrderStatus, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            return "work-order-done";
+        if (string.Equals(workOrderStatus, "WaitingParts", StringComparison.OrdinalIgnoreCase))
+            return "work-order-down";
+        return "work-order-inprogress";
     }
 
     /// <summary>

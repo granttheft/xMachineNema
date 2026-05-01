@@ -2,6 +2,8 @@
 @rendermode InteractiveServer
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.Web
+@using XMachine.Web.Services
+@inject XMachineApiClient Api
 
 <PageTitle>Job Tracker · xMachine</PageTitle>
 
@@ -82,7 +84,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                         <div>
                             <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">ID</p>
-                            <p class="font-medium text-slate-900">@(r.JobId ?? r.PlanId)</p>
+                            <p class="font-medium text-slate-900">
+                                @(r.JobId ?? r.PlanId)
+                                @if (_searchResultsFromApi)
+                                {
+                                    <span class="ml-2 inline-flex rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Live Data</span>
+                                }
+                            </p>
                             @if (!string.IsNullOrEmpty(r.ParentPlanId))
                             {
                                 <p class="text-sm text-slate-500 mt-1">Parent: @r.ParentPlanId</p>
@@ -448,6 +456,10 @@
     private bool _splitExpanded;
     private bool _assemblyExpanded;
     private bool _initialized;
+    private bool _searchResultsFromApi;
+
+    private List<ApiJobExecution> _apiJobs = [];
+    private Dictionary<Guid, string> _machineNameById = new();
 
     private Dictionary<string, SearchResult> _lookup = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, List<StageEntry>> _stageData = new(StringComparer.OrdinalIgnoreCase);
@@ -466,16 +478,37 @@
         ("fg-release", "FG-WH Release"),
     ];
 
-    /// <summary>Runs once after first render to build mock dictionaries.</summary>
-    protected override Task OnAfterRenderAsync(bool firstRender)
+    /// <summary>Runs once after first render to build mock dictionaries and load API jobs.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _initialized)
-            return Task.CompletedTask;
+            return;
 
         _initialized = true;
         BuildMockData();
-        StateHasChanged();
-        return Task.CompletedTask;
+        try
+        {
+            var jobsRes = await Api.GetProductionJobsAsync().ConfigureAwait(false);
+            var machRes = await Api.GetProductionMachinesAsync().ConfigureAwait(false);
+            if (jobsRes.Error is null && jobsRes.Data is { } jobs)
+            {
+                _apiJobs = jobs;
+                foreach (var j in jobs)
+                {
+                    var k = j.JobNo.Trim().ToUpperInvariant();
+                    _stageData[k] = BuildStageDataForJob(j);
+                }
+            }
+
+            if (machRes.Error is null && machRes.Data is { } machines)
+                _machineNameById = machines.ToDictionary(m => m.Id, m => m.Code);
+        }
+        catch
+        {
+            // Keep mock-only behaviour
+        }
+
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
     }
 
     private void BuildMockData()
@@ -643,21 +676,149 @@
     private List<EventEntry> GetEvents(string key) =>
         _eventHistory.TryGetValue(key, out var e) ? e : new List<EventEntry>();
 
-    /// <summary>Looks up the trimmed search term in mock data (case-insensitive).</summary>
+    /// <summary>Looks up mock data first, then API jobs by job number (case-insensitive).</summary>
     private void Search()
     {
         var key = _searchTerm.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(key))
         {
             _searchResults = null;
+            _searchResultsFromApi = false;
             StateHasChanged();
             return;
         }
 
-        _searchResults = _lookup.TryGetValue(key, out var r) ? r : null;
+        if (_lookup.TryGetValue(key, out var fromMock))
+        {
+            _searchResults = fromMock;
+            _searchResultsFromApi = false;
+            _splitExpanded = false;
+            _assemblyExpanded = false;
+            StateHasChanged();
+            return;
+        }
+
+        var job = _apiJobs.FirstOrDefault(j =>
+            string.Equals(j.JobNo, _searchTerm.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (job is not null)
+        {
+            _searchResults = MapJobToSearchResult(job);
+            _searchResultsFromApi = true;
+            var stageKey = job.JobNo.Trim().ToUpperInvariant();
+            _stageData[stageKey] = BuildStageDataForJob(job);
+        }
+        else
+        {
+            _searchResults = null;
+            _searchResultsFromApi = false;
+        }
+
         _splitExpanded = false;
         _assemblyExpanded = false;
         StateHasChanged();
+    }
+
+    /// <summary>Maps an API job execution to the tracker search result shape.</summary>
+    private SearchResult MapJobToSearchResult(ApiJobExecution job)
+    {
+        var po = job.ProductionOrderId.ToString("N");
+        var poShort = po.Length >= 8 ? po[..8] : po;
+        var machine = _machineNameById.GetValueOrDefault(job.MachineId, job.MachineId.ToString("N")[..8]);
+        var op = job.OperatorId is { } oid ? $"{oid:N}"[..8] + "…" : "—";
+        var goodQty = Math.Max(0, job.ProducedQty - job.ScrapQty - job.DefectQty);
+        var last = (job.ActualEndAt ?? job.ActualStartAt ?? job.PlannedStartAt ?? DateTimeOffset.UtcNow)
+            .ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+        return new SearchResult(
+            "job",
+            job.JobNo,
+            null,
+            null,
+            poShort,
+            "—",
+            job.PlannedQty,
+            job.ProducedQty,
+            goodQty,
+            job.DefectQty,
+            job.ScrapQty,
+            machine,
+            op,
+            "—",
+            MapJobExecutionToUiStatus(job.ExecutionStatus),
+            last,
+            null,
+            false,
+            null,
+            null,
+            null,
+            0,
+            0,
+            0);
+    }
+
+    private static string MapJobExecutionToUiStatus(string executionStatus)
+    {
+        if (string.Equals(executionStatus, "Queued", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Setup", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Running", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Paused", StringComparison.OrdinalIgnoreCase))
+            return "active";
+        if (string.Equals(executionStatus, "Done", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(executionStatus, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            return "completed";
+        return "active";
+    }
+
+    private static List<StageEntry> BuildStageDataForJob(ApiJobExecution job)
+    {
+        var exec = job.ExecutionStatus;
+        if (string.Equals(exec, "Done", StringComparison.OrdinalIgnoreCase))
+        {
+            return
+            [
+                new("plan-created", "completed", "—", "—"),
+                new("authorized", "completed", "—", "—"),
+                new("material-reserved", "completed", "—", "—"),
+                new("material-issued", "completed", "—", "—"),
+                new("in-production", "completed", "—", "—"),
+                new("qc-inspection", "completed", "—", "—"),
+                new("fg-receiving", "completed", "—", "—"),
+                new("fg-release", "completed", "—", "—"),
+            ];
+        }
+
+        if (string.Equals(exec, "Running", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(exec, "Paused", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(exec, "Setup", StringComparison.OrdinalIgnoreCase))
+        {
+            return
+            [
+                new("plan-created", "completed", "—", "—"),
+                new("authorized", "completed", "—", "—"),
+                new("material-reserved", "completed", "—", "—"),
+                new("material-issued", "completed", "—", "—"),
+                new("in-production", "completed", "—", "—"),
+                new("qc-inspection", "current", "—", "—"),
+                new("fg-receiving", "pending", "", ""),
+                new("fg-release", "pending", "", ""),
+            ];
+        }
+
+        if (string.Equals(exec, "Queued", StringComparison.OrdinalIgnoreCase))
+        {
+            return
+            [
+                new("plan-created", "completed", "—", "—"),
+                new("authorized", "pending", "", ""),
+                new("material-reserved", "pending", "", ""),
+                new("material-issued", "pending", "", ""),
+                new("in-production", "pending", "", ""),
+                new("qc-inspection", "pending", "", ""),
+                new("fg-receiving", "pending", "", ""),
+                new("fg-release", "pending", "", ""),
+            ];
+        }
+
+        return BuildStageDataForJob(job with { ExecutionStatus = "Queued" });
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
