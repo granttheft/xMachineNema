@@ -23,22 +23,39 @@
                 <h1 class="text-2xl font-semibold text-slate-900">@T["page.live_monitoring.title"]</h1>
                 <p class="mt-1 text-sm text-slate-600">@T["page.live_monitoring.subtitle"]</p>
             </div>
-            @if (Hub.IsConnected)
-            {
-                <span class="inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2 text-xs font-medium text-green-700" title="SignalR">
-                    <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600"></span>
-                    @T["page.live_monitoring.hub_live"]
-                </span>
-            }
-            else
-            {
-                <span class="inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full bg-orange-100 px-2 text-xs font-medium text-orange-700" title="SignalR">
-                    <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
-                    @T["page.live_monitoring.hub_reconnecting"]
-                </span>
-            }
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50 px-4 py-2 text-sm font-medium"
+                        @onclick="@(() => { _showDowntimeModal = true; _downtimeError = null; StateHasChanged(); })">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                        <path d="M12 9v4" />
+                        <path d="M12 17h.01" />
+                    </svg>
+                    @T["action.report_downtime"]
+                </button>
+                @if (Hub.IsConnected)
+                {
+                    <span class="inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full bg-green-100 px-2 text-xs font-medium text-green-700" title="SignalR">
+                        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600"></span>
+                        @T["page.live_monitoring.hub_live"]
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex h-5 shrink-0 items-center gap-1.5 rounded-full bg-orange-100 px-2 text-xs font-medium text-orange-700" title="SignalR">
+                        <span class="h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+                        @T["page.live_monitoring.hub_reconnecting"]
+                    </span>
+                }
+            </div>
         </div>
     </div>
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="border-b border-green-200 bg-green-50 px-6 py-2 text-sm text-green-800">@_successMessage</div>
+    }
 
     <div class="mx-auto max-w-7xl space-y-6 p-6">
         <!-- KPI strip -->
@@ -98,6 +115,7 @@
                                 <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_severity"]</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_triggered"]</th>
                                 <th class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">@T["page.live_monitoring.col_status"]</th>
+                                <th class="px-4 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">@T["common.actions"]</th>
                             </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
@@ -110,11 +128,29 @@
                                     <td class="px-4 py-2 text-sm"><span class="@SeverityBadgeClass(a.Severity) rounded-md px-2 py-0.5 text-xs font-medium">@a.Severity</span></td>
                                     <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-600">@FormatUtc(a.StartTime)</td>
                                     <td class="whitespace-nowrap px-4 py-2 text-sm text-slate-700">@a.AlarmStatus</td>
+                                    <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
+                                        @if (!string.Equals(a.AlarmStatus, "Acknowledged", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <button type="button"
+                                                    class="text-xs px-2 py-1 rounded border border-blue-300 text-blue-700 hover:bg-blue-50"
+                                                    @onclick="@(() => AckAlarmAsync(a.Id))">
+                                                @T["action.acknowledge"]
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-xs text-slate-500">@T["action.acknowledged"]</span>
+                                        }
+                                    </td>
                                 </tr>
                             }
                             </tbody>
                         </table>
                     </div>
+                    @if (!string.IsNullOrEmpty(_alarmAckError))
+                    {
+                        <p class="mt-2 text-xs text-red-600">@_alarmAckError</p>
+                    }
                 }
             </div>
         </section>
@@ -233,7 +269,96 @@
     </div>
 </div>
 
+@if (_showDowntimeModal)
+{
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @onclick="OnDowntimeBackdropClick">
+        <div class="max-w-lg w-full rounded-lg border border-slate-200 bg-white p-6 shadow-lg mx-4" @onclick:stopPropagation="true">
+            <h3 class="text-lg font-semibold text-slate-900">@T["modal.downtime.title"]</h3>
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600">@T["modal.downtime.machine"]</label>
+                    @if (_machines.Count > 0)
+                    {
+                        <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                                value="@DowntimeMachineSelectValue"
+                                @onchange="OnDowntimeMachineSelectChanged">
+                            <option value="">—</option>
+                            @foreach (var m in _machines.OrderBy(x => x.Code))
+                            {
+                                <option value="@m.Id">@m.Code · @m.Name</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input type="text" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                               placeholder="Machine name"
+                               @bind="_downtimeMachineNameFallback" />
+                    }
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600">@T["modal.downtime.reason_code"]</label>
+                    <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" @bind="_downtimeReasonCode">
+                        <option value="">—</option>
+                        @foreach (var r in DowntimeReasonOptions)
+                        {
+                            <option value="@r.Code">@r.Code — @r.Label</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600">@T["modal.downtime.reason_text"]</label>
+                    <textarea rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" @bind="_downtimeReasonText"></textarea>
+                </div>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" class="rounded border-slate-300" @bind="_downtimePlanned" />
+                    @T["modal.downtime.planned"]
+                </label>
+                <p class="text-xs text-slate-500">The downtime will be recorded as ongoing. End time is set when the machine resumes.</p>
+                @if (!string.IsNullOrEmpty(_downtimeError))
+                {
+                    <p class="text-sm text-red-600">@_downtimeError</p>
+                }
+            </div>
+            <div class="mt-6 flex justify-end gap-2">
+                <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        @onclick="CloseDowntimeModal" disabled="@_downtimeSaving">
+                    @T["common.cancel"]
+                </button>
+                <button type="button" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        @onclick="SubmitDowntimeAsync" disabled="@_downtimeSaving">
+                    @T["action.report_downtime"]
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
+    private static readonly (string Code, string Label)[] DowntimeReasonOptions =
+    [
+        ("MECH_FAIL", "Mechanical Failure"),
+        ("ELEC_FAIL", "Electrical Failure"),
+        ("MATERIAL", "Material Shortage"),
+        ("QUALITY", "Quality Issue"),
+        ("SETUP", "Setup / Changeover"),
+        ("PLANNED", "Planned Maintenance"),
+        ("OPERATOR", "Operator Issue"),
+        ("OTHER", "Other"),
+    ];
+
+    private bool _showDowntimeModal;
+    private Guid? _downtimeMachineId;
+    private string _downtimeMachineNameFallback = string.Empty;
+    private string _downtimeReasonCode = string.Empty;
+    private string _downtimeReasonText = string.Empty;
+    private bool _downtimePlanned;
+    private bool _downtimeSaving;
+    private string? _downtimeError;
+    private string? _alarmAckError;
+    private string? _successMessage;
+    private CancellationTokenSource? _successBannerCts;
+
     private bool _loadSummary = true;
     private bool _loadMachines = true;
     private bool _loadAlarms = true;
@@ -290,7 +415,142 @@
     }
 
     /// <inheritdoc />
-    void IDisposable.Dispose() => DetachHubHandlers();
+    void IDisposable.Dispose()
+    {
+        DetachHubHandlers();
+        try
+        {
+            _successBannerCts?.Cancel();
+        }
+        catch
+        {
+            // ignored
+        }
+
+        _successBannerCts?.Dispose();
+        _successBannerCts = null;
+    }
+
+    private string DowntimeMachineSelectValue => _downtimeMachineId?.ToString() ?? string.Empty;
+
+    private void OnDowntimeMachineSelectChanged(ChangeEventArgs e)
+    {
+        var s = e.Value?.ToString();
+        _downtimeMachineId = Guid.TryParse(s, out var g) ? g : null;
+    }
+
+    private void OnDowntimeBackdropClick()
+    {
+        CloseDowntimeModal();
+    }
+
+    private void CloseDowntimeModal()
+    {
+        if (_downtimeSaving)
+            return;
+        _showDowntimeModal = false;
+        _downtimeError = null;
+    }
+
+    private void QueueSuccessBannerAutoClear()
+    {
+        try
+        {
+            _successBannerCts?.Cancel();
+        }
+        catch
+        {
+            // ignored
+        }
+
+        _successBannerCts?.Dispose();
+        _successBannerCts = new CancellationTokenSource();
+        var token = _successBannerCts.Token;
+        _ = ClearSuccessBannerAfterDelayAsync(token);
+    }
+
+    private async Task ClearSuccessBannerAfterDelayAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(3000, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        _successMessage = null;
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private void ResetDowntimeForm()
+    {
+        _downtimeMachineId = null;
+        _downtimeMachineNameFallback = string.Empty;
+        _downtimeReasonCode = string.Empty;
+        _downtimeReasonText = string.Empty;
+        _downtimePlanned = false;
+        _downtimeError = null;
+    }
+
+    private async Task AckAlarmAsync(Guid alarmId)
+    {
+        _alarmAckError = null;
+        await InvokeAsync(StateHasChanged);
+
+        var (ok, err) = await Api.AcknowledgeAlarmAsync(alarmId, new AcknowledgeAlarmDto(null));
+        if (!ok)
+        {
+            _alarmAckError = err ?? "Failed to acknowledge alarm.";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        await LoadAlarmsAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SubmitDowntimeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_downtimeReasonCode))
+        {
+            _downtimeError = "Reason code is required.";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _downtimeError = null;
+        _downtimeSaving = true;
+        await InvokeAsync(StateHasChanged);
+
+        var (ok, err) = await Api.PostDowntimeAsync(new CreateDowntimeDto(
+            _downtimeMachineId,
+            null,
+            null,
+            _downtimeReasonCode.Trim(),
+            string.IsNullOrWhiteSpace(_downtimeReasonText) ? null : _downtimeReasonText.Trim(),
+            _downtimePlanned));
+
+        _downtimeSaving = false;
+        if (!ok)
+        {
+            _downtimeError = err ?? "Failed to report downtime.";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _showDowntimeModal = false;
+        ResetDowntimeForm();
+        var downtimes = await Api.GetDowntimesAsync();
+        _allDowntimes = downtimes.Data ?? [];
+        if (downtimes.Error is not null)
+            _downtimesErr = downtimes.Error;
+        RebuildDerived();
+        _successMessage = "Downtime reported successfully.";
+        QueueSuccessBannerAutoClear();
+        await InvokeAsync(StateHasChanged);
+    }
 
     private void AttachHubHandlers()
     {

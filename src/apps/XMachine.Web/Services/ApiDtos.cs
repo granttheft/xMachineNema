@@ -41,6 +41,24 @@ public sealed record AlarmRowDto(
     Guid? AckBy = null,
     DateTimeOffset? AckTime = null);
 
+/// <summary>Request body for POST /api/eventing/downtimes.</summary>
+public sealed record CreateDowntimeDto(
+    Guid? MachineId,
+    Guid? LineId,
+    Guid? ProductionOrderId,
+    string DowntimeReasonCode,
+    string? DowntimeReasonText,
+    bool PlannedFlag);
+
+/// <summary>Request body for PUT /api/eventing/alarms/{id}/ack (AckNote is optional, not stored server-side).</summary>
+public sealed record AcknowledgeAlarmDto(string? AckNote);
+
+/// <summary>Response body from POST /api/eventing/downtimes.</summary>
+public sealed record CreateDowntimeResponseDto(Guid Id, DateTimeOffset StartTime, string DowntimeReasonCode);
+
+/// <summary>Response body from PUT /api/eventing/alarms/{id}/ack.</summary>
+public sealed record AcknowledgeAlarmResponseDto(Guid Id, string AlarmStatus, DateTimeOffset? AckTime);
+
 public sealed record DowntimeRowDto(Guid Id, string DowntimeReasonCode, string? DowntimeReasonText, bool PlannedFlag, DateTimeOffset StartTime, DateTimeOffset? EndTime, long? DurationMs, Guid? MachineId, Guid? LineId, Guid? ProductionOrderId, Guid? EnteredBy, string Status);
 
 public sealed record OeeRowDto(Guid Id, string PeriodType, DateTimeOffset PeriodStart, DateTimeOffset PeriodEnd, Guid? SiteId, Guid? LineId, Guid? MachineId, decimal Availability, decimal Performance, decimal Quality, decimal OeeValue, string Status);

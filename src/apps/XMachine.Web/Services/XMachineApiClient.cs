@@ -205,6 +205,31 @@ public sealed class XMachineApiClient(HttpClient http)
     public Task<ApiFetch<List<DowntimeRowDto>>> GetDowntimesAsync(CancellationToken cancellationToken = default) =>
         GetAsync<List<DowntimeRowDto>>("api/eventing/downtimes", cancellationToken);
 
+    /// <summary>Creates an ongoing downtime record (POST /api/eventing/downtimes).</summary>
+    public async Task<(bool Success, string? Error)> PostDowntimeAsync(
+        CreateDowntimeDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await PostJsonAsync<CreateDowntimeDto, CreateDowntimeResponseDto>(
+            "api/eventing/downtimes",
+            dto,
+            cancellationToken).ConfigureAwait(false);
+        return result.Error is null ? (true, null) : (false, result.Error);
+    }
+
+    /// <summary>Acknowledges an alarm (PUT /api/eventing/alarms/{alarmId}/ack).</summary>
+    public async Task<(bool Success, string? Error)> AcknowledgeAlarmAsync(
+        Guid alarmId,
+        AcknowledgeAlarmDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await PutJsonAsync<AcknowledgeAlarmDto, AcknowledgeAlarmResponseDto>(
+            $"api/eventing/alarms/{alarmId}/ack",
+            dto,
+            cancellationToken).ConfigureAwait(false);
+        return result.Error is null ? (true, null) : (false, result.Error);
+    }
+
     public Task<ApiFetch<List<OeeRowDto>>> GetOeeSnapshotsAsync(CancellationToken cancellationToken = default) =>
         GetAsync<List<OeeRowDto>>("api/eventing/oee", cancellationToken);
 
