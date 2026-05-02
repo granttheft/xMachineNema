@@ -110,71 +110,92 @@ internal sealed class DevSeedHostedService : IHostedService
             Status = EntityStatus.Active,
         };
 
+        // Index map: 0 M-101, 1 M-102 (stable Id), 2 M-103, 3 M-104 (injection); 4 M-201, 5 M-202, 6 M-203, 7 M-204 (coating).
         var machines = new[]
         {
-            new Machine { TenantId = tenant.Id, LineId = line1.Id, Code = "M-101", Name = "Machine 101", Status = EntityStatus.Active },
-            new Machine { TenantId = tenant.Id, LineId = line1.Id, Code = "M-102", Name = "Machine 102", Status = EntityStatus.Active },
-            new Machine { TenantId = tenant.Id, LineId = line2.Id, Code = "M-201", Name = "Machine 201", Status = EntityStatus.Active },
-            new Machine { TenantId = tenant.Id, LineId = line2.Id, Code = "M-202", Name = "Machine 202", Status = EntityStatus.Active },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line1.Id,
+                Code = "M-101",
+                Name = "Injection M-101",
+                OperationalStatus = MachineOperationalStatus.Down,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line1.Id,
+                Code = "M-102",
+                Name = "Injection M-102",
+                OperationalStatus = MachineOperationalStatus.Running,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line1.Id,
+                Code = "M-103",
+                Name = "Injection M-103",
+                OperationalStatus = MachineOperationalStatus.Running,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line1.Id,
+                Code = "M-104",
+                Name = "Injection M-104",
+                OperationalStatus = MachineOperationalStatus.Idle,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line2.Id,
+                Code = "M-201",
+                Name = "Coating M-201",
+                OperationalStatus = MachineOperationalStatus.PmDue,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line2.Id,
+                Code = "M-202",
+                Name = "Coating M-202",
+                OperationalStatus = MachineOperationalStatus.Running,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line2.Id,
+                Code = "M-203",
+                Name = "Coating M-203",
+                OperationalStatus = MachineOperationalStatus.Idle,
+                Status = EntityStatus.Active,
+            },
+            new Machine
+            {
+                TenantId = tenant.Id,
+                LineId = line2.Id,
+                Code = "M-204",
+                Name = "Coating M-204",
+                OperationalStatus = MachineOperationalStatus.Down,
+                Status = EntityStatus.Active,
+            },
         };
 
         machines[1].Id = DevSeedProductionIds.MachineM102;
 
-        var roleSuperAdmin = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.SuperAdmin,
-            Name = "Super admin",
-            Status = EntityStatus.Active,
-        };
-
-        var roleTenantAdmin = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.TenantAdmin,
-            Name = "Tenant admin",
-            Status = EntityStatus.Active,
-        };
-
-        var roleSiteAdmin = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.SiteAdmin,
-            Name = "Site admin",
-            Status = EntityStatus.Active,
-        };
-
-        var roleProductionManager = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.ProductionManager,
-            Name = "Production manager",
-            Status = EntityStatus.Active,
-        };
-
-        var roleQuality = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.Quality,
-            Name = "Quality",
-            Status = EntityStatus.Active,
-        };
-
-        var roleMaintenance = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.Maintenance,
-            Name = "Maintenance",
-            Status = EntityStatus.Active,
-        };
-
-        var roleOperator = new Role
-        {
-            TenantId = tenant.Id,
-            Code = ApplicationRoles.Operator,
-            Name = "Operator",
-            Status = EntityStatus.Active,
-        };
+        var roleSuperAdmin = MakeRole(tenant.Id, ApplicationRoles.SuperAdmin, "Super admin");
+        var roleTenantAdmin = MakeRole(tenant.Id, ApplicationRoles.TenantAdmin, "Tenant admin");
+        var roleSiteAdmin = MakeRole(tenant.Id, ApplicationRoles.SiteAdmin, "Site admin");
+        var roleProductionManager = MakeRole(tenant.Id, ApplicationRoles.ProductionManager, "Production manager");
+        var roleQuality = MakeRole(tenant.Id, ApplicationRoles.Quality, "Quality");
+        var roleMaintenance = MakeRole(tenant.Id, ApplicationRoles.Maintenance, "Maintenance");
+        var roleOperator = MakeRole(tenant.Id, ApplicationRoles.Operator, "Operator");
 
         var userOperator = new UserAccount
         {
@@ -183,6 +204,33 @@ internal sealed class DevSeedHostedService : IHostedService
             Username = "operator1",
             DisplayName = "Demo Operator",
             Email = "operator1@demo.local",
+            Status = EntityStatus.Active,
+        };
+
+        var userOperator2 = new UserAccount
+        {
+            TenantId = tenant.Id,
+            Username = "operator2",
+            DisplayName = "Ali Kaya",
+            Email = "operator2@demo.local",
+            Status = EntityStatus.Active,
+        };
+
+        var userOperator3 = new UserAccount
+        {
+            TenantId = tenant.Id,
+            Username = "operator3",
+            DisplayName = "Fatma Demir",
+            Email = "operator3@demo.local",
+            Status = EntityStatus.Active,
+        };
+
+        var userEngineer1 = new UserAccount
+        {
+            TenantId = tenant.Id,
+            Username = "engineer1",
+            DisplayName = "Can Arslan",
+            Email = "engineer1@demo.local",
             Status = EntityStatus.Active,
         };
 
@@ -206,42 +254,13 @@ internal sealed class DevSeedHostedService : IHostedService
 
         var roleAssignments = new[]
         {
-            new UserRoleAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userDevAdmin.Id,
-                RoleId = roleSuperAdmin.Id,
-                ScopeType = ScopeType.Tenant,
-                ScopeId = tenant.Id,
-                Status = EntityStatus.Active,
-            },
-            new UserRoleAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userSupervisor.Id,
-                RoleId = roleTenantAdmin.Id,
-                ScopeType = ScopeType.Tenant,
-                ScopeId = tenant.Id,
-                Status = EntityStatus.Active,
-            },
-            new UserRoleAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userSupervisor.Id,
-                RoleId = roleProductionManager.Id,
-                ScopeType = ScopeType.Tenant,
-                ScopeId = tenant.Id,
-                Status = EntityStatus.Active,
-            },
-            new UserRoleAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userOperator.Id,
-                RoleId = roleOperator.Id,
-                ScopeType = ScopeType.Tenant,
-                ScopeId = tenant.Id,
-                Status = EntityStatus.Active,
-            },
+            MakeRoleAssignment(tenant.Id, userDevAdmin.Id, roleSuperAdmin.Id, ScopeType.Tenant, tenant.Id),
+            MakeRoleAssignment(tenant.Id, userSupervisor.Id, roleTenantAdmin.Id, ScopeType.Tenant, tenant.Id),
+            MakeRoleAssignment(tenant.Id, userSupervisor.Id, roleProductionManager.Id, ScopeType.Tenant, tenant.Id),
+            MakeRoleAssignment(tenant.Id, userOperator.Id, roleOperator.Id, ScopeType.Tenant, tenant.Id),
+            MakeRoleAssignment(tenant.Id, userOperator2.Id, roleOperator.Id, ScopeType.Tenant, tenant.Id),
+            MakeRoleAssignment(tenant.Id, userOperator3.Id, roleOperator.Id, ScopeType.Tenant, tenant.Id),
+            MakeRoleAssignment(tenant.Id, userEngineer1.Id, roleMaintenance.Id, ScopeType.Tenant, tenant.Id),
         };
 
         var modulePlatform = new CommercialModule { Code = "platform", Name = "Platform", Status = EntityStatus.Active };
@@ -270,65 +289,11 @@ internal sealed class DevSeedHostedService : IHostedService
             new LicensedLine { TenantId = tenant.Id, LineId = line2.Id, Status = EntityStatus.Active },
         };
 
-        var defOpcua = new ConnectorDefinition
-        {
-            TenantId = tenant.Id,
-            Code = "opcua",
-            Name = "OPC UA",
-            Category = "plc",
-            Direction = ConnectorDirection.Inbound,
-            SupportsRead = true,
-            SupportsWrite = false,
-            Status = EntityStatus.Active,
-        };
-
-        var defS7 = new ConnectorDefinition
-        {
-            TenantId = tenant.Id,
-            Code = "s7",
-            Name = "Siemens S7",
-            Category = "plc",
-            Direction = ConnectorDirection.Inbound,
-            SupportsRead = true,
-            SupportsWrite = false,
-            Status = EntityStatus.Active,
-        };
-
-        var defModbusTcp = new ConnectorDefinition
-        {
-            TenantId = tenant.Id,
-            Code = "modbus_tcp",
-            Name = "Modbus TCP",
-            Category = "plc",
-            Direction = ConnectorDirection.Inbound,
-            SupportsRead = true,
-            SupportsWrite = true,
-            Status = EntityStatus.Active,
-        };
-
-        var defSap = new ConnectorDefinition
-        {
-            TenantId = tenant.Id,
-            Code = "sap",
-            Name = "SAP (placeholder)",
-            Category = "erp",
-            Direction = ConnectorDirection.Bidirectional,
-            SupportsRead = true,
-            SupportsWrite = true,
-            Status = EntityStatus.Active,
-        };
-
-        var defRest = new ConnectorDefinition
-        {
-            TenantId = tenant.Id,
-            Code = "rest",
-            Name = "REST / HTTP",
-            Category = "http",
-            Direction = ConnectorDirection.Bidirectional,
-            SupportsRead = true,
-            SupportsWrite = true,
-            Status = EntityStatus.Active,
-        };
+        var defOpcua = MakeConnDef(tenant.Id, "opcua", "OPC UA", "plc", ConnectorDirection.Inbound, read: true, write: false);
+        var defS7 = MakeConnDef(tenant.Id, "s7", "Siemens S7", "plc", ConnectorDirection.Inbound, read: true, write: false);
+        var defModbusTcp = MakeConnDef(tenant.Id, "modbus_tcp", "Modbus TCP", "plc", ConnectorDirection.Inbound, read: true, write: true);
+        var defSap = MakeConnDef(tenant.Id, "sap", "SAP (placeholder)", "erp", ConnectorDirection.Bidirectional, read: true, write: true);
+        var defRest = MakeConnDef(tenant.Id, "rest", "REST / HTTP", "http", ConnectorDirection.Bidirectional, read: true, write: true);
 
         var instOpcLine = new ConnectorInstance
         {
@@ -432,315 +397,102 @@ internal sealed class DevSeedHostedService : IHostedService
             PayloadJson = """{"intervalSeconds":30}""",
         };
 
-        var recipeAsm = new Recipe
-        {
-            TenantId = tenant.Id,
-            Code = "ASM-A",
-            Name = "Assembly recipe A",
-            Version = 1,
-            Description = "Demo assembly parameters",
-            Status = EntityStatus.Active,
-        };
-
-        var recipeCoat = new Recipe
-        {
-            TenantId = tenant.Id,
-            Code = "COAT-B",
-            Name = "Coating recipe B",
-            Version = 1,
-            Description = "Demo coating parameters",
-            Status = EntityStatus.Active,
-        };
+        var recipeAsm = MakeRecipe(tenant.Id, "ASM-A", "Assembly recipe A", 1, "Demo assembly parameters");
+        var recipeCoat = MakeRecipe(tenant.Id, "COAT-B", "Coating recipe B", 1, "Demo coating parameters");
 
         var recipeParams = new[]
         {
-            new RecipeParameter
-            {
-                RecipeId = recipeAsm.Id,
-                Code = "SPINDLE_RPM",
-                Name = "Target spindle rpm",
-                DataType = "number",
-                Unit = "rpm",
-                DefaultValue = "2400",
-                MinValue = "0",
-                MaxValue = "8000",
-                SortOrder = 10,
-                Status = EntityStatus.Active,
-            },
-            new RecipeParameter
-            {
-                RecipeId = recipeAsm.Id,
-                Code = "CYCLE_TIME_S",
-                Name = "Nominal cycle time",
-                DataType = "number",
-                Unit = "s",
-                DefaultValue = "45",
-                MinValue = "10",
-                MaxValue = "300",
-                SortOrder = 20,
-                Status = EntityStatus.Active,
-            },
-            new RecipeParameter
-            {
-                RecipeId = recipeAsm.Id,
-                Code = "TORQUE_NM",
-                Name = "Fastening torque",
-                DataType = "number",
-                Unit = "Nm",
-                DefaultValue = "35",
-                MinValue = "5",
-                MaxValue = "120",
-                SortOrder = 30,
-                Status = EntityStatus.Active,
-            },
-            new RecipeParameter
-            {
-                RecipeId = recipeCoat.Id,
-                Code = "OVEN_TEMP_C",
-                Name = "Oven temperature",
-                DataType = "number",
-                Unit = "C",
-                DefaultValue = "180",
-                MinValue = "120",
-                MaxValue = "220",
-                SortOrder = 10,
-                Status = EntityStatus.Active,
-            },
-            new RecipeParameter
-            {
-                RecipeId = recipeCoat.Id,
-                Code = "CURE_TIME_S",
-                Name = "Cure time",
-                DataType = "number",
-                Unit = "s",
-                DefaultValue = "900",
-                MinValue = "60",
-                MaxValue = "7200",
-                SortOrder = 20,
-                Status = EntityStatus.Active,
-            },
+            MakeRecipeParam(recipeAsm.Id, "SPINDLE_RPM", "Target spindle rpm", "number", "rpm", "2400", "0", "8000", 10),
+            MakeRecipeParam(recipeAsm.Id, "CYCLE_TIME_S", "Nominal cycle time", "number", "s", "45", "10", "300", 20),
+            MakeRecipeParam(recipeAsm.Id, "TORQUE_NM", "Fastening torque", "number", "Nm", "35", "5", "120", 30),
+            MakeRecipeParam(recipeCoat.Id, "OVEN_TEMP_C", "Oven temperature", "number", "C", "180", "120", "220", 10),
+            MakeRecipeParam(recipeCoat.Id, "CURE_TIME_S", "Cure time", "number", "s", "900", "60", "7200", 20),
         };
 
-        var order1 = new ProductionOrder
-        {
-            TenantId = tenant.Id,
-            SiteId = site.Id,
-            LineId = line1.Id,
-            OrderNo = "WO-DEMO-1001",
-            ProductCode = "SKU-BRACKET-01",
-            QuantityPlanned = 500,
-            QuantityCompleted = 120,
-            OrderStatus = ProductionOrderStatus.InProgress,
-            Status = EntityStatus.Active,
-            PlannedStartAt = DateTimeOffset.UtcNow.AddDays(-2),
-            PlannedEndAt = DateTimeOffset.UtcNow.AddDays(3),
-            SourceSystem = "demo",
-            SourceReference = "ERP-WO-1001",
-        };
+        var order1 = MakeOrder(
+            tenant.Id,
+            site.Id,
+            line1.Id,
+            "WO-DEMO-1001",
+            "SKU-BRACKET-01",
+            500,
+            120,
+            ProductionOrderStatus.InProgress,
+            DateTimeOffset.UtcNow.AddDays(-2),
+            DateTimeOffset.UtcNow.AddDays(3),
+            "ERP-WO-1001");
 
-        var order2 = new ProductionOrder
-        {
-            TenantId = tenant.Id,
-            SiteId = site.Id,
-            LineId = line2.Id,
-            OrderNo = "WO-DEMO-1002",
-            ProductCode = "SKU-PANEL-02",
-            QuantityPlanned = 200,
-            QuantityCompleted = 25,
-            OrderStatus = ProductionOrderStatus.Released,
-            Status = EntityStatus.Active,
-            PlannedStartAt = DateTimeOffset.UtcNow.AddDays(-1),
-            SourceSystem = "demo",
-        };
+        var order2 = MakeOrder(
+            tenant.Id,
+            site.Id,
+            line2.Id,
+            "WO-DEMO-1002",
+            "SKU-PANEL-02",
+            200,
+            25,
+            ProductionOrderStatus.Released,
+            DateTimeOffset.UtcNow.AddDays(-1),
+            null,
+            null);
 
-        var op1a = new ProductionOperation
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order1.Id,
-            SequenceNo = 10,
-            Code = "ASM",
-            Name = "Assemble",
-            LineId = line1.Id,
-            MachineId = machines[0].Id,
-            OperationStatus = ProductionOperationStatus.Running,
-            QuantityPlanned = 500,
-            QuantityCompleted = 120,
-            Status = EntityStatus.Active,
-        };
+        var order3 = MakeOrder(
+            tenant.Id,
+            site.Id,
+            line1.Id,
+            "WO-DEMO-1003",
+            "SKU-COVER-03",
+            600,
+            0,
+            ProductionOrderStatus.Released,
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(5),
+            null);
 
-        var op1b = new ProductionOperation
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order1.Id,
-            SequenceNo = 20,
-            Code = "PACK",
-            Name = "Pack",
-            LineId = line1.Id,
-            OperationStatus = ProductionOperationStatus.Pending,
-            QuantityPlanned = 500,
-            QuantityCompleted = 0,
-            Status = EntityStatus.Active,
-        };
+        var order4 = MakeOrder(
+            tenant.Id,
+            site.Id,
+            line2.Id,
+            "WO-DEMO-1004",
+            "SKU-SHAFT-04",
+            400,
+            0,
+            ProductionOrderStatus.Draft,
+            DateTimeOffset.UtcNow.AddDays(1),
+            DateTimeOffset.UtcNow.AddDays(10),
+            null);
 
-        var op2a = new ProductionOperation
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order2.Id,
-            SequenceNo = 10,
-            Code = "COAT",
-            Name = "Coat",
-            LineId = line2.Id,
-            MachineId = machines[2].Id,
-            OperationStatus = ProductionOperationStatus.Running,
-            QuantityPlanned = 200,
-            QuantityCompleted = 25,
-            Status = EntityStatus.Active,
-        };
+        var op1a = MakeOp(tenant.Id, order1.Id, 10, "ASM", "Assemble", line1.Id, machines[0].Id, ProductionOperationStatus.Running, 500, 120);
+        var op1b = MakeOp(tenant.Id, order1.Id, 20, "PACK", "Pack", line1.Id, null, ProductionOperationStatus.Pending, 500, 0);
+        var op2a = MakeOp(tenant.Id, order2.Id, 10, "COAT", "Coat", line2.Id, machines[5].Id, ProductionOperationStatus.Running, 200, 25);
+        var op2b = MakeOp(tenant.Id, order2.Id, 20, "QC_VISUAL", "Visual check", line2.Id, null, ProductionOperationStatus.Pending, 200, 0);
+        var op3a = MakeOp(tenant.Id, order3.Id, 10, "INJ", "Inject", line1.Id, machines[2].Id, ProductionOperationStatus.Running, 600, 178);
+        var op4a = MakeOp(tenant.Id, order4.Id, 10, "COAT", "Coat prep", line2.Id, machines[6].Id, ProductionOperationStatus.Pending, 400, 0);
 
-        var op2b = new ProductionOperation
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order2.Id,
-            SequenceNo = 20,
-            Code = "QC_VISUAL",
-            Name = "Visual check",
-            LineId = line2.Id,
-            OperationStatus = ProductionOperationStatus.Pending,
-            QuantityPlanned = 200,
-            QuantityCompleted = 0,
-            Status = EntityStatus.Active,
-        };
+        var assign1 = MakeOrderRecipe(tenant.Id, order1.Id, recipeAsm.Id, recipeAsm.Version, DateTimeOffset.UtcNow.AddDays(-2));
+        var assign2 = MakeOrderRecipe(tenant.Id, order2.Id, recipeCoat.Id, recipeCoat.Version, DateTimeOffset.UtcNow.AddDays(-1));
+        var assign3 = MakeOrderRecipe(tenant.Id, order3.Id, recipeAsm.Id, recipeAsm.Version, DateTimeOffset.UtcNow.AddHours(-8));
+        var assign4 = MakeOrderRecipe(tenant.Id, order4.Id, recipeCoat.Id, recipeCoat.Version, DateTimeOffset.UtcNow.AddHours(-2));
 
-        var assign1 = new OrderRecipeAssignment
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order1.Id,
-            RecipeId = recipeAsm.Id,
-            RecipeVersionAssigned = recipeAsm.Version,
-            AssignedAt = DateTimeOffset.UtcNow.AddDays(-2),
-            IsPrimary = true,
-            Status = EntityStatus.Active,
-        };
-
-        var assign2 = new OrderRecipeAssignment
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order2.Id,
-            RecipeId = recipeCoat.Id,
-            RecipeVersionAssigned = recipeCoat.Version,
-            AssignedAt = DateTimeOffset.UtcNow.AddDays(-1),
-            IsPrimary = true,
-            Status = EntityStatus.Active,
-        };
-
-        var lot1 = new LotBatch
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order1.Id,
-            LineId = line1.Id,
-            MachineId = machines[0].Id,
-            LotNo = "LOT-DEMO-1001-A",
-            LotStatus = LotBatchStatus.Active,
-            TargetQuantity = 500,
-            QuantityGood = 120,
-            StartedAt = DateTimeOffset.UtcNow.AddHours(-6),
-            Status = EntityStatus.Active,
-        };
-
-        var lot2 = new LotBatch
-        {
-            TenantId = tenant.Id,
-            ProductionOrderId = order2.Id,
-            LineId = line2.Id,
-            MachineId = machines[2].Id,
-            LotNo = "LOT-DEMO-1002-A",
-            LotStatus = LotBatchStatus.Active,
-            TargetQuantity = 200,
-            QuantityGood = 25,
-            StartedAt = DateTimeOffset.UtcNow.AddHours(-3),
-            Status = EntityStatus.Active,
-        };
+        var lot1 = MakeLot(tenant.Id, order1.Id, line1.Id, machines[0].Id, "LOT-DEMO-1001-A", 500, 120);
+        var lot2 = MakeLot(tenant.Id, order2.Id, line2.Id, machines[5].Id, "LOT-DEMO-1002-A", 200, 25);
+        var lot3 = MakeLot(tenant.Id, order3.Id, line1.Id, machines[2].Id, "LOT-DEMO-1003-A", 600, 178);
 
         var matCons = new[]
         {
-            new MaterialConsumption
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot1.Id,
-                MaterialCode = "RM-STEEL-01",
-                MaterialName = "Steel blank",
-                Quantity = 130,
-                Unit = "ea",
-                ConsumedAt = DateTimeOffset.UtcNow.AddHours(-5),
-                Status = EntityStatus.Active,
-            },
-            new MaterialConsumption
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot1.Id,
-                MaterialCode = "RM-SCREW-M4",
-                MaterialName = "Screw M4",
-                Quantity = 520,
-                Unit = "ea",
-                ConsumedAt = DateTimeOffset.UtcNow.AddHours(-5),
-                Status = EntityStatus.Active,
-            },
-            new MaterialConsumption
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot2.Id,
-                MaterialCode = "RM-PAINT-WHITE",
-                MaterialName = "Paint white",
-                Quantity = 12,
-                Unit = "kg",
-                ConsumedAt = DateTimeOffset.UtcNow.AddHours(-2),
-                Status = EntityStatus.Active,
-            },
+            MakeMat(tenant.Id, lot1.Id, "RM-STEEL-01", "Steel blank", 130, "ea", DateTimeOffset.UtcNow.AddHours(-5)),
+            MakeMat(tenant.Id, lot1.Id, "RM-SCREW-M4", "Screw M4", 520, "ea", DateTimeOffset.UtcNow.AddHours(-5)),
+            MakeMat(tenant.Id, lot2.Id, "RM-PAINT-WHITE", "Paint white", 12, "kg", DateTimeOffset.UtcNow.AddHours(-2)),
+            MakeMat(tenant.Id, lot3.Id, "RM-RESIN-03", "Cover resin", 190, "kg", DateTimeOffset.UtcNow.AddHours(-4)),
         };
 
         var prodDecl = new[]
         {
-            new ProductionDeclaration
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot1.Id,
-                GoodQuantity = 40,
-                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-4),
-                LineId = line1.Id,
-                MachineId = machines[0].Id,
-                Notes = "Demo run 1",
-                Status = EntityStatus.Active,
-            },
-            new ProductionDeclaration
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot1.Id,
-                GoodQuantity = 50,
-                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-3),
-                LineId = line1.Id,
-                MachineId = machines[0].Id,
-                Status = EntityStatus.Active,
-            },
-            new ProductionDeclaration
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot1.Id,
-                GoodQuantity = 30,
-                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-2),
-                LineId = line1.Id,
-                MachineId = machines[1].Id,
-                Status = EntityStatus.Active,
-            },
-            new ProductionDeclaration
-            {
-                TenantId = tenant.Id,
-                LotBatchId = lot2.Id,
-                GoodQuantity = 25,
-                DeclaredAt = DateTimeOffset.UtcNow.AddHours(-1),
-                LineId = line2.Id,
-                MachineId = machines[2].Id,
-                Status = EntityStatus.Active,
-            },
+            MakeProdDecl(tenant.Id, lot1.Id, line1.Id, machines[0].Id, 40, DateTimeOffset.UtcNow.AddHours(-4), "Demo run 1"),
+            MakeProdDecl(tenant.Id, lot1.Id, line1.Id, machines[0].Id, 50, DateTimeOffset.UtcNow.AddHours(-3), null),
+            MakeProdDecl(tenant.Id, lot1.Id, line1.Id, machines[1].Id, 30, DateTimeOffset.UtcNow.AddHours(-2), null),
+            MakeProdDecl(tenant.Id, lot2.Id, line2.Id, machines[5].Id, 25, DateTimeOffset.UtcNow.AddHours(-1), null),
+            MakeProdDecl(tenant.Id, lot3.Id, line1.Id, machines[2].Id, 90, DateTimeOffset.UtcNow.AddHours(-3), "Shift A"),
+            MakeProdDecl(tenant.Id, lot3.Id, line1.Id, machines[2].Id, 88, DateTimeOffset.UtcNow.AddHours(-1), "Shift B"),
         };
 
         var scrap1 = new ScrapDeclaration
@@ -790,69 +542,18 @@ internal sealed class DevSeedHostedService : IHostedService
         var shiftDay = DateOnly.FromDateTime(DateTime.UtcNow);
         var dayStart = DateTime.SpecifyKind(shiftDay.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
 
-        var shiftMorning = new Shift
-        {
-            TenantId = tenant.Id,
-            SiteId = site.Id,
-            LineId = line1.Id,
-            Code = "DAY-A",
-            Name = "Line 1 day shift",
-            ShiftDate = shiftDay,
-            PlannedStartAt = new DateTimeOffset(dayStart.AddHours(6)),
-            PlannedEndAt = new DateTimeOffset(dayStart.AddHours(14)),
-            ActualStartAt = new DateTimeOffset(dayStart.AddHours(6).AddMinutes(5)),
-            Lifecycle = WorkShiftLifecycle.Open,
-            Status = EntityStatus.Active,
-        };
-
-        var shiftAfternoon = new Shift
-        {
-            TenantId = tenant.Id,
-            SiteId = site.Id,
-            LineId = line2.Id,
-            Code = "DAY-B",
-            Name = "Line 2 day shift",
-            ShiftDate = shiftDay,
-            PlannedStartAt = new DateTimeOffset(dayStart.AddHours(14)),
-            PlannedEndAt = new DateTimeOffset(dayStart.AddHours(22)),
-            Lifecycle = WorkShiftLifecycle.Planned,
-            Status = EntityStatus.Active,
-        };
+        var shiftMorning = MakeShift(tenant.Id, site.Id, line1.Id, "DAY-A1", "Line 1 morning", shiftDay, dayStart, 6, 14, WorkShiftLifecycle.Open, actualStartHourOffset: 6.083);
+        var shiftAfternoon = MakeShift(tenant.Id, site.Id, line1.Id, "DAY-A2", "Line 1 afternoon", shiftDay, dayStart, 14, 22, WorkShiftLifecycle.Planned, null);
+        var shiftMorning2 = MakeShift(tenant.Id, site.Id, line2.Id, "DAY-B1", "Line 2 morning", shiftDay, dayStart, 6, 14, WorkShiftLifecycle.Open, actualStartHourOffset: 6.05);
+        var shiftAfternoon2 = MakeShift(tenant.Id, site.Id, line2.Id, "DAY-B2", "Line 2 afternoon", shiftDay, dayStart, 14, 22, WorkShiftLifecycle.Planned, null);
 
         var empAssign = new[]
         {
-            new EmployeeAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userOperator.Id,
-                ShiftId = shiftMorning.Id,
-                LineId = line1.Id,
-                AssignedFrom = shiftMorning.PlannedStartAt,
-                AssignedTo = shiftMorning.PlannedEndAt,
-                AssignmentRole = "operator",
-                Status = EntityStatus.Active,
-            },
-            new EmployeeAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userSupervisor.Id,
-                ShiftId = shiftMorning.Id,
-                AssignedFrom = shiftMorning.PlannedStartAt,
-                AssignedTo = shiftMorning.PlannedEndAt,
-                AssignmentRole = "supervisor",
-                Status = EntityStatus.Active,
-            },
-            new EmployeeAssignment
-            {
-                TenantId = tenant.Id,
-                UserAccountId = userOperator.Id,
-                ShiftId = shiftAfternoon.Id,
-                LineId = line1.Id,
-                MachineId = machines[0].Id,
-                AssignedFrom = shiftAfternoon.PlannedStartAt,
-                AssignmentRole = "operator",
-                Status = EntityStatus.Active,
-            },
+            MakeEmpAssign(tenant.Id, userOperator.Id, shiftMorning.Id, line1.Id, null, shiftMorning.PlannedStartAt, shiftMorning.PlannedEndAt, "operator"),
+            MakeEmpAssign(tenant.Id, userSupervisor.Id, shiftMorning.Id, line1.Id, null, shiftMorning.PlannedStartAt, shiftMorning.PlannedEndAt, "supervisor"),
+            MakeEmpAssign(tenant.Id, userOperator2.Id, shiftMorning2.Id, line2.Id, null, shiftMorning2.PlannedStartAt, shiftMorning2.PlannedEndAt, "operator"),
+            MakeEmpAssign(tenant.Id, userOperator3.Id, shiftAfternoon2.Id, line2.Id, machines[5].Id, shiftAfternoon2.PlannedStartAt, shiftAfternoon2.PlannedEndAt, "operator"),
+            MakeEmpAssign(tenant.Id, userEngineer1.Id, shiftAfternoon.Id, line1.Id, null, shiftAfternoon.PlannedStartAt, shiftAfternoon.PlannedEndAt, "maintenance"),
         };
 
         var qcLine = new QualityCheck
@@ -873,7 +574,7 @@ internal sealed class DevSeedHostedService : IHostedService
             TenantId = tenant.Id,
             ProductionOrderId = order2.Id,
             LotBatchId = lot2.Id,
-            MachineId = machines[2].Id,
+            MachineId = machines[5].Id,
             CheckType = "final",
             CheckTime = DateTimeOffset.UtcNow.AddHours(-1),
             CheckStatus = QualityCheckStatus.Pending,
@@ -882,61 +583,11 @@ internal sealed class DevSeedHostedService : IHostedService
 
         var qualityMeasurements = new[]
         {
-            new QualityMeasurement
-            {
-                TenantId = tenant.Id,
-                QualityCheckId = qcLine.Id,
-                ParameterCode = "LENGTH_MM",
-                MeasuredValue = "100.02",
-                TargetValue = "100.00",
-                MinValue = "99.90",
-                MaxValue = "100.10",
-                Result = QualityMeasurementResult.Pass,
-                Status = EntityStatus.Active,
-            },
-            new QualityMeasurement
-            {
-                TenantId = tenant.Id,
-                QualityCheckId = qcLine.Id,
-                ParameterCode = "WIDTH_MM",
-                MeasuredValue = "50.08",
-                TargetValue = "50.00",
-                MinValue = "49.85",
-                MaxValue = "50.15",
-                Result = QualityMeasurementResult.Warning,
-                Status = EntityStatus.Active,
-            },
-            new QualityMeasurement
-            {
-                TenantId = tenant.Id,
-                QualityCheckId = qcLine.Id,
-                ParameterCode = "SURFACE",
-                MeasuredValue = "OK",
-                Result = QualityMeasurementResult.Pass,
-                Status = EntityStatus.Active,
-            },
-            new QualityMeasurement
-            {
-                TenantId = tenant.Id,
-                QualityCheckId = qcFinal.Id,
-                ParameterCode = "GLOSS",
-                MeasuredValue = "82",
-                TargetValue = "80",
-                MinValue = "75",
-                MaxValue = "90",
-                Result = QualityMeasurementResult.Pass,
-                Status = EntityStatus.Active,
-            },
-            new QualityMeasurement
-            {
-                TenantId = tenant.Id,
-                QualityCheckId = qcFinal.Id,
-                ParameterCode = "COLOR_DELTA",
-                MeasuredValue = "0.6",
-                TargetValue = "1.0",
-                Result = QualityMeasurementResult.NotEvaluated,
-                Status = EntityStatus.Active,
-            },
+            MakeMeasurement(tenant.Id, qcLine.Id, "LENGTH_MM", "100.02", "100.00", "99.90", "100.10", QualityMeasurementResult.Pass),
+            MakeMeasurement(tenant.Id, qcLine.Id, "WIDTH_MM", "50.08", "50.00", "49.85", "50.15", QualityMeasurementResult.Warning),
+            MakeMeasurement(tenant.Id, qcLine.Id, "SURFACE", "OK", null, null, null, QualityMeasurementResult.Pass),
+            MakeMeasurement(tenant.Id, qcFinal.Id, "GLOSS", "82", "80", "75", "90", QualityMeasurementResult.Pass),
+            MakeMeasurement(tenant.Id, qcFinal.Id, "COLOR_DELTA", "0.6", "1.0", null, null, QualityMeasurementResult.NotEvaluated),
         };
 
         var ncDemo = new Nonconformance
@@ -1001,12 +652,57 @@ internal sealed class DevSeedHostedService : IHostedService
             TenantId = tenant.Id,
             SiteId = site.Id,
             LineId = line2.Id,
-            MachineId = machines[2].Id,
+            MachineId = machines[4].Id,
             AlarmCode = "PROC-TEMP-HIGH",
             AlarmText = "Demo: process temperature high (placeholder).",
             Severity = AlarmSeverity.Critical,
             Category = "process",
             StartTime = DateTimeOffset.UtcNow.AddMinutes(-40),
+            AlarmStatus = AlarmLifecycleStatus.Active,
+            Status = EntityStatus.Active,
+        };
+
+        var alarmTemp102 = new AlarmEvent
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            MachineId = machines[1].Id,
+            AlarmCode = "TEMP-HIGH-102",
+            AlarmText = "Injection barrel zone 2 above setpoint.",
+            Severity = AlarmSeverity.Error,
+            Category = "process",
+            StartTime = DateTimeOffset.UtcNow.AddHours(-2),
+            AlarmStatus = AlarmLifecycleStatus.Active,
+            Status = EntityStatus.Active,
+        };
+
+        var alarmVib204 = new AlarmEvent
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line2.Id,
+            MachineId = machines[7].Id,
+            AlarmCode = "VIBRATION-M204",
+            AlarmText = "Spindle vibration envelope exceeded nominal band.",
+            Severity = AlarmSeverity.Warning,
+            Category = "equipment",
+            StartTime = DateTimeOffset.UtcNow.AddHours(-1),
+            AlarmStatus = AlarmLifecycleStatus.Active,
+            Status = EntityStatus.Active,
+        };
+
+        var alarmHyd101 = new AlarmEvent
+        {
+            TenantId = tenant.Id,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            MachineId = machines[0].Id,
+            AlarmCode = "HYD-PRESSURE",
+            AlarmText = "Hydraulic pressure below minimum — production halted.",
+            Severity = AlarmSeverity.Critical,
+            Category = "equipment",
+            StartTime = DateTimeOffset.UtcNow.AddHours(-3),
             AlarmStatus = AlarmLifecycleStatus.Active,
             Status = EntityStatus.Active,
         };
@@ -1047,7 +743,7 @@ internal sealed class DevSeedHostedService : IHostedService
         {
             TenantId = tenant.Id,
             LineId = line2.Id,
-            MachineId = machines[2].Id,
+            MachineId = machines[4].Id,
             ProductionOrderId = order2.Id,
             DowntimeReasonCode = "WAIT-MAT",
             DowntimeReasonText = "Demo material wait",
@@ -1058,49 +754,53 @@ internal sealed class DevSeedHostedService : IHostedService
             Status = EntityStatus.Active,
         };
 
-        var oeeMachine = new OeeSnapshot
+        var dtHydFail = new DowntimeRecord
         {
             TenantId = tenant.Id,
-            SiteId = site.Id,
-            LineId = line1.Id,
             MachineId = machines[0].Id,
-            PeriodType = OeePeriodType.Shift,
-            PeriodStart = DateTimeOffset.UtcNow.AddHours(-8),
-            PeriodEnd = DateTimeOffset.UtcNow,
-            Availability = 0.92m,
-            Performance = 0.88m,
-            Quality = 0.99m,
-            OeeValue = 0.80m,
-            Status = EntityStatus.Active,
-        };
-
-        var oeeLine = new OeeSnapshot
-        {
-            TenantId = tenant.Id,
-            SiteId = site.Id,
             LineId = line1.Id,
-            PeriodType = OeePeriodType.Day,
-            PeriodStart = UtcStartOfToday(),
-            PeriodEnd = UtcStartOfToday().AddDays(1),
-            Availability = 0.90m,
-            Performance = 0.85m,
-            Quality = 0.98m,
-            OeeValue = 0.75m,
+            ProductionOrderId = order1.Id,
+            DowntimeReasonCode = "HYD-FAIL",
+            DowntimeReasonText = "Hydraulic failure — main pump fault.",
+            PlannedFlag = false,
+            StartTime = DateTimeOffset.UtcNow.AddHours(-3),
+            EndTime = null,
+            DurationMs = null,
+            EnteredBy = userOperator.Id,
             Status = EntityStatus.Active,
         };
 
-        var oeeSite = new OeeSnapshot
+        var dtVibration204 = new DowntimeRecord
         {
             TenantId = tenant.Id,
-            SiteId = site.Id,
-            PeriodType = OeePeriodType.Day,
-            PeriodStart = UtcStartOfToday(),
-            PeriodEnd = UtcStartOfToday().AddDays(1),
-            Availability = 0.88m,
-            Performance = 0.82m,
-            Quality = 0.97m,
-            OeeValue = 0.70m,
+            MachineId = machines[7].Id,
+            LineId = line2.Id,
+            ProductionOrderId = order2.Id,
+            DowntimeReasonCode = "VIBRATION",
+            DowntimeReasonText = "Spindle vibration fault — line stopped.",
+            PlannedFlag = false,
+            StartTime = DateTimeOffset.UtcNow.AddHours(-1),
+            EndTime = null,
+            DurationMs = null,
+            EnteredBy = userOperator3.Id,
             Status = EntityStatus.Active,
+        };
+
+        var periodStartShift = DateTimeOffset.UtcNow.AddHours(-8);
+        var periodEndShift = DateTimeOffset.UtcNow;
+        var oeeSnapshots = new[]
+        {
+            MakeOee(tenant.Id, site.Id, line1.Id, machines[0].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.72m, 0.85m, 0.96m, 0.59m),
+            MakeOee(tenant.Id, site.Id, line1.Id, machines[1].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.94m, 0.89m, 0.99m, 0.83m),
+            MakeOee(tenant.Id, site.Id, line1.Id, machines[2].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.88m, 0.91m, 0.94m, 0.75m),
+            MakeOee(tenant.Id, site.Id, line1.Id, machines[3].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.00m, 0.00m, 1.00m, 0.00m),
+            MakeOee(tenant.Id, site.Id, line2.Id, machines[4].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.76m, 0.88m, 0.97m, 0.65m),
+            MakeOee(tenant.Id, site.Id, line2.Id, machines[5].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.91m, 0.86m, 0.98m, 0.77m),
+            MakeOee(tenant.Id, site.Id, line2.Id, machines[6].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.00m, 0.00m, 1.00m, 0.00m),
+            MakeOee(tenant.Id, site.Id, line2.Id, machines[7].Id, OeePeriodType.Shift, periodStartShift, periodEndShift, 0.45m, 0.70m, 0.99m, 0.31m),
+            MakeOee(tenant.Id, site.Id, line1.Id, null, OeePeriodType.Day, UtcStartOfToday(), UtcStartOfToday().AddDays(1), 0.81m, 0.87m, 0.972m, 0.685m),
+            MakeOee(tenant.Id, site.Id, line2.Id, null, OeePeriodType.Day, UtcStartOfToday(), UtcStartOfToday().AddDays(1), 0.63m, 0.76m, 0.985m, 0.472m),
+            MakeOee(tenant.Id, site.Id, null, null, OeePeriodType.Day, UtcStartOfToday(), UtcStartOfToday().AddDays(1), 0.72m, 0.81m, 0.978m, 0.571m),
         };
 
         var kpiOeeLine = new KpiDefinition
@@ -1175,107 +875,18 @@ internal sealed class DevSeedHostedService : IHostedService
 
         var maintWorkOrderRefId = Guid.Parse("00000000-0000-4000-8000-000000000001");
 
-        var wfDefRecipe = new WorkflowDefinition
-        {
-            TenantId = tenant.Id,
-            WorkflowType = "recipe_approval",
-            Name = "Recipe publish approval",
-            Status = EntityStatus.Active,
-        };
+        var wfDefRecipe = MakeWfDef(tenant.Id, "recipe_approval", "Recipe publish approval");
+        var wfDefQuality = MakeWfDef(tenant.Id, "quality_approval", "Quality check / disposition approval");
+        var wfDefOrderClose = MakeWfDef(tenant.Id, "order_close_approval", "Production order close approval");
+        var wfDefMaint = MakeWfDef(tenant.Id, "maintenance_close_approval", "Maintenance work order close (placeholder type)");
 
-        var wfDefQuality = new WorkflowDefinition
-        {
-            TenantId = tenant.Id,
-            WorkflowType = "quality_approval",
-            Name = "Quality check / disposition approval",
-            Status = EntityStatus.Active,
-        };
-
-        var wfDefOrderClose = new WorkflowDefinition
-        {
-            TenantId = tenant.Id,
-            WorkflowType = "order_close_approval",
-            Name = "Production order close approval",
-            Status = EntityStatus.Active,
-        };
-
-        var wfDefMaint = new WorkflowDefinition
-        {
-            TenantId = tenant.Id,
-            WorkflowType = "maintenance_close_approval",
-            Name = "Maintenance work order close (placeholder type)",
-            Status = EntityStatus.Active,
-        };
-
-        var wfRecipeStep1 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefRecipe.Id,
-            SequenceNo = 10,
-            RoleCode = ApplicationRoles.Quality,
-            ApprovalMode = WorkflowApprovalMode.Sequential,
-            Status = EntityStatus.Active,
-        };
-
-        var wfRecipeStep2 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefRecipe.Id,
-            SequenceNo = 20,
-            RoleCode = ApplicationRoles.TenantAdmin,
-            ApprovalMode = WorkflowApprovalMode.Sequential,
-            Status = EntityStatus.Active,
-        };
-
-        var wfQualityStep1 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefQuality.Id,
-            SequenceNo = 10,
-            RoleCode = ApplicationRoles.TenantAdmin,
-            ApprovalMode = WorkflowApprovalMode.ParallelAny,
-            Status = EntityStatus.Active,
-        };
-
-        var wfQualityStep2 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefQuality.Id,
-            SequenceNo = 20,
-            RoleCode = ApplicationRoles.Quality,
-            ApprovalMode = WorkflowApprovalMode.Sequential,
-            Status = EntityStatus.Active,
-        };
-
-        var wfOrderStep1 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefOrderClose.Id,
-            SequenceNo = 10,
-            RoleCode = ApplicationRoles.ProductionManager,
-            ApprovalMode = WorkflowApprovalMode.Sequential,
-            Status = EntityStatus.Active,
-        };
-
-        var wfOrderStep2 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefOrderClose.Id,
-            SequenceNo = 20,
-            RoleCode = ApplicationRoles.TenantAdmin,
-            ApprovalMode = WorkflowApprovalMode.Sequential,
-            Status = EntityStatus.Active,
-        };
-
-        var wfMaintStep1 = new WorkflowStep
-        {
-            TenantId = tenant.Id,
-            WorkflowDefinitionId = wfDefMaint.Id,
-            SequenceNo = 10,
-            RoleCode = ApplicationRoles.Maintenance,
-            ApprovalMode = WorkflowApprovalMode.Sequential,
-            Status = EntityStatus.Active,
-        };
+        var wfRecipeStep1 = MakeWfStep(tenant.Id, wfDefRecipe.Id, 10, ApplicationRoles.Quality, WorkflowApprovalMode.Sequential);
+        var wfRecipeStep2 = MakeWfStep(tenant.Id, wfDefRecipe.Id, 20, ApplicationRoles.TenantAdmin, WorkflowApprovalMode.Sequential);
+        var wfQualityStep1 = MakeWfStep(tenant.Id, wfDefQuality.Id, 10, ApplicationRoles.TenantAdmin, WorkflowApprovalMode.ParallelAny);
+        var wfQualityStep2 = MakeWfStep(tenant.Id, wfDefQuality.Id, 20, ApplicationRoles.Quality, WorkflowApprovalMode.Sequential);
+        var wfOrderStep1 = MakeWfStep(tenant.Id, wfDefOrderClose.Id, 10, ApplicationRoles.ProductionManager, WorkflowApprovalMode.Sequential);
+        var wfOrderStep2 = MakeWfStep(tenant.Id, wfDefOrderClose.Id, 20, ApplicationRoles.TenantAdmin, WorkflowApprovalMode.Sequential);
+        var wfMaintStep1 = MakeWfStep(tenant.Id, wfDefMaint.Id, 10, ApplicationRoles.Maintenance, WorkflowApprovalMode.Sequential);
 
         var wfInstRecipe = new WorkflowInstance
         {
@@ -1370,7 +981,7 @@ internal sealed class DevSeedHostedService : IHostedService
             roleQuality,
             roleMaintenance,
             roleOperator);
-        db.AddRange(userOperator, userSupervisor, userDevAdmin);
+        db.AddRange(userOperator, userOperator2, userOperator3, userEngineer1, userSupervisor, userDevAdmin);
         db.AddRange(roleAssignments);
         db.AddRange(modulePlatform, moduleCoreMes, moduleIntegration);
         db.Add(license);
@@ -1384,23 +995,23 @@ internal sealed class DevSeedHostedService : IHostedService
         db.Add(syncJob);
         db.AddRange(recipeAsm, recipeCoat);
         db.AddRange(recipeParams);
-        db.AddRange(order1, order2);
-        db.AddRange(op1a, op1b, op2a, op2b);
-        db.AddRange(assign1, assign2);
-        db.AddRange(lot1, lot2);
+        db.AddRange(order1, order2, order3, order4);
+        db.AddRange(op1a, op1b, op2a, op2b, op3a, op4a);
+        db.AddRange(assign1, assign2, assign3, assign4);
+        db.AddRange(lot1, lot2, lot3);
         db.AddRange(matCons);
         db.AddRange(prodDecl);
         db.Add(scrap1);
         db.AddRange(invMoves);
-        db.AddRange(shiftMorning, shiftAfternoon);
+        db.AddRange(shiftMorning, shiftAfternoon, shiftMorning2, shiftAfternoon2);
         db.AddRange(empAssign);
         db.AddRange(qcLine, qcFinal);
         db.AddRange(qualityMeasurements);
         db.Add(ncDemo);
         db.Add(dispRework);
-        db.AddRange(alarmDrive, alarmSite, alarmLine2);
-        db.AddRange(dtChangeover, dtBreakdown, dtLineStop);
-        db.AddRange(oeeMachine, oeeLine, oeeSite);
+        db.AddRange(alarmDrive, alarmSite, alarmLine2, alarmTemp102, alarmVib204, alarmHyd101);
+        db.AddRange(dtChangeover, dtBreakdown, dtLineStop, dtHydFail, dtVibration204);
+        db.AddRange(oeeSnapshots);
         db.AddRange(kpiOeeLine, kpiScrap);
         db.AddRange(kpiResults);
         db.AddRange(
@@ -1422,11 +1033,6 @@ internal sealed class DevSeedHostedService : IHostedService
             wfActOrderApprove,
             wfActRecipeComment,
             wfActQualityApprove);
-
-        machines[0].OperationalStatus = MachineOperationalStatus.Down;
-        machines[1].OperationalStatus = MachineOperationalStatus.Running;
-        machines[2].OperationalStatus = MachineOperationalStatus.PmDue;
-        machines[3].OperationalStatus = MachineOperationalStatus.Running;
 
         var pmM101 = new PreventiveMaintenanceSchedule
         {
@@ -1455,12 +1061,48 @@ internal sealed class DevSeedHostedService : IHostedService
         var pmM201 = new PreventiveMaintenanceSchedule
         {
             TenantId = tenant.Id,
-            MachineId = machines[2].Id,
+            MachineId = machines[4].Id,
             Name = "Quarterly mold inspection",
             IntervalDays = 90,
             LastDoneAt = DateTimeOffset.UtcNow.AddDays(-92),
             NextDueAt = DateTimeOffset.UtcNow.AddDays(-2),
             OwnerRole = "mold",
+            Status = EntityStatus.Active,
+        };
+
+        var pmM103 = new PreventiveMaintenanceSchedule
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            Name = "Bi-weekly tooling check",
+            IntervalDays = 14,
+            LastDoneAt = DateTimeOffset.UtcNow.AddDays(-10),
+            NextDueAt = DateTimeOffset.UtcNow.AddDays(4),
+            OwnerRole = "maintenance",
+            Status = EntityStatus.Active,
+        };
+
+        var pmM202 = new PreventiveMaintenanceSchedule
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[5].Id,
+            Name = "Monthly filter change",
+            IntervalDays = 30,
+            LastDoneAt = DateTimeOffset.UtcNow.AddDays(-20),
+            NextDueAt = DateTimeOffset.UtcNow.AddDays(10),
+            OwnerRole = "maintenance",
+            Status = EntityStatus.Active,
+        };
+
+        var pmM204 = new PreventiveMaintenanceSchedule
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[7].Id,
+            Name = "Weekly vibration check",
+            IntervalDays = 7,
+            LastDoneAt = DateTimeOffset.UtcNow.AddDays(-8),
+            NextDueAt = DateTimeOffset.UtcNow.AddDays(-1),
+            OwnerRole = "maintenance",
             Status = EntityStatus.Active,
         };
 
@@ -1486,7 +1128,7 @@ internal sealed class DevSeedHostedService : IHostedService
         var wo2 = new MaintenanceWorkOrder
         {
             TenantId = tenant.Id,
-            MachineId = machines[2].Id,
+            MachineId = machines[4].Id,
             LineId = line2.Id,
             WorkOrderNo = "WO-20240115-002",
             WorkOrderType = MaintenanceWorkOrderType.Preventive,
@@ -1521,6 +1163,59 @@ internal sealed class DevSeedHostedService : IHostedService
             Status = EntityStatus.Active,
         };
 
+        var wo4 = new MaintenanceWorkOrder
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[7].Id,
+            LineId = line2.Id,
+            WorkOrderNo = "WO-20240116-004",
+            WorkOrderType = MaintenanceWorkOrderType.Corrective,
+            Priority = MaintenancePriority.P1Critical,
+            WorkOrderStatus = MaintenanceWorkOrderStatus.Open,
+            Description = "Spindle vibration — corrective investigation and bearing check.",
+            ReasonCode = "VIB-SPINDLE",
+            AssignedRole = "maintenance",
+            AssignedTo = userEngineer1.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-2),
+            ReportedBy = userOperator3.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var wo5 = new MaintenanceWorkOrder
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            LineId = line1.Id,
+            WorkOrderNo = "WO-20240116-005",
+            WorkOrderType = MaintenanceWorkOrderType.MoldChange,
+            Priority = MaintenancePriority.P2High,
+            WorkOrderStatus = MaintenanceWorkOrderStatus.Open,
+            Description = "Mold change for WO-DEMO-1003 (SKU-COVER-03).",
+            ReasonCode = "MOLD-CHANGE",
+            AssignedRole = "maintenance",
+            ReportedAt = DateTimeOffset.UtcNow.AddMinutes(-90),
+            ReportedBy = userSupervisor.Id,
+            Status = EntityStatus.Active,
+        };
+
+        var wo6 = new MaintenanceWorkOrder
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[6].Id,
+            LineId = line2.Id,
+            WorkOrderNo = "WO-20240116-006",
+            WorkOrderType = MaintenanceWorkOrderType.Preventive,
+            Priority = MaintenancePriority.P4Low,
+            WorkOrderStatus = MaintenanceWorkOrderStatus.Open,
+            Description = "Monthly filter replacement on coating unit M-203.",
+            ReasonCode = "PM-FILTER",
+            AssignedRole = "maintenance",
+            AssignedTo = userEngineer1.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-4),
+            ReportedBy = userEngineer1.Id,
+            Status = EntityStatus.Active,
+        };
+
         var fault1 = new MachineFault
         {
             TenantId = tenant.Id,
@@ -1548,9 +1243,35 @@ internal sealed class DevSeedHostedService : IHostedService
             Status = EntityStatus.Active,
         };
 
-        db.AddRange(pmM101, pmM102, pmM201);
-        db.AddRange(wo1, wo2, wo3);
-        db.AddRange(fault1, fault2);
+        var fault3 = new MachineFault
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[7].Id,
+            MaintenanceWorkOrderId = wo4.Id,
+            FaultCode = "VIB-001",
+            Description = "Spindle vibration spectrum shows elevated harmonics.",
+            ReportedBy = userOperator3.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-1).AddMinutes(-20),
+            Resolved = false,
+            Status = EntityStatus.Active,
+        };
+
+        var fault4 = new MachineFault
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            MaintenanceWorkOrderId = null,
+            FaultCode = "QUAL-002",
+            Description = "Wall thickness out of specification on last cavity sample.",
+            ReportedBy = userSupervisor.Id,
+            ReportedAt = DateTimeOffset.UtcNow.AddHours(-5),
+            Resolved = false,
+            Status = EntityStatus.Active,
+        };
+
+        db.AddRange(pmM101, pmM102, pmM201, pmM103, pmM202, pmM204);
+        db.AddRange(wo1, wo2, wo3, wo4, wo5, wo6);
+        db.AddRange(fault1, fault2, fault3, fault4);
 
         var seedJob1 = new JobExecution
         {
@@ -1575,12 +1296,12 @@ internal sealed class DevSeedHostedService : IHostedService
         var seedJob2 = new JobExecution
         {
             TenantId = tenant.Id,
-            MachineId = machines[3].Id,
-            LineId = machines[3].LineId,
+            MachineId = machines[5].Id,
+            LineId = machines[5].LineId,
             ProductionOrderId = order2.Id,
             RecipeId = recipeCoat.Id,
-            ShiftId = shiftMorning.Id,
-            OperatorId = userOperator.Id,
+            ShiftId = shiftMorning2.Id,
+            OperatorId = userOperator3.Id,
             JobNo = "JOB-20260427-002",
             ExecutionStatus = JobExecutionStatus.Running,
             PlannedQty = 300,
@@ -1615,8 +1336,8 @@ internal sealed class DevSeedHostedService : IHostedService
         var seedJob4 = new JobExecution
         {
             TenantId = tenant.Id,
-            MachineId = machines[2].Id,
-            LineId = machines[2].LineId,
+            MachineId = machines[4].Id,
+            LineId = machines[4].LineId,
             ProductionOrderId = order2.Id,
             RecipeId = recipeCoat.Id,
             JobNo = "JOB-20260427-004",
@@ -1626,6 +1347,64 @@ internal sealed class DevSeedHostedService : IHostedService
             ScrapQty = 0,
             DefectQty = 0,
             PlannedStartAt = DateTimeOffset.UtcNow.AddHours(2),
+            Status = EntityStatus.Active,
+        };
+
+        var seedJob5 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[2].Id,
+            LineId = machines[2].LineId,
+            ProductionOrderId = order3.Id,
+            RecipeId = recipeAsm.Id,
+            ShiftId = shiftMorning.Id,
+            OperatorId = userOperator2.Id,
+            JobNo = "JOB-20260427-005",
+            ExecutionStatus = JobExecutionStatus.Running,
+            PlannedQty = 600,
+            ProducedQty = 178,
+            ScrapQty = 15,
+            DefectQty = 0,
+            ActualStartAt = DateTimeOffset.UtcNow.AddHours(-5),
+            Status = EntityStatus.Active,
+        };
+
+        var seedJob6 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[3].Id,
+            LineId = machines[3].LineId,
+            ProductionOrderId = order1.Id,
+            RecipeId = recipeAsm.Id,
+            ShiftId = shiftMorning.Id,
+            OperatorId = userOperator.Id,
+            JobNo = "JOB-20260426-006",
+            ExecutionStatus = JobExecutionStatus.Done,
+            PlannedQty = 300,
+            ProducedQty = 298,
+            ScrapQty = 2,
+            DefectQty = 0,
+            ActualStartAt = DateTimeOffset.UtcNow.AddDays(-1).AddHours(-8),
+            ActualEndAt = DateTimeOffset.UtcNow.AddDays(-1).AddHours(-2),
+            Status = EntityStatus.Active,
+        };
+
+        var seedJob7 = new JobExecution
+        {
+            TenantId = tenant.Id,
+            MachineId = machines[6].Id,
+            LineId = machines[6].LineId,
+            ProductionOrderId = order2.Id,
+            RecipeId = recipeCoat.Id,
+            ShiftId = shiftMorning2.Id,
+            OperatorId = userOperator3.Id,
+            JobNo = "JOB-20260427-007",
+            ExecutionStatus = JobExecutionStatus.Setup,
+            PlannedQty = 150,
+            ProducedQty = 0,
+            ScrapQty = 0,
+            DefectQty = 0,
+            PlannedStartAt = DateTimeOffset.UtcNow.AddHours(1),
             Status = EntityStatus.Active,
         };
 
@@ -1655,8 +1434,60 @@ internal sealed class DevSeedHostedService : IHostedService
             Status = EntityStatus.Active,
         };
 
-        db.AddRange(seedJob1, seedJob2, seedJob3, seedJob4);
-        db.AddRange(seedDecl1, seedDecl2);
+        var seedDeclJob2a = new OperatorDeclaration
+        {
+            TenantId = tenant.Id,
+            JobExecutionId = seedJob2.Id,
+            MachineId = machines[5].Id,
+            OperatorId = userOperator3.Id,
+            DeclaredQty = 45,
+            ScrapQty = 0,
+            DefectQty = 0,
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-3),
+            Status = EntityStatus.Active,
+        };
+
+        var seedDeclJob2b = new OperatorDeclaration
+        {
+            TenantId = tenant.Id,
+            JobExecutionId = seedJob2.Id,
+            MachineId = machines[5].Id,
+            OperatorId = userOperator3.Id,
+            DeclaredQty = 44,
+            ScrapQty = 1,
+            DefectQty = 0,
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-1),
+            Status = EntityStatus.Active,
+        };
+
+        var seedDeclJob5a = new OperatorDeclaration
+        {
+            TenantId = tenant.Id,
+            JobExecutionId = seedJob5.Id,
+            MachineId = machines[2].Id,
+            OperatorId = userOperator2.Id,
+            DeclaredQty = 95,
+            ScrapQty = 8,
+            DefectQty = 0,
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-4),
+            Status = EntityStatus.Active,
+        };
+
+        var seedDeclJob5b = new OperatorDeclaration
+        {
+            TenantId = tenant.Id,
+            JobExecutionId = seedJob5.Id,
+            MachineId = machines[2].Id,
+            OperatorId = userOperator2.Id,
+            DeclaredQty = 83,
+            ScrapQty = 7,
+            DefectQty = 0,
+            DeclaredAt = DateTimeOffset.UtcNow.AddHours(-2),
+            Status = EntityStatus.Active,
+        };
+
+        db.AddRange(seedJob1, seedJob2, seedJob3, seedJob4, seedJob5, seedJob6, seedJob7);
+        db.AddRange(seedDecl1, seedDecl2, seedDeclJob2a, seedDeclJob2b, seedDeclJob5a, seedDeclJob5b);
 
         var mondayThisWeekUtc = StartOfWeekMondayUtc(DateTime.UtcNow);
         var fridayThisWeekDate = mondayThisWeekUtc.UtcDateTime.Date.AddDays(4);
@@ -1666,6 +1497,11 @@ internal sealed class DevSeedHostedService : IHostedService
         var nextMondayUtc = mondayThisWeekUtc.AddDays(7);
         var plan2PlannedStart = nextMondayUtc.AddHours(6);
         var plan2PlannedEnd = nextMondayUtc.AddDays(2).AddHours(22);
+
+        var lastWeekMonday = StartOfWeekMondayUtc(DateTime.UtcNow).AddDays(-7);
+        var lastWeekFriday = lastWeekMonday.UtcDateTime.Date.AddDays(4);
+        var plan3PlannedStart = lastWeekMonday.AddHours(6);
+        var plan3PlannedEnd = new DateTimeOffset(lastWeekFriday, TimeSpan.Zero).AddHours(22);
 
         var utcToday = UtcStartOfToday();
         var utcTomorrow = utcToday.AddDays(1);
@@ -1706,14 +1542,34 @@ internal sealed class DevSeedHostedService : IHostedService
             UpdatedBy = userSupervisor.Id,
         };
 
+        var plan3 = new ProductionPlan
+        {
+            TenantId = tenant.Id,
+            PlanNo = "PLAN-20260420-003",
+            Name = "Previous Week Run",
+            PlanStatus = PlanStatus.Done,
+            Priority = PlanPriority.Medium,
+            PlannedStartAt = plan3PlannedStart,
+            PlannedEndAt = plan3PlannedEnd,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            CreatedByUserId = userSupervisor.Id,
+            ApprovedByUserId = userSupervisor.Id,
+            ApprovedAt = DateTimeOffset.UtcNow.AddDays(-9),
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
         var slot1 = new PlanSlot
         {
             TenantId = tenant.Id,
             ProductionPlanId = plan1.Id,
             MachineId = machines[1].Id,
             ProductionOrderId = order1.Id,
+            JobExecutionId = seedJob1.Id,
             SlotNo = "SLOT-001",
-            SlotStatus = PlanSlotStatus.Scheduled,
+            SlotStatus = PlanSlotStatus.Running,
             Priority = PlanPriority.High,
             PlannedQty = 500,
             PlannedStartAt = utcToday.AddHours(6),
@@ -1729,17 +1585,17 @@ internal sealed class DevSeedHostedService : IHostedService
         {
             TenantId = tenant.Id,
             ProductionPlanId = plan1.Id,
-            MachineId = machines[3].Id,
-            ProductionOrderId = order2.Id,
-            JobExecutionId = seedJob2.Id,
+            MachineId = machines[2].Id,
+            ProductionOrderId = order3.Id,
+            JobExecutionId = seedJob5.Id,
             SlotNo = "SLOT-002",
             SlotStatus = PlanSlotStatus.Running,
             Priority = PlanPriority.High,
-            PlannedQty = 300,
-            PlannedStartAt = utcToday.AddHours(8),
-            PlannedEndAt = utcToday.AddHours(16),
+            PlannedQty = 600,
+            PlannedStartAt = utcToday.AddHours(7),
+            PlannedEndAt = utcToday.AddHours(15),
             SortOrder = 2,
-            SetupTimeMinutes = 20,
+            SetupTimeMinutes = 25,
             Status = EntityStatus.Active,
             CreatedBy = userSupervisor.Id,
             UpdatedBy = userSupervisor.Id,
@@ -1749,16 +1605,16 @@ internal sealed class DevSeedHostedService : IHostedService
         {
             TenantId = tenant.Id,
             ProductionPlanId = plan1.Id,
-            MachineId = machines[0].Id,
+            MachineId = machines[3].Id,
             ProductionOrderId = order1.Id,
             SlotNo = "SLOT-003",
             SlotStatus = PlanSlotStatus.Scheduled,
             Priority = PlanPriority.High,
-            PlannedQty = 400,
+            PlannedQty = 250,
             PlannedStartAt = utcTomorrow.AddHours(6),
             PlannedEndAt = utcTomorrow.AddHours(14),
             SortOrder = 3,
-            SetupTimeMinutes = 45,
+            SetupTimeMinutes = 20,
             Status = EntityStatus.Active,
             CreatedBy = userSupervisor.Id,
             UpdatedBy = userSupervisor.Id,
@@ -1768,23 +1624,62 @@ internal sealed class DevSeedHostedService : IHostedService
         {
             TenantId = tenant.Id,
             ProductionPlanId = plan1.Id,
-            MachineId = machines[2].Id,
-            ProductionOrderId = order2.Id,
+            MachineId = machines[0].Id,
+            ProductionOrderId = order1.Id,
             SlotNo = "SLOT-004",
+            SlotStatus = PlanSlotStatus.Skipped,
+            Priority = PlanPriority.High,
+            PlannedQty = 400,
+            PlannedStartAt = utcToday.AddHours(10),
+            PlannedEndAt = utcToday.AddHours(18),
+            SortOrder = 4,
+            SetupTimeMinutes = 45,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var slot5 = new PlanSlot
+        {
+            TenantId = tenant.Id,
+            ProductionPlanId = plan1.Id,
+            MachineId = machines[5].Id,
+            ProductionOrderId = order2.Id,
+            JobExecutionId = seedJob2.Id,
+            SlotNo = "SLOT-005",
+            SlotStatus = PlanSlotStatus.Running,
+            Priority = PlanPriority.High,
+            PlannedQty = 300,
+            PlannedStartAt = utcToday.AddHours(8),
+            PlannedEndAt = utcToday.AddHours(16),
+            SortOrder = 5,
+            SetupTimeMinutes = 20,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var slot6 = new PlanSlot
+        {
+            TenantId = tenant.Id,
+            ProductionPlanId = plan1.Id,
+            MachineId = machines[4].Id,
+            ProductionOrderId = order2.Id,
+            SlotNo = "SLOT-006",
             SlotStatus = PlanSlotStatus.Scheduled,
             Priority = PlanPriority.High,
             PlannedQty = 200,
             PlannedStartAt = utcTomorrow.AddHours(10),
             PlannedEndAt = utcTomorrow.AddHours(16),
-            SortOrder = 4,
+            SortOrder = 6,
             SetupTimeMinutes = 30,
             Status = EntityStatus.Active,
             CreatedBy = userSupervisor.Id,
             UpdatedBy = userSupervisor.Id,
         };
 
-        db.AddRange(plan1, plan2);
-        db.AddRange(slot1, slot2, slot3, slot4);
+        db.AddRange(plan1, plan2, plan3);
+        db.AddRange(slot1, slot2, slot3, slot4, slot5, slot6);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -1804,6 +1699,369 @@ internal sealed class DevSeedHostedService : IHostedService
         return new DateTimeOffset(monday, TimeSpan.Zero);
     }
 
+    /// <summary>Creates an active <see cref="Role"/> row for the tenant.</summary>
+    private static Role MakeRole(Guid tenantId, string code, string name) =>
+        new()
+        {
+            TenantId = tenantId,
+            Code = code,
+            Name = name,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a tenant-scoped <see cref="UserRoleAssignment"/>.</summary>
+    private static UserRoleAssignment MakeRoleAssignment(
+        Guid tenantId,
+        Guid userId,
+        Guid roleId,
+        ScopeType scopeType,
+        Guid scopeId) =>
+        new()
+        {
+            TenantId = tenantId,
+            UserAccountId = userId,
+            RoleId = roleId,
+            ScopeType = scopeType,
+            ScopeId = scopeId,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="ConnectorDefinition"/> with common defaults.</summary>
+    private static ConnectorDefinition MakeConnDef(
+        Guid tenantId,
+        string code,
+        string name,
+        string category,
+        ConnectorDirection direction,
+        bool read,
+        bool write) =>
+        new()
+        {
+            TenantId = tenantId,
+            Code = code,
+            Name = name,
+            Category = category,
+            Direction = direction,
+            SupportsRead = read,
+            SupportsWrite = write,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates an active <see cref="Recipe"/>.</summary>
+    private static Recipe MakeRecipe(Guid tenantId, string code, string name, int version, string? description) =>
+        new()
+        {
+            TenantId = tenantId,
+            Code = code,
+            Name = name,
+            Version = version,
+            Description = description,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="RecipeParameter"/> bound to a recipe.</summary>
+    private static RecipeParameter MakeRecipeParam(
+        Guid recipeId,
+        string code,
+        string name,
+        string dataType,
+        string unit,
+        string defaultValue,
+        string minValue,
+        string maxValue,
+        int sortOrder) =>
+        new()
+        {
+            RecipeId = recipeId,
+            Code = code,
+            Name = name,
+            DataType = dataType,
+            Unit = unit,
+            DefaultValue = defaultValue,
+            MinValue = minValue,
+            MaxValue = maxValue,
+            SortOrder = sortOrder,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a demo <see cref="ProductionOrder"/>.</summary>
+    private static ProductionOrder MakeOrder(
+        Guid tenantId,
+        Guid siteId,
+        Guid lineId,
+        string orderNo,
+        string productCode,
+        int planned,
+        int completed,
+        ProductionOrderStatus status,
+        DateTimeOffset? plannedStart,
+        DateTimeOffset? plannedEnd,
+        string? sourceRef)
+    {
+        var o = new ProductionOrder
+        {
+            TenantId = tenantId,
+            SiteId = siteId,
+            LineId = lineId,
+            OrderNo = orderNo,
+            ProductCode = productCode,
+            QuantityPlanned = planned,
+            QuantityCompleted = completed,
+            OrderStatus = status,
+            Status = EntityStatus.Active,
+            PlannedStartAt = plannedStart,
+            PlannedEndAt = plannedEnd,
+            SourceSystem = "demo",
+            SourceReference = sourceRef,
+        };
+        return o;
+    }
+
+    /// <summary>Creates a <see cref="ProductionOperation"/>.</summary>
+    private static ProductionOperation MakeOp(
+        Guid tenantId,
+        Guid orderId,
+        int sequenceNo,
+        string code,
+        string name,
+        Guid lineId,
+        Guid? machineId,
+        ProductionOperationStatus opStatus,
+        int planned,
+        int completed) =>
+        new()
+        {
+            TenantId = tenantId,
+            ProductionOrderId = orderId,
+            SequenceNo = sequenceNo,
+            Code = code,
+            Name = name,
+            LineId = lineId,
+            MachineId = machineId,
+            OperationStatus = opStatus,
+            QuantityPlanned = planned,
+            QuantityCompleted = completed,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates an <see cref="OrderRecipeAssignment"/>.</summary>
+    private static OrderRecipeAssignment MakeOrderRecipe(
+        Guid tenantId,
+        Guid orderId,
+        Guid recipeId,
+        int recipeVersion,
+        DateTimeOffset assignedAt) =>
+        new()
+        {
+            TenantId = tenantId,
+            ProductionOrderId = orderId,
+            RecipeId = recipeId,
+            RecipeVersionAssigned = recipeVersion,
+            AssignedAt = assignedAt,
+            IsPrimary = true,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates an active <see cref="LotBatch"/>.</summary>
+    private static LotBatch MakeLot(
+        Guid tenantId,
+        Guid orderId,
+        Guid lineId,
+        Guid machineId,
+        string lotNo,
+        int targetQty,
+        int goodQty) =>
+        new()
+        {
+            TenantId = tenantId,
+            ProductionOrderId = orderId,
+            LineId = lineId,
+            MachineId = machineId,
+            LotNo = lotNo,
+            LotStatus = LotBatchStatus.Active,
+            TargetQuantity = targetQty,
+            QuantityGood = goodQty,
+            StartedAt = DateTimeOffset.UtcNow.AddHours(-6),
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="MaterialConsumption"/> row.</summary>
+    private static MaterialConsumption MakeMat(
+        Guid tenantId,
+        Guid lotId,
+        string materialCode,
+        string materialName,
+        decimal quantity,
+        string unit,
+        DateTimeOffset consumedAt) =>
+        new()
+        {
+            TenantId = tenantId,
+            LotBatchId = lotId,
+            MaterialCode = materialCode,
+            MaterialName = materialName,
+            Quantity = quantity,
+            Unit = unit,
+            ConsumedAt = consumedAt,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="ProductionDeclaration"/>.</summary>
+    private static ProductionDeclaration MakeProdDecl(
+        Guid tenantId,
+        Guid lotId,
+        Guid lineId,
+        Guid machineId,
+        int goodQty,
+        DateTimeOffset declaredAt,
+        string? notes) =>
+        new()
+        {
+            TenantId = tenantId,
+            LotBatchId = lotId,
+            GoodQuantity = goodQty,
+            DeclaredAt = declaredAt,
+            LineId = lineId,
+            MachineId = machineId,
+            Notes = notes,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="Shift"/> for a line and calendar day.</summary>
+    private static Shift MakeShift(
+        Guid tenantId,
+        Guid siteId,
+        Guid lineId,
+        string code,
+        string name,
+        DateOnly shiftDate,
+        DateTime dayStartUtc,
+        int startHour,
+        int endHour,
+        WorkShiftLifecycle lifecycle,
+        double? actualStartHourOffset)
+    {
+        var plannedStart = new DateTimeOffset(dayStartUtc.AddHours(startHour));
+        var plannedEnd = new DateTimeOffset(dayStartUtc.AddHours(endHour));
+        return new Shift
+        {
+            TenantId = tenantId,
+            SiteId = siteId,
+            LineId = lineId,
+            Code = code,
+            Name = name,
+            ShiftDate = shiftDate,
+            PlannedStartAt = plannedStart,
+            PlannedEndAt = plannedEnd,
+            ActualStartAt = actualStartHourOffset is null
+                ? null
+                : new DateTimeOffset(dayStartUtc.AddHours(actualStartHourOffset.Value)),
+            Lifecycle = lifecycle,
+            Status = EntityStatus.Active,
+        };
+    }
+
+    /// <summary>Creates an <see cref="EmployeeAssignment"/> for a shift.</summary>
+    private static EmployeeAssignment MakeEmpAssign(
+        Guid tenantId,
+        Guid userId,
+        Guid shiftId,
+        Guid lineId,
+        Guid? machineId,
+        DateTimeOffset from,
+        DateTimeOffset? to,
+        string role) =>
+        new()
+        {
+            TenantId = tenantId,
+            UserAccountId = userId,
+            ShiftId = shiftId,
+            LineId = lineId,
+            MachineId = machineId,
+            AssignedFrom = from,
+            AssignedTo = to,
+            AssignmentRole = role,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="QualityMeasurement"/>.</summary>
+    private static QualityMeasurement MakeMeasurement(
+        Guid tenantId,
+        Guid checkId,
+        string parameterCode,
+        string measured,
+        string? target,
+        string? min,
+        string? max,
+        QualityMeasurementResult result) =>
+        new()
+        {
+            TenantId = tenantId,
+            QualityCheckId = checkId,
+            ParameterCode = parameterCode,
+            MeasuredValue = measured,
+            TargetValue = target,
+            MinValue = min,
+            MaxValue = max,
+            Result = result,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates an <see cref="OeeSnapshot"/> row.</summary>
+    private static OeeSnapshot MakeOee(
+        Guid tenantId,
+        Guid siteId,
+        Guid? lineId,
+        Guid? machineId,
+        OeePeriodType periodType,
+        DateTimeOffset periodStart,
+        DateTimeOffset periodEnd,
+        decimal availability,
+        decimal performance,
+        decimal quality,
+        decimal oee) =>
+        new()
+        {
+            TenantId = tenantId,
+            SiteId = siteId,
+            LineId = lineId,
+            MachineId = machineId,
+            PeriodType = periodType,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            Availability = availability,
+            Performance = performance,
+            Quality = quality,
+            OeeValue = oee,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="WorkflowDefinition"/>.</summary>
+    private static WorkflowDefinition MakeWfDef(Guid tenantId, string workflowType, string name) =>
+        new()
+        {
+            TenantId = tenantId,
+            WorkflowType = workflowType,
+            Name = name,
+            Status = EntityStatus.Active,
+        };
+
+    /// <summary>Creates a <see cref="WorkflowStep"/>.</summary>
+    private static WorkflowStep MakeWfStep(
+        Guid tenantId,
+        Guid definitionId,
+        int sequenceNo,
+        string roleCode,
+        WorkflowApprovalMode mode) =>
+        new()
+        {
+            TenantId = tenantId,
+            WorkflowDefinitionId = definitionId,
+            SequenceNo = sequenceNo,
+            RoleCode = roleCode,
+            ApprovalMode = mode,
+            Status = EntityStatus.Active,
+        };
+
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
-
