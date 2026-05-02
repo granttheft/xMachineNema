@@ -7,6 +7,7 @@ using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
+using XMachine.Module.Planning.Domain;
 using XMachine.Module.Production.Domain;
 using XMachine.Module.Quality.Domain;
 using XMachine.Module.Workflow.Domain;
@@ -1657,6 +1658,134 @@ internal sealed class DevSeedHostedService : IHostedService
         db.AddRange(seedJob1, seedJob2, seedJob3, seedJob4);
         db.AddRange(seedDecl1, seedDecl2);
 
+        var mondayThisWeekUtc = StartOfWeekMondayUtc(DateTime.UtcNow);
+        var fridayThisWeekDate = mondayThisWeekUtc.UtcDateTime.Date.AddDays(4);
+        var plan1PlannedStart = mondayThisWeekUtc.AddHours(6);
+        var plan1PlannedEnd = new DateTimeOffset(fridayThisWeekDate, TimeSpan.Zero).AddHours(22);
+
+        var nextMondayUtc = mondayThisWeekUtc.AddDays(7);
+        var plan2PlannedStart = nextMondayUtc.AddHours(6);
+        var plan2PlannedEnd = nextMondayUtc.AddDays(2).AddHours(22);
+
+        var utcToday = UtcStartOfToday();
+        var utcTomorrow = utcToday.AddDays(1);
+
+        var plan1 = new ProductionPlan
+        {
+            TenantId = tenant.Id,
+            PlanNo = "PLAN-20260427-001",
+            Name = "Week 19 Injection Run",
+            PlanStatus = PlanStatus.Approved,
+            Priority = PlanPriority.High,
+            PlannedStartAt = plan1PlannedStart,
+            PlannedEndAt = plan1PlannedEnd,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            CreatedByUserId = userSupervisor.Id,
+            ApprovedByUserId = userSupervisor.Id,
+            ApprovedAt = DateTimeOffset.UtcNow.AddDays(-2),
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var plan2 = new ProductionPlan
+        {
+            TenantId = tenant.Id,
+            PlanNo = "PLAN-20260427-002",
+            Name = "Week 20 Prep Run",
+            PlanStatus = PlanStatus.Draft,
+            Priority = PlanPriority.Medium,
+            PlannedStartAt = plan2PlannedStart,
+            PlannedEndAt = plan2PlannedEnd,
+            SiteId = site.Id,
+            LineId = line1.Id,
+            CreatedByUserId = userSupervisor.Id,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var slot1 = new PlanSlot
+        {
+            TenantId = tenant.Id,
+            ProductionPlanId = plan1.Id,
+            MachineId = machines[1].Id,
+            ProductionOrderId = order1.Id,
+            SlotNo = "SLOT-001",
+            SlotStatus = PlanSlotStatus.Scheduled,
+            Priority = PlanPriority.High,
+            PlannedQty = 500,
+            PlannedStartAt = utcToday.AddHours(6),
+            PlannedEndAt = utcToday.AddHours(14),
+            SortOrder = 1,
+            SetupTimeMinutes = 30,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var slot2 = new PlanSlot
+        {
+            TenantId = tenant.Id,
+            ProductionPlanId = plan1.Id,
+            MachineId = machines[3].Id,
+            ProductionOrderId = order2.Id,
+            JobExecutionId = seedJob2.Id,
+            SlotNo = "SLOT-002",
+            SlotStatus = PlanSlotStatus.Running,
+            Priority = PlanPriority.High,
+            PlannedQty = 300,
+            PlannedStartAt = utcToday.AddHours(8),
+            PlannedEndAt = utcToday.AddHours(16),
+            SortOrder = 2,
+            SetupTimeMinutes = 20,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var slot3 = new PlanSlot
+        {
+            TenantId = tenant.Id,
+            ProductionPlanId = plan1.Id,
+            MachineId = machines[0].Id,
+            ProductionOrderId = order1.Id,
+            SlotNo = "SLOT-003",
+            SlotStatus = PlanSlotStatus.Scheduled,
+            Priority = PlanPriority.High,
+            PlannedQty = 400,
+            PlannedStartAt = utcTomorrow.AddHours(6),
+            PlannedEndAt = utcTomorrow.AddHours(14),
+            SortOrder = 3,
+            SetupTimeMinutes = 45,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        var slot4 = new PlanSlot
+        {
+            TenantId = tenant.Id,
+            ProductionPlanId = plan1.Id,
+            MachineId = machines[2].Id,
+            ProductionOrderId = order2.Id,
+            SlotNo = "SLOT-004",
+            SlotStatus = PlanSlotStatus.Scheduled,
+            Priority = PlanPriority.High,
+            PlannedQty = 200,
+            PlannedStartAt = utcTomorrow.AddHours(10),
+            PlannedEndAt = utcTomorrow.AddHours(16),
+            SortOrder = 4,
+            SetupTimeMinutes = 30,
+            Status = EntityStatus.Active,
+            CreatedBy = userSupervisor.Id,
+            UpdatedBy = userSupervisor.Id,
+        };
+
+        db.AddRange(plan1, plan2);
+        db.AddRange(slot1, slot2, slot3, slot4);
+
         await db.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Dev seed completed.");
@@ -1665,6 +1794,15 @@ internal sealed class DevSeedHostedService : IHostedService
     // UTC midnight (offset 0); DateTimeOffset.UtcNow.Date would be Unspecified→local offset and breaks Npgsql timestamptz.
     private static DateTimeOffset UtcStartOfToday() =>
         new DateTimeOffset(DateTimeOffset.UtcNow.UtcDateTime.Date, TimeSpan.Zero);
+
+    private static DateTimeOffset StartOfWeekMondayUtc(DateTime utcNow)
+    {
+        var date = utcNow.Date;
+        var day = utcNow.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)utcNow.DayOfWeek;
+        var daysSinceMonday = day - (int)DayOfWeek.Monday;
+        var monday = date.AddDays(-daysSinceMonday);
+        return new DateTimeOffset(monday, TimeSpan.Zero);
+    }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

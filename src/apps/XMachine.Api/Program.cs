@@ -12,6 +12,7 @@ using XMachine.Api.Commercial;
 using XMachine.Api.Workflow;
 using XMachine.Api.Engineering;
 using XMachine.Api.Production;
+using XMachine.Api.Planning;
 using XMachine.Api.Admin;
 using XMachine.Connectors.Runtime;
 using XMachine.Module.Auth.Security;
@@ -139,6 +140,7 @@ app.MapCommercialEndpoints();
 app.MapWorkflowEndpoints();
 app.MapEngineeringEndpoints();
 app.MapProductionEndpoints();
+app.MapPlanningEndpoints();
 app.MapLanguageEndpoints();
 
 app.MapHub<XMachineHub>("/hubs/xmachine");

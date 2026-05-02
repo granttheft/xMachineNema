@@ -6,6 +6,7 @@ using XMachine.Module.Eventing.Domain;
 using XMachine.Module.Integration.Domain;
 using XMachine.Module.MES.Domain;
 using XMachine.Module.Platform.Domain;
+using XMachine.Module.Planning.Domain;
 using XMachine.Module.Production.Domain;
 using XMachine.Module.Quality.Domain;
 using XMachine.Module.Workflow.Domain;
@@ -92,6 +93,10 @@ public sealed class XMachineDbContext : DbContext
     // production
     public DbSet<JobExecution> JobExecutions => Set<JobExecution>();
     public DbSet<OperatorDeclaration> OperatorDeclarations => Set<OperatorDeclaration>();
+
+    // planning
+    public DbSet<ProductionPlan> ProductionPlans => Set<ProductionPlan>();
+    public DbSet<PlanSlot> PlanSlots => Set<PlanSlot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
