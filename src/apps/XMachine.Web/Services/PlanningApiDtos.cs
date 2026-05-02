@@ -84,3 +84,57 @@ public sealed record ApiPlanningSummary(
     int CompletedPlans,
     int ScheduledSlotsToday,
     int TotalSlotsThisWeek);
+
+/// <summary>Request body for POST /api/planning/plans.</summary>
+public sealed record CreatePlanDto(
+    string Name,
+    string? Description,
+    string Priority,
+    DateTimeOffset PlannedStartAt,
+    DateTimeOffset PlannedEndAt,
+    Guid? SiteId,
+    Guid? LineId,
+    string? Notes);
+
+/// <summary>Request body for PUT /api/planning/plans/{id}/status.</summary>
+public sealed record UpdatePlanStatusDto(string NewStatus, string? ApprovalNotes, string? CancellationReason);
+
+/// <summary>Request body for POST /api/planning/slots.</summary>
+public sealed record CreateSlotDto(
+    Guid ProductionPlanId,
+    Guid MachineId,
+    Guid? ProductionOrderId,
+    string Priority,
+    int PlannedQty,
+    DateTimeOffset PlannedStartAt,
+    DateTimeOffset PlannedEndAt,
+    int? EstimatedDurationMinutes,
+    int? SetupTimeMinutes,
+    string? Notes);
+
+/// <summary>Request body for PUT /api/planning/slots/{id}.</summary>
+public sealed record UpdateSlotDto(
+    Guid? MachineId,
+    DateTimeOffset? PlannedStartAt,
+    DateTimeOffset? PlannedEndAt,
+    int? PlannedQty,
+    string? NewStatus,
+    string? Notes);
+
+/// <summary>Response from POST /api/planning/plans.</summary>
+public sealed record CreatePlanResponseDto(Guid Id, string PlanNo, string PlanStatus);
+
+/// <summary>Response from PUT /api/planning/plans/{id}/status.</summary>
+public sealed record UpdatePlanStatusResponseDto(Guid Id, string PlanNo, string PlanStatus);
+
+/// <summary>Response from POST /api/planning/slots.</summary>
+public sealed record CreateSlotResponseDto(Guid Id, string SlotNo, string SlotStatus);
+
+/// <summary>Response from PUT /api/planning/slots/{id}.</summary>
+public sealed record UpdateSlotResponseDto(
+    Guid Id,
+    string SlotNo,
+    string SlotStatus,
+    Guid MachineId,
+    DateTimeOffset PlannedStartAt,
+    DateTimeOffset PlannedEndAt);

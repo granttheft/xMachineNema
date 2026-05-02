@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using System.Globalization
 @using Microsoft.AspNetCore.Components
+@using XMachine.Web.Services
 @implements IDisposable
 @inject XMachineApiClient Api
 @inject ITranslationService T
@@ -30,6 +31,10 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(_errorBanner))
+    {
+        <div class="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">@_errorBanner</div>
+    }
     @if (!string.IsNullOrEmpty(_successMessage))
     {
         <div class="mx-6 mt-4 rounded-lg border px-4 py-3 text-sm @BannerClass()">
@@ -249,6 +254,8 @@
     private readonly Dictionary<string, string> _errors = new();
     private CancellationTokenSource? _bannerCts;
     private bool _formLocked;
+    private Guid? _savedPlanId;
+    private string? _errorBanner;
 
     /// <summary>Hours from estimated quantity and selected mold throughput.</summary>
     private double CalculatedDurationHours =>
@@ -301,10 +308,9 @@
     private async Task SaveDraftAsync()
     {
         _errors.Clear();
+        _errorBanner = null;
         if (string.IsNullOrWhiteSpace(_planName))
             _errors["name"] = "Name is required.";
-        if (_selectedMachineId is null)
-            _errors["machine"] = "Machine is required.";
         if (string.IsNullOrWhiteSpace(_plannedStart))
             _errors["start"] = "Planned start is required.";
         if (string.IsNullOrWhiteSpace(_plannedEnd))
@@ -314,7 +320,22 @@
             await InvokeAsync(StateHasChanged).ConfigureAwait(false);
             return;
         }
-        await ShowBannerAsync("Plan saved as draft.", "success").ConfigureAwait(false);
+        if (_savedPlanId.HasValue)
+        {
+            await ShowBannerAsync("Plan already saved as draft.", "success").ConfigureAwait(false);
+            return;
+        }
+        try
+        {
+            if (!await TryPersistPlanDraftAsync().ConfigureAwait(false))
+                return;
+            await ShowBannerAsync("Plan saved as draft.", "success").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _errorBanner = ex.Message;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
     }
 
     private async Task ReserveMaterialsAsync()
@@ -325,6 +346,7 @@
     private async Task SubmitForApprovalAsync()
     {
         _errors.Clear();
+        _errorBanner = null;
         if (string.IsNullOrWhiteSpace(_planName))
             _errors["name"] = "Name is required.";
         if (_selectedMachineId is null)
@@ -338,9 +360,84 @@
             await InvokeAsync(StateHasChanged).ConfigureAwait(false);
             return;
         }
-        _status = "Submitted";
-        _formLocked = true;
-        await ShowBannerAsync("Plan submitted for approval.", "success").ConfigureAwait(false);
+        try
+        {
+            if (!_savedPlanId.HasValue && !await TryPersistPlanDraftAsync().ConfigureAwait(false))
+                return;
+            if (!_savedPlanId.HasValue)
+            {
+                _errorBanner = "Could not save plan before submit.";
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return;
+            }
+            var put = await Api.PutPlanStatusAsync(
+                _savedPlanId.Value,
+                new UpdatePlanStatusDto("Submitted", null, null)).ConfigureAwait(false);
+            if (put.Error is not null)
+            {
+                _errorBanner = put.Error;
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return;
+            }
+            _status = "Submitted";
+            _formLocked = true;
+            await ShowBannerAsync("Plan submitted for approval.", "success").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _errorBanner = ex.Message;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Persists a new draft plan via POST /api/planning/plans when <see cref="_savedPlanId"/> is not set.</summary>
+    private async Task<bool> TryPersistPlanDraftAsync()
+    {
+        try
+        {
+            var plannedStartAt = DateTimeOffset.Parse(
+                $"{_plannedStart}T00:00:00Z",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal);
+            var plannedEndAt = DateTimeOffset.Parse(
+                $"{_plannedEnd}T23:59:59Z",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal);
+            var dto = new CreatePlanDto(
+                _planName.Trim(),
+                string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
+                _priority,
+                plannedStartAt,
+                plannedEndAt,
+                null,
+                null,
+                string.IsNullOrWhiteSpace(_notes) ? null : _notes.Trim());
+            var res = await Api.PostPlanAsync(dto).ConfigureAwait(false);
+            if (res.Error is not null)
+            {
+                _errorBanner = res.Error;
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return false;
+            }
+            if (res.Data is null)
+            {
+                _errorBanner = "Empty response from API.";
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+                return false;
+            }
+            _savedPlanId = res.Data.Id;
+            _planNo = res.Data.PlanNo;
+            _status = res.Data.PlanStatus;
+            _errorBanner = null;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _errorBanner = ex.Message;
+            await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            return false;
+        }
     }
 
     private async Task ShowBannerAsync(string message, string type)
@@ -371,6 +468,7 @@
     private static string GetStatusBadgeClass(string status) => status switch
     {
         var s when s.Equals("Submitted", StringComparison.OrdinalIgnoreCase) => "bg-blue-100 text-blue-800",
+        var s when s.Equals("Approved", StringComparison.OrdinalIgnoreCase) => "bg-green-100 text-green-800",
         var s when s.Equals("Draft", StringComparison.OrdinalIgnoreCase) => "bg-slate-100 text-slate-600",
         _ => "bg-slate-100 text-slate-600"
     };

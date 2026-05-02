@@ -337,6 +337,31 @@ public sealed class XMachineApiClient(HttpClient http)
     public Task<ApiFetch<ApiPlanningSummary>> GetPlanningSummaryAsync(CancellationToken cancellationToken = default) =>
         GetAsync<ApiPlanningSummary>("api/planning/summary", cancellationToken);
 
+    /// <summary>Creates a production plan in Draft status (POST /api/planning/plans).</summary>
+    public Task<ApiFetch<CreatePlanResponseDto>> PostPlanAsync(CreatePlanDto dto, CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreatePlanDto, CreatePlanResponseDto>("api/planning/plans", dto, cancellationToken);
+
+    /// <summary>Updates plan lifecycle status (PUT /api/planning/plans/{id}/status).</summary>
+    public Task<ApiFetch<UpdatePlanStatusResponseDto>> PutPlanStatusAsync(
+        Guid id,
+        UpdatePlanStatusDto dto,
+        CancellationToken cancellationToken = default) =>
+        PutJsonAsync<UpdatePlanStatusDto, UpdatePlanStatusResponseDto>(
+            $"api/planning/plans/{id}/status",
+            dto,
+            cancellationToken);
+
+    /// <summary>Creates a plan slot (POST /api/planning/slots).</summary>
+    public Task<ApiFetch<CreateSlotResponseDto>> PostSlotAsync(CreateSlotDto dto, CancellationToken cancellationToken = default) =>
+        PostJsonAsync<CreateSlotDto, CreateSlotResponseDto>("api/planning/slots", dto, cancellationToken);
+
+    /// <summary>Updates a plan slot (PUT /api/planning/slots/{id}).</summary>
+    public Task<ApiFetch<UpdateSlotResponseDto>> PutSlotAsync(
+        Guid id,
+        UpdateSlotDto dto,
+        CancellationToken cancellationToken = default) =>
+        PutJsonAsync<UpdateSlotDto, UpdateSlotResponseDto>($"api/planning/slots/{id}", dto, cancellationToken);
+
     public Task<ApiFetch<CreateWorkOrderResponse>> PostWorkOrderAsync(CreateWorkOrderDto dto, CancellationToken cancellationToken = default) =>
         PostJsonAsync<CreateWorkOrderDto, CreateWorkOrderResponse>("api/engineering/work-orders", dto, cancellationToken);
 
