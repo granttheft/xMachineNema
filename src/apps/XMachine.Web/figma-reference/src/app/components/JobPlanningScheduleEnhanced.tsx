@@ -72,11 +72,11 @@ const factoryKPIs = {
 
 // Enhanced operators data
 const operators = [
-  { id: 'OP001', name: 'Ko Aung', nameMyanmar: 'ကိုအောင်', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.8 },
-  { id: 'OP002', name: 'Ma Suu', nameMyanmar: 'မစု', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.6 },
-  { id: 'OP003', name: 'Ko Thant', nameMyanmar: 'ကိုသန့်', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.9 },
-  { id: 'OP004', name: 'Ma Phyu', nameMyanmar: 'မဖြူ', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.5 },
-  { id: 'OP005', name: 'Ko Zaw', nameMyanmar: 'ကိုဇော်', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.7 },
+  { id: 'OP001', name: 'Ko Aung', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.8 },
+  { id: 'OP002', name: 'Ma Suu', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.6 },
+  { id: 'OP003', name: 'Ko Thant', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.9 },
+  { id: 'OP004', name: 'Ma Phyu', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.5 },
+  { id: 'OP005', name: 'Ko Zaw', photo: '/api/placeholder/40/40', shift: 'A', rating: 4.7 },
 ];
 
 // Enhanced products data
@@ -93,7 +93,6 @@ const mockMachines = [
   {
     id: 'INJ-M001',
     name: 'Injection Machine 1',
-    nameMyanmar: 'ထိုးစက် ၁',
     status: 'running',
     operatorId: 'OP001',
     productId: 'P001',
@@ -115,7 +114,6 @@ const mockMachines = [
   {
     id: 'INJ-M002',
     name: 'Injection Machine 2',
-    nameMyanmar: 'ထိုးစက် ၂',
     status: 'idle',
     operatorId: 'OP002',
     productId: null,
@@ -137,7 +135,6 @@ const mockMachines = [
   {
     id: 'INJ-M003',
     name: 'Injection Machine 3',
-    nameMyanmar: 'ထိုးစက် ၃',
     status: 'blocked',
     operatorId: 'OP003',
     productId: 'P002',
@@ -159,7 +156,6 @@ const mockMachines = [
   {
     id: 'INJ-M004',
     name: 'Assembly Line 01',
-    nameMyanmar: 'တပ်ဆင်လိုင်း ၁',
     status: 'running',
     operatorId: 'OP004',
     productId: 'P003',
@@ -181,7 +177,6 @@ const mockMachines = [
   {
     id: 'INJ-M005',
     name: 'QC Station 01',
-    nameMyanmar: 'အရည်အသွေးစစ်ဆေး ၁',
     status: 'maintenance',
     operatorId: null,
     productId: null,
@@ -203,7 +198,6 @@ const mockMachines = [
   {
     id: 'INJ-M006',
     name: 'Packaging Line 01',
-    nameMyanmar: 'ထုပ်ပိုးလိုင်း ၁',
     status: 'scheduled',
     operatorId: 'OP005',
     productId: 'P004',
@@ -333,7 +327,6 @@ const alerts = [
     type: 'critical',
     machine: 'INJ-M003',
     message: 'Machine blocked for 45 minutes',
-    messageMyanmar: 'စက်ပိတ်နေပြီး ၄၅ မိနစ်ရှိပြီ',
     time: '14:15',
     priority: 'high'
   },
@@ -342,7 +335,6 @@ const alerts = [
     type: 'warning',
     machine: 'INJ-M001',
     message: 'Material running low',
-    messageMyanmar: 'ကုန်ကြမ်း နည်းနေပြီ',
     time: '14:30',
     priority: 'medium'
   },
@@ -351,7 +343,6 @@ const alerts = [
     type: 'info',
     machine: 'INJ-M004',
     message: 'Target exceeded by 5%',
-    messageMyanmar: 'ပစ်မှန်းထားတာထက် ၅% ပိုရရှိ',
     time: '14:45',
     priority: 'low'
   }
@@ -575,10 +566,10 @@ export function JobPlanningSchedule() {
 
   const getMachineStatusText = (status: string) => {
     switch (status) {
-      case 'running': return 'Running | လုပ်ဆောင်နေ';
-      case 'scheduled': return 'Scheduled | စီစဉ်ပြီး';
-      case 'idle': return 'Idle | ရပ်နားနေ';
-      case 'maintenance': return 'Maintenance | ပြုပြင်နေ';
+      case 'running': return 'Running';
+      case 'scheduled': return 'Scheduled';
+      case 'idle': return 'Idle';
+      case 'maintenance': return 'Maintenance';
       default: return status;
     }
   };
@@ -598,13 +589,10 @@ export function JobPlanningSchedule() {
         <div className="p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-slate-900 mb-2">
-              Job Planning Schedule | အလုပ်စီမံဇယား
+              Job Planning Schedule
             </h1>
             <p className="text-slate-600">
               Manage production jobs, monitor machines, and optimize factory operations
-            </p>
-            <p className="text-sm text-slate-500">
-              ထုတ်လုပ်မှုအလုပ်များကို စီမံခန့်ခွဲခြင်း၊ စက်များကို စောင့်ကြည့်ခြင်းနှင့် စက်ရုံလုပ်ငန်းများကို အကောင်းဆုံးဖြစ်အောင် လုပ်ဆောင်ခြင်း
             </p>
           </div>
 
@@ -753,7 +741,7 @@ export function JobPlanningSchedule() {
                       {/* Timeline Header */}
                       <div className="grid grid-cols-25 gap-1 mb-4 sticky top-0 bg-white z-10 py-2">
                         <div className="col-span-3 text-sm font-medium text-slate-700 p-2">
-                          Machine | စက်
+                          Machine
                         </div>
                         {timeSlots.map((slot, index) => (
                           <div key={index} className="text-xs text-center text-slate-600 p-1 border-l border-slate-200">
@@ -780,7 +768,7 @@ export function JobPlanningSchedule() {
                                     <div className={`w-3 h-3 rounded-full ${getMachineStatusColor(machine.status)}`}></div>
                                     <div>
                                       <div className="font-medium text-sm">{machine.name}</div>
-                                      <div className="text-xs text-slate-600">{machine.nameMyanmar}</div>
+                                      <div className="text-xs text-slate-600">{machine.group}</div>
                                     </div>
                                   </div>
                                   
@@ -792,7 +780,7 @@ export function JobPlanningSchedule() {
                                       </Avatar>
                                       <div className="text-xs">
                                         <div className="font-medium">{operator.name}</div>
-                                        <div className="text-slate-600">{operator.nameMyanmar}</div>
+                                        <div className="text-slate-600">Shift {operator.shift}</div>
                                       </div>
                                     </div>
                                   )}
@@ -897,7 +885,7 @@ export function JobPlanningSchedule() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-green-100 text-sm font-medium">🟢 Running Machines</p>
-                          <p className="text-xs text-green-100">လည်ပတ်နေသောစက်များ</p>
+                          <p className="text-xs text-green-100">Currently in production</p>
                         </div>
                         <Play className="h-8 w-8 text-green-100" />
                       </div>
@@ -924,7 +912,7 @@ export function JobPlanningSchedule() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-yellow-100 text-sm font-medium">🟡 Idle Machines</p>
-                          <p className="text-xs text-yellow-100">အပတ်စဉ်စက်များ</p>
+                          <p className="text-xs text-yellow-100">Waiting for work</p>
                         </div>
                         <Pause className="h-8 w-8 text-yellow-100" />
                       </div>
@@ -951,7 +939,7 @@ export function JobPlanningSchedule() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-red-100 text-sm font-medium">🔴 Blocked/Down</p>
-                          <p className="text-xs text-red-100">ပိတ်နေသောစက်များ</p>
+                          <p className="text-xs text-red-100">Stopped or blocked</p>
                         </div>
                         <AlertCircle className="h-8 w-8 text-red-100" />
                       </div>
@@ -978,7 +966,7 @@ export function JobPlanningSchedule() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-blue-100 text-sm font-medium">📦 Units Produced Today</p>
-                          <p className="text-xs text-blue-100">ယနေ့ထုတ်လုပ်မှု</p>
+                          <p className="text-xs text-blue-100">Shift output</p>
                         </div>
                         <Package className="h-8 w-8 text-blue-100" />
                       </div>
@@ -1009,7 +997,7 @@ export function JobPlanningSchedule() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-orange-100 text-sm font-medium">❌ Defects Today</p>
-                          <p className="text-xs text-orange-100">ယနေ့ချွတ်ယွင်းချက်များ</p>
+                          <p className="text-xs text-orange-100">Quality issues logged</p>
                         </div>
                         <XCircle className="h-8 w-8 text-orange-100" />
                       </div>
@@ -1038,7 +1026,7 @@ export function JobPlanningSchedule() {
                         <div className="flex items-center gap-2">
                           <Factory className="h-6 w-6 text-blue-600" />
                           <span>Live Machine Status</span>
-                          <span className="text-sm font-normal text-slate-600">တိုက်ရိုက်စက်အခြေအနေ</span>
+                          <span className="text-sm font-normal text-slate-600">Real-time overview</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                           <RefreshCw className="h-4 w-4" />
@@ -1075,7 +1063,7 @@ export function JobPlanningSchedule() {
                                   <div className="flex items-center justify-between mb-3">
                                     <div>
                                       <h3 className="font-bold text-base">{machine.name}</h3>
-                                      <p className="text-xs text-slate-600">{machine.nameMyanmar}</p>
+                                      <p className="text-xs text-slate-600">{machine.group}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <div className={`w-3 h-3 rounded-full ${getStatusColor(machine.status)} ${
@@ -1107,7 +1095,7 @@ export function JobPlanningSchedule() {
                                       </Avatar>
                                       <div>
                                         <p className="text-sm font-medium">{operator.name}</p>
-                                        <p className="text-xs text-slate-600">{operator.nameMyanmar} • Shift {operator.shift}</p>
+                                        <p className="text-xs text-slate-600">Shift {operator.shift}</p>
                                       </div>
                                     </div>
                                   )}
@@ -1232,7 +1220,6 @@ export function JobPlanningSchedule() {
                               <div className="flex-1">
                                 <p className="text-sm font-medium">{alert.machine}</p>
                                 <p className="text-sm text-slate-700">{alert.message}</p>
-                                <p className="text-xs text-slate-600">{alert.messageMyanmar}</p>
                                 <p className="text-xs text-slate-500 mt-1">{alert.time}</p>
                               </div>
                             </div>
@@ -1306,7 +1293,7 @@ export function JobPlanningSchedule() {
                           </Avatar>
                           <div className="flex-1">
                             <p className="text-sm font-medium">{operator.name}</p>
-                            <p className="text-xs text-slate-600">{operator.nameMyanmar}</p>
+                            <p className="text-xs text-slate-600">Shift {operator.shift}</p>
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-medium">{operator.rating}</div>
@@ -1328,7 +1315,7 @@ export function JobPlanningSchedule() {
                     <div className="flex items-center gap-2">
                       <Calendar className="h-6 w-6 text-purple-600" />
                       <span>🎯 Smart Production Planning</span>
-                      <span className="text-sm font-normal text-slate-600">ထုတ်လုပ်မှုအစီအစဉ်ချမှတ်ခြင်း</span>
+                      <span className="text-sm font-normal text-slate-600">Drag jobs to reschedule</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Select value="today" onValueChange={() => {}}>
@@ -1361,7 +1348,7 @@ export function JobPlanningSchedule() {
                       <div key={machine.id} className="grid grid-cols-25 gap-1 items-center">
                         <div className="col-span-3 p-2 bg-slate-50 rounded text-sm font-medium">
                           <div>{machine.name}</div>
-                          <div className="text-xs text-slate-600">{machine.nameMyanmar}</div>
+                          <div className="text-xs text-slate-600">{machine.group}</div>
                         </div>
                         
                         {Array.from({ length: 24 }, (_, hour) => {
@@ -1574,8 +1561,7 @@ export function JobPlanningSchedule() {
                 Add New Production Job
               </DialogTitle>
               <DialogDescription>
-                Create a new production job and assign it to a machine
-                စက်သစ်တစ်ခုတွင် ထုတ်လုပ်မှုအလုပ်သစ်ဖန်တီးပါ
+                Create a new production job and assign it to a machine.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -1607,7 +1593,7 @@ export function JobPlanningSchedule() {
                   <SelectContent>
                     {mockMachines.filter(m => m.status === 'idle').map((machine) => (
                       <SelectItem key={machine.id} value={machine.id}>
-                        {machine.name} - {machine.nameMyanmar}
+                        {machine.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
