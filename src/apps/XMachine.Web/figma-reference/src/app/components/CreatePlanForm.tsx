@@ -208,7 +208,7 @@ export function CreatePlanForm() {
             </Button>
             <div>
               <h1 className="text-2xl font-semibold text-slate-900">Create Production Plan</h1>
-              <p className="text-sm text-slate-600">ထုတ်လုပ်မှုအစီအစဉ်ပြုလုပ်ခြင်း - Plan Creation & Resource Allocation</p>
+              <p className="text-sm text-slate-600">Plan creation and resource allocation</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ export function CreatePlanForm() {
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-blue-600" />
               Plan Details
-              <span className="text-sm font-normal text-slate-600">အသေးစိတ်အချက်အလက်များ</span>
+              <span className="text-sm font-normal text-slate-600">Core fields</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -456,7 +456,7 @@ export function CreatePlanForm() {
             <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5 text-green-600" />
               Inventory Check
-              <span className="text-sm font-normal text-slate-600">ပစ္စည်းများစစ်ဆေးခြင်း</span>
+              <span className="text-sm font-normal text-slate-600">Material availability</span>
             </CardTitle>
           </CardHeader>
           <CardContent>

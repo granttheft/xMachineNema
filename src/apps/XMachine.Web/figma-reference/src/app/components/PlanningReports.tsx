@@ -219,7 +219,7 @@ export function PlanningReports() {
           <CardTitle className="flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-blue-600" />
             Plan List Report
-            <span className="text-sm font-normal text-slate-600">အစီအစဉ်စာရင်းအစီရင်ခံစာ</span>
+            <span className="text-sm font-normal text-slate-600">Registered plans</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -334,7 +334,7 @@ export function PlanningReports() {
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-green-600" />
             Plan vs Actual Report
-            <span className="text-sm font-normal text-slate-600">အစီအစဉ်နှင့်အမှန်တကယ်နှိုင်းယှဉ်ချက်</span>
+            <span className="text-sm font-normal text-slate-600">Planned vs produced</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -411,7 +411,7 @@ export function PlanningReports() {
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-purple-600" />
             Material Usage Report
-            <span className="text-sm font-normal text-slate-600">ပစ္စည်းအသုံးပြုမှုအစီရင်ခံစာ</span>
+            <span className="text-sm font-normal text-slate-600">Consumption overview</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -486,7 +486,7 @@ export function PlanningReports() {
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-orange-600" />
             Job Traceability Report
-            <span className="text-sm font-normal text-slate-600">အလုပ်ခြေရာခံအစီရင်ခံစာ</span>
+            <span className="text-sm font-normal text-slate-600">End-to-end job history</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -614,7 +614,7 @@ export function PlanningReports() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Planning Reports</h1>
-            <p className="text-sm text-slate-600">စီမံခန့်ခွဲမှုအစီရင်ခံစာများ</p>
+            <p className="text-sm text-slate-600">Plan performance, material usage and job traceability</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="gap-2">

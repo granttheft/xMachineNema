@@ -1,0 +1,556 @@
+@page "/planning/reports"
+@rendermode InteractiveServer
+@using System.Globalization
+@using System.Linq
+@inject XMachineApiClient Api
+@inject ITranslationService T
+
+<PageTitle>Planning Reports</PageTitle>
+
+<div class="min-h-screen bg-slate-50">
+    <div class="border-b border-slate-200 bg-white px-6 py-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h1 class="text-2xl font-semibold text-slate-900">Planning Reports</h1>
+                <p class="mt-1 text-sm text-slate-600">Plan performance, material usage and job traceability</p>
+            </div>
+            <button type="button"
+                    class="inline-flex items-center justify-center rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+                    @onclick="OnExportAllMock">
+                Export All
+            </button>
+        </div>
+        @if (!string.IsNullOrEmpty(_toastMessage))
+        {
+            <div class="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">@_toastMessage</div>
+        }
+    </div>
+
+    <div class="border-b border-slate-200 bg-white px-6 py-4">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Total Plans</p>
+                <p class="mt-1 text-2xl font-semibold text-slate-900">@(_summary?.TotalPlans ?? 0)</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Approved Plans</p>
+                <p class="mt-1 text-2xl font-semibold text-green-700">@(_summary?.ApprovedPlans ?? 0)</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">In Progress</p>
+                <p class="mt-1 text-2xl font-semibold text-orange-700">@(_summary?.InProgressPlans ?? 0)</p>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Slots This Week</p>
+                <p class="mt-1 text-2xl font-semibold text-blue-700">@(_summary?.TotalSlotsThisWeek ?? 0)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="border-b border-slate-200 bg-white px-6">
+        <div class="flex flex-wrap gap-x-8">
+            <button type="button" class="@TabClass(_activeTab == "plan-list") py-3 px-1 text-sm mr-8" @onclick='() => SetTabAsync("plan-list")'>Plan List</button>
+            <button type="button" class="@TabClass(_activeTab == "plan-vs-actual") py-3 px-1 text-sm mr-8" @onclick='() => SetTabAsync("plan-vs-actual")'>Plan vs Actual</button>
+            <button type="button" class="@TabClass(_activeTab == "material-usage") py-3 px-1 text-sm mr-8" @onclick='() => SetTabAsync("material-usage")'>Material Usage</button>
+            <button type="button" class="@TabClass(_activeTab == "job-traceability") py-3 px-1 text-sm mr-8" @onclick='() => SetTabAsync("job-traceability")'>Job Traceability</button>
+        </div>
+    </div>
+
+    <div class="p-6">
+        @if (!string.IsNullOrEmpty(_pageError))
+        {
+            <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">@_pageError</div>
+        }
+
+        @if (_activeTab == "plan-list")
+        {
+            @RenderPlanListTab()
+        }
+        else if (_activeTab == "plan-vs-actual")
+        {
+            @RenderPlanVsActualTab()
+        }
+        else if (_activeTab == "material-usage")
+        {
+            @RenderMaterialUsageTab()
+        }
+        else
+        {
+            @RenderJobTraceabilityTab()
+        }
+    </div>
+</div>
+
+@code {
+    private RenderFragment RenderPlanListTab() => __builder =>
+    {
+        if (_loadingPlans)
+        {
+            <p class="text-sm text-slate-600">Loading plans…</p>
+        }
+        else
+        {
+            <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                    <input type="search" placeholder="Search plan no or name…" class="min-w-[12rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" @bind="_searchTerm" @bind:event="oninput" />
+                    <select class="rounded-lg border border-slate-300 px-3 py-2 text-sm" @bind="_statusFilter">
+                        <option value="all">All</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Submitted">Submitted</option>
+                        <option value="Approved">Approved</option>
+                        <option value="InProgress">In Progress</option>
+                        <option value="Done">Done</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                    <button type="button" class="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50" @onclick="OnExportTabMock">Export</button>
+                </div>
+                @if (!FilteredPlans().Any())
+                {
+                    <p class="text-sm text-slate-600">No plans found</p>
+                }
+                else
+                {
+                    <div class="overflow-x-auto rounded-lg border border-slate-200">
+                        <table class="min-w-full divide-y divide-slate-100 text-sm">
+                            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Plan No</th>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="px-4 py-3">Total Qty</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Priority</th>
+                                <th class="px-4 py-3">Planned Start</th>
+                                <th class="px-4 py-3">Planned End</th>
+                                <th class="px-4 py-3">Slot Count</th>
+                                <th class="px-4 py-3">Completion %</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                            @foreach (var p in FilteredPlans())
+                            {
+                                <tr class="hover:bg-slate-50">
+                                    <td class="whitespace-nowrap px-4 py-3 font-mono text-slate-900">@p.PlanNo</td>
+                                    <td class="px-4 py-3">@p.Name</td>
+                                    <td class="px-4 py-3 text-slate-500">—</td>
+                                    <td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium @GetPlanStatusClass(p.PlanStatus)">@p.PlanStatus</span></td>
+                                    <td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium @GetPriorityClass(p.Priority)">@p.Priority</span></td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600">@FormatDate(p.PlannedStartAt)</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600">@FormatDate(p.PlannedEndAt)</td>
+                                    <td class="px-4 py-3 text-slate-500">—</td>
+                                    <td class="px-4 py-3 text-slate-500">—</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+    };
+
+    private RenderFragment RenderPlanVsActualTab() => __builder =>
+    {
+        if (_loadingJobs)
+        {
+            <p class="text-sm text-slate-600">Loading jobs…</p>
+        }
+        else if (_apiJobs.Count == 0)
+        {
+            <p class="text-sm text-slate-600">No job data available</p>
+        }
+        else
+        {
+            <div class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                    <table class="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Plan No</th>
+                            <th class="px-4 py-3">Job No</th>
+                            <th class="px-4 py-3">Machine</th>
+                            <th class="px-4 py-3">Planned Qty</th>
+                            <th class="px-4 py-3">Produced Qty</th>
+                            <th class="px-4 py-3">Variance</th>
+                            <th class="px-4 py-3">Variance %</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Operator</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                        @foreach (var j in _apiJobs.OrderBy(x => x.JobNo))
+                        {
+                            var v = j.ProducedQty - j.PlannedQty;
+                            var pct = j.PlannedQty > 0 ? 100.0 * (j.ProducedQty - j.PlannedQty) / j.PlannedQty : 0;
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 text-slate-500">—</td>
+                                <td class="whitespace-nowrap px-4 py-3 font-mono">@j.JobNo</td>
+                                <td class="px-4 py-3">@ResolveMachineName(j.MachineId)</td>
+                                <td class="px-4 py-3">@j.PlannedQty</td>
+                                <td class="px-4 py-3">@j.ProducedQty</td>
+                                <td class="px-4 py-3 font-medium @GetVarianceClass(v)">@FormatVariance(v)</td>
+                                <td class="px-4 py-3 font-medium @GetVarianceClass((int)Math.Round(pct))">@pct.ToString("F1", CultureInfo.InvariantCulture)%</td>
+                                <td class="px-4 py-3"><span class="rounded-md px-2 py-0.5 text-xs font-medium @GetJobStatusClass(j.ExecutionStatus)">@j.ExecutionStatus</span></td>
+                                <td class="px-4 py-3 font-mono text-xs">@FormatOperator(j.OperatorId)</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-4 grid grid-cols-2 gap-4 rounded-lg bg-slate-50 p-4 text-sm md:grid-cols-4">
+                    <div><span class="text-slate-500">Total Planned</span><div class="font-semibold text-slate-900">@TotalPlanned</div></div>
+                    <div><span class="text-slate-500">Total Produced</span><div class="font-semibold text-slate-900">@TotalProduced</div></div>
+                    <div><span class="text-slate-500">Overall Variance</span><div class="font-semibold @GetVarianceClass(TotalVariance)">@FormatVariance(TotalVariance)</div></div>
+                    <div><span class="text-slate-500">Avg Variance %</span><div class="font-semibold @GetVarianceClass((int)Math.Round(AvgVariancePercent))">@AvgVariancePercent.ToString("F1", CultureInfo.InvariantCulture)%</div></div>
+                </div>
+            </div>
+        }
+    };
+
+    private RenderFragment RenderMaterialUsageTab() => __builder =>
+    {
+        <div class="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            Material usage data will be available when the Inventory module is completed (Sprint 8).
+        </div>
+        <div class="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Sample rows below are mock data for UI preview only.
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="overflow-x-auto rounded-lg">
+                <table class="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">Plan ID</th>
+                        <th class="px-4 py-3">Job ID</th>
+                        <th class="px-4 py-3">Product</th>
+                        <th class="px-4 py-3">Material Code</th>
+                        <th class="px-4 py-3">Material Name</th>
+                        <th class="px-4 py-3">Planned</th>
+                        <th class="px-4 py-3">Actual</th>
+                        <th class="px-4 py-3">Variance</th>
+                        <th class="px-4 py-3">Variance %</th>
+                        <th class="px-4 py-3">Waste Qty</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                    @foreach (var m in _mockMaterialUsage)
+                    {
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3 font-mono text-xs">@m.PlanId</td>
+                            <td class="px-4 py-3 font-mono text-xs">@m.JobId</td>
+                            <td class="px-4 py-3">@m.Product</td>
+                            <td class="px-4 py-3 font-mono">@m.MaterialCode</td>
+                            <td class="px-4 py-3">@m.MaterialName</td>
+                            <td class="px-4 py-3">@m.Planned.ToString("F1", CultureInfo.InvariantCulture) kg</td>
+                            <td class="px-4 py-3">@m.Actual.ToString("F1", CultureInfo.InvariantCulture) kg</td>
+                            <td class="px-4 py-3 font-medium @GetVarianceDoubleClass(m.Variance)">@FormatVarianceDouble(m.Variance)</td>
+                            <td class="px-4 py-3 font-medium @GetVarianceDoubleClass(m.Variance)">@m.VariancePercent.ToString("F1", CultureInfo.InvariantCulture)%</td>
+                            <td class="px-4 py-3">@m.WasteQty.ToString("F1", CultureInfo.InvariantCulture) kg</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    };
+
+    private RenderFragment RenderJobTraceabilityTab() => __builder =>
+    {
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Mold, cycle time, and material batch columns show "—" where not provided by the production API. Sample traceability cards at the bottom are mock data.
+        </div>
+        if (_loadingJobs)
+        {
+            <p class="text-sm text-slate-600">Loading jobs…</p>
+        }
+        else
+        {
+            @if (_apiJobs.Count > 0)
+            {
+                <div class="space-y-3">
+                    @foreach (var j in _apiJobs.OrderBy(x => x.JobNo))
+                    {
+                        var expanded = IsJobExpanded(j.Id);
+                        <div class="rounded-lg border border-slate-200 bg-white shadow-sm">
+                            <button type="button" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50" @onclick="@(() => ToggleJob(j.Id))">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="rounded-md bg-slate-900 px-2 py-0.5 font-mono text-xs text-white">@j.JobNo</span>
+                                    <span class="text-sm text-slate-700">@ResolveMachineName(j.MachineId)</span>
+                                    <span class="rounded-md px-2 py-0.5 text-xs font-medium @GetJobStatusClass(j.ExecutionStatus)">@j.ExecutionStatus</span>
+                                </div>
+                                <span class="text-xs text-slate-500">@FormatDate(j.PlannedStartAt ?? j.ActualStartAt)</span>
+                            </button>
+                            @if (expanded)
+                            {
+                                <div class="border-t border-slate-100 px-4 py-4 text-sm">
+                                    <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+                                        <div><span class="text-xs text-slate-500">Machine</span><div class="font-medium">@ResolveMachineName(j.MachineId)</div></div>
+                                        <div><span class="text-xs text-slate-500">Operator</span><div class="font-medium font-mono text-xs">@FormatOperator(j.OperatorId)</div></div>
+                                        <div><span class="text-xs text-slate-500">Status</span><div class="font-medium">@j.ExecutionStatus</div></div>
+                                        <div><span class="text-xs text-slate-500">Planned start</span><div class="font-medium">@FormatDate(j.PlannedStartAt)</div></div>
+                                    </div>
+                                    <div class="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                                        <div><span class="text-xs text-slate-500">Planned qty</span><div>@j.PlannedQty</div></div>
+                                        <div><span class="text-xs text-slate-500">Produced qty</span><div>@j.ProducedQty</div></div>
+                                        <div><span class="text-xs text-slate-500">Scrap qty</span><div>@j.ScrapQty</div></div>
+                                        <div><span class="text-xs text-slate-500">Defect qty</span><div>@j.DefectQty</div></div>
+                                    </div>
+                                    <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-slate-600 md:grid-cols-4">
+                                        <div>Mold: —</div>
+                                        <div>Cycle time: —</div>
+                                        <div>Material batch: —</div>
+                                        <div>Notes: @(string.IsNullOrEmpty(j.Notes) ? "—" : j.Notes)</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <h3 class="mt-8 text-sm font-semibold text-slate-900">Sample traceability (mock)</h3>
+            <div class="mt-3 space-y-4">
+                @foreach (var card in _mockTraceCards)
+                {
+                    <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                        <div class="flex flex-wrap items-center gap-2 text-sm">
+                            <span class="font-mono text-xs font-semibold">@card.JobId</span>
+                            <span class="text-slate-600">@card.Machine</span>
+                            <span class="rounded-md bg-green-100 px-2 py-0.5 text-xs text-green-800">completed</span>
+                        </div>
+                        <p class="mt-2 text-sm text-slate-800">@card.Product</p>
+                        <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs text-slate-600 md:grid-cols-4">
+                            <div><dt class="text-slate-500">Plan</dt><dd class="font-mono">@card.PlanId</dd></div>
+                            <div><dt class="text-slate-500">Operator</dt><dd>@card.Operator</dd></div>
+                            <div><dt class="text-slate-500">Shift</dt><dd>@card.Shift</dd></div>
+                            <div><dt class="text-slate-500">Duration</dt><dd>@card.Duration</dd></div>
+                            <div><dt class="text-slate-500">Output</dt><dd>@card.OutputQty</dd></div>
+                            <div><dt class="text-slate-500">Quality OK</dt><dd>@card.QualityOk</dd></div>
+                            <div><dt class="text-slate-500">Reject</dt><dd>@card.QualityReject</dd></div>
+                            <div><dt class="text-slate-500">Mold</dt><dd>@card.MoldNo</dd></div>
+                            <div><dt class="text-slate-500">Cycle (s)</dt><dd>@card.CycleTime</dd></div>
+                            <div><dt class="text-slate-500">Cycles</dt><dd>@card.TotalCycles</dd></div>
+                            <div class="md:col-span-2"><dt class="text-slate-500">Material batch</dt><dd class="font-mono">@card.MaterialBatch</dd></div>
+                        </dl>
+                    </div>
+                }
+            </div>
+        }
+    };
+
+    private sealed record MockMaterialRow(
+        string PlanId,
+        string JobId,
+        string Product,
+        string MaterialCode,
+        string MaterialName,
+        double Planned,
+        double Actual,
+        double Variance,
+        double VariancePercent,
+        double WasteQty);
+
+    private sealed record MockTraceCard(
+        string PlanId,
+        string JobId,
+        string Product,
+        string Machine,
+        string Operator,
+        string Shift,
+        string Duration,
+        int OutputQty,
+        int QualityOk,
+        int QualityReject,
+        string MoldNo,
+        double CycleTime,
+        int TotalCycles,
+        string MaterialBatch);
+
+    private static readonly List<MockMaterialRow> _mockMaterialUsage =
+    [
+        new("PL-MOCK-001", "JOB-MOCK-01", "Bottle body run", "PP001", "PP Resin Clear", 20.0, 19.5, -0.5, -2.5, 0.3),
+        new("PL-MOCK-001", "JOB-MOCK-02", "Cap assembly", "PP002", "PP Blue Compound", 3.5, 3.7, 0.2, 5.7, 0.1),
+        new("PL-MOCK-002", "JOB-MOCK-03", "Container run", "HDPE01", "HDPE Natural", 15.0, 14.8, -0.2, -1.3, 0.4)
+    ];
+
+    private static readonly List<MockTraceCard> _mockTraceCards =
+    [
+        new("PL-MOCK-001", "JOB-MOCK-01", "Bottle body — 500 ml", "INJ-M001", "Operator A (OP001)", "Day A", "8h 0m", 950, 920, 30, "MD001", 30.5, 1000, "PP001-B240901"),
+        new("PL-MOCK-001", "JOB-MOCK-02", "Bottle cap — standard", "INJ-M002", "Operator B (OP002)", "Day A", "4h 0m", 1020, 1015, 5, "MD002", 14.1, 1025, "PP002-B240902")
+    ];
+
+    private string _activeTab = "plan-list";
+    private List<ApiProductionPlan> _allPlans = [];
+    private ApiPlanningSummary? _summary;
+    private List<ApiJobExecution> _apiJobs = [];
+    private List<ApiMachineWithJob> _machines = [];
+    private Dictionary<Guid, string> _machineNames = new();
+    private string _searchTerm = string.Empty;
+    private string _statusFilter = "all";
+    private bool _loadingPlans = true;
+    private bool _loadingJobs;
+    private bool _jobsLoaded;
+    private bool _initialized;
+    private string? _pageError;
+    private string? _toastMessage;
+    private readonly HashSet<Guid> _expandedJobs = new();
+
+    private int TotalPlanned => _apiJobs.Sum(j => j.PlannedQty);
+    private int TotalProduced => _apiJobs.Sum(j => j.ProducedQty);
+    private int TotalVariance => TotalProduced - TotalPlanned;
+
+    private double AvgVariancePercent
+    {
+        get
+        {
+            var withPlan = _apiJobs.Where(j => j.PlannedQty > 0).ToList();
+            if (withPlan.Count == 0)
+                return 0;
+            return withPlan.Average(j => 100.0 * (j.ProducedQty - j.PlannedQty) / j.PlannedQty);
+        }
+    }
+
+    private static string TabClass(bool active) =>
+        active ? "border-b-2 border-slate-900 text-slate-900 font-medium" : "border-b-2 border-transparent text-slate-500 hover:text-slate-700";
+
+    private IEnumerable<ApiProductionPlan> FilteredPlans()
+    {
+        IEnumerable<ApiProductionPlan> q = _allPlans;
+        if (!string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            var t = _searchTerm.Trim();
+            q = q.Where(p => p.PlanNo.Contains(t, StringComparison.OrdinalIgnoreCase) || p.Name.Contains(t, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!string.Equals(_statusFilter, "all", StringComparison.OrdinalIgnoreCase))
+            q = q.Where(p => string.Equals(p.PlanStatus, _statusFilter, StringComparison.OrdinalIgnoreCase));
+        return q.OrderByDescending(p => p.PlannedStartAt);
+    }
+
+    private void ToggleJob(Guid jobId)
+    {
+        if (!_expandedJobs.Add(jobId))
+            _expandedJobs.Remove(jobId);
+        StateHasChanged();
+    }
+
+    private bool IsJobExpanded(Guid jobId) => _expandedJobs.Contains(jobId);
+
+    private static string GetVarianceClass(int variance) => variance switch
+    {
+        > 0 => "text-green-600",
+        < 0 => "text-red-600",
+        _ => "text-slate-600"
+    };
+
+    private static string GetVarianceDoubleClass(double variance) => variance switch
+    {
+        > 0 => "text-green-600",
+        < 0 => "text-red-600",
+        _ => "text-slate-600"
+    };
+
+    private static string FormatVariance(int v) => v > 0 ? $"+{v}" : v.ToString(CultureInfo.InvariantCulture);
+
+    private static string FormatVarianceDouble(double v) => v > 0 ? $"+{v.ToString("F1", CultureInfo.InvariantCulture)}" : v.ToString("F1", CultureInfo.InvariantCulture);
+
+    private string ResolveMachineName(Guid machineId) =>
+        _machineNames.TryGetValue(machineId, out var n) ? n : machineId.ToString("N")[..8];
+
+    private static string FormatOperator(Guid? operatorId) =>
+        operatorId is { } id ? id.ToString("N")[..8] : "—";
+
+    private static string FormatDate(DateTimeOffset? dto) =>
+        dto is { } t ? t.ToUniversalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC" : "—";
+
+    private static string GetPlanStatusClass(string status) => status switch
+    {
+        var s when s.Equals("Draft", StringComparison.OrdinalIgnoreCase) => "bg-slate-100 text-slate-600",
+        var s when s.Equals("Submitted", StringComparison.OrdinalIgnoreCase) => "bg-blue-100 text-blue-800",
+        var s when s.Equals("Approved", StringComparison.OrdinalIgnoreCase) => "bg-green-100 text-green-800",
+        var s when s.Equals("InProgress", StringComparison.OrdinalIgnoreCase) => "bg-orange-100 text-orange-800",
+        var s when s.Equals("Done", StringComparison.OrdinalIgnoreCase) => "bg-emerald-100 text-emerald-800",
+        var s when s.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-600"
+    };
+
+    private static string GetPriorityClass(string priority) => priority switch
+    {
+        var s when s.Equals("Low", StringComparison.OrdinalIgnoreCase) => "bg-slate-100 text-slate-600",
+        var s when s.Equals("Medium", StringComparison.OrdinalIgnoreCase) => "bg-yellow-100 text-yellow-800",
+        var s when s.Equals("High", StringComparison.OrdinalIgnoreCase) => "bg-orange-100 text-orange-800",
+        var s when s.Equals("Critical", StringComparison.OrdinalIgnoreCase) => "bg-red-100 text-red-800",
+        _ => "bg-slate-100 text-slate-600"
+    };
+
+    private static string GetJobStatusClass(string status) => status switch
+    {
+        var s when s.Equals("Running", StringComparison.OrdinalIgnoreCase) => "bg-green-100 text-green-800",
+        var s when s.Equals("Completed", StringComparison.OrdinalIgnoreCase) => "bg-emerald-100 text-emerald-800",
+        var s when s.Equals("Paused", StringComparison.OrdinalIgnoreCase) => "bg-yellow-100 text-yellow-800",
+        var s when s.Equals("Queued", StringComparison.OrdinalIgnoreCase) => "bg-slate-100 text-slate-700",
+        _ => "bg-slate-100 text-slate-600"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+        _initialized = true;
+        await T.EnsureInitializedAsync().ConfigureAwait(false);
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+
+        var summaryTask = Api.GetPlanningSummaryAsync();
+        var plansTask = Api.GetPlanningPlansAsync();
+        var machinesTask = Api.GetProductionMachinesAsync();
+        await Task.WhenAll(summaryTask, plansTask, machinesTask).ConfigureAwait(false);
+
+        var sum = await summaryTask.ConfigureAwait(false);
+        var pl = await plansTask.ConfigureAwait(false);
+        var mc = await machinesTask.ConfigureAwait(false);
+
+        if (sum.Error is not null)
+            _pageError = sum.Error;
+        else
+            _summary = sum.Data;
+
+        if (pl.Error is not null)
+            _pageError ??= pl.Error;
+        else
+            _allPlans = pl.Data ?? [];
+
+        if (mc.Error is not null)
+            _pageError ??= mc.Error;
+        else
+        {
+            _machines = mc.Data ?? [];
+            _machineNames = _machines.ToDictionary(m => m.Id, m => $"{m.Code} · {m.Name}");
+        }
+
+        _loadingPlans = false;
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private async Task SetTabAsync(string tab)
+    {
+        _activeTab = tab;
+        if ((tab == "plan-vs-actual" || tab == "job-traceability") && !_jobsLoaded)
+            await LoadJobsAsync().ConfigureAwait(false);
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private async Task LoadJobsAsync()
+    {
+        _loadingJobs = true;
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        var res = await Api.GetProductionJobsAsync().ConfigureAwait(false);
+        _loadingJobs = false;
+        if (res.Error is not null)
+            _pageError ??= res.Error;
+        else
+            _apiJobs = res.Data ?? [];
+        _jobsLoaded = true;
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private void OnExportAllMock() => _toastMessage = "Export queued (mock).";
+
+    private void OnExportTabMock() => _toastMessage = "Export queued (mock).";
+}
