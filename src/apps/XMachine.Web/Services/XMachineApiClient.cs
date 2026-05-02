@@ -311,6 +311,32 @@ public sealed class XMachineApiClient(HttpClient http)
     public Task<ApiFetch<ApiProductionSummary>> GetProductionSummaryAsync(CancellationToken cancellationToken = default) =>
         GetAsync<ApiProductionSummary>("api/production/summary", cancellationToken);
 
+    /// <summary>Lists production plans (GET /api/planning/plans).</summary>
+    public Task<ApiFetch<List<ApiProductionPlan>>> GetPlanningPlansAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiProductionPlan>>("api/planning/plans", cancellationToken);
+
+    /// <summary>Lists active production plans (GET /api/planning/plans/active).</summary>
+    public Task<ApiFetch<List<ApiProductionPlan>>> GetPlanningActivePlansAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiProductionPlan>>("api/planning/plans/active", cancellationToken);
+
+    /// <summary>Gets a plan with slots (GET /api/planning/plans/{id}).</summary>
+    public Task<ApiFetch<ApiPlanWithSlots>> GetPlanningPlanAsync(Guid id, CancellationToken cancellationToken = default) =>
+        GetAsync<ApiPlanWithSlots>($"api/planning/plans/{id}", cancellationToken);
+
+    /// <summary>Lists all plan slots (GET /api/planning/slots).</summary>
+    public Task<ApiFetch<List<ApiPlanSlot>>> GetPlanningSlotsAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiPlanSlot>>("api/planning/slots", cancellationToken);
+
+    /// <summary>Lists plan slots for a machine (GET /api/planning/slots/by-machine/{machineId}).</summary>
+    public Task<ApiFetch<List<ApiPlanSlotWithPlan>>> GetPlanningSlotsByMachineAsync(
+        Guid machineId,
+        CancellationToken cancellationToken = default) =>
+        GetAsync<List<ApiPlanSlotWithPlan>>($"api/planning/slots/by-machine/{machineId}", cancellationToken);
+
+    /// <summary>Planning KPI summary (GET /api/planning/summary).</summary>
+    public Task<ApiFetch<ApiPlanningSummary>> GetPlanningSummaryAsync(CancellationToken cancellationToken = default) =>
+        GetAsync<ApiPlanningSummary>("api/planning/summary", cancellationToken);
+
     public Task<ApiFetch<CreateWorkOrderResponse>> PostWorkOrderAsync(CreateWorkOrderDto dto, CancellationToken cancellationToken = default) =>
         PostJsonAsync<CreateWorkOrderDto, CreateWorkOrderResponse>("api/engineering/work-orders", dto, cancellationToken);
 

@@ -35,7 +35,6 @@ import { MoreVertical, Calendar, ExternalLink, Clock, User, Target, Activity, Pa
 interface Machine {
   id: string;
   name: string;
-  nameMyanmar: string;
   planningStatus: 'fully-planned' | 'partially-planned' | 'unplanned' | 'overbooked';
   scheduledPlans?: {
     draft: number;
@@ -62,7 +61,6 @@ const mockPlanningMachines: Machine[] = [
   {
     id: 'IM-001',
     name: 'Injection Machine 1',
-    nameMyanmar: 'ထောက်ပံ့စက် ၁',
     planningStatus: 'fully-planned',
     scheduledPlans: {
       draft: 2,
@@ -82,7 +80,6 @@ const mockPlanningMachines: Machine[] = [
   {
     id: 'IM-002',
     name: 'Injection Machine 2',
-    nameMyanmar: 'ထောက်ပံ့စက် ၂',
     planningStatus: 'partially-planned',
     scheduledPlans: {
       draft: 1,
@@ -102,7 +99,6 @@ const mockPlanningMachines: Machine[] = [
   {
     id: 'IM-003',
     name: 'Injection Machine 3',
-    nameMyanmar: 'ထောက်ပံ့စက် ၃',
     planningStatus: 'overbooked',
     scheduledPlans: {
       draft: 3,
@@ -122,7 +118,6 @@ const mockPlanningMachines: Machine[] = [
   {
     id: 'IM-004',
     name: 'Injection Machine 4',
-    nameMyanmar: 'ထောက်ပံ့စက် ၄',
     planningStatus: 'unplanned',
     scheduledPlans: {
       draft: 0,
@@ -142,7 +137,6 @@ const mockPlanningMachines: Machine[] = [
   {
     id: 'IM-005',
     name: 'Injection Machine 5',
-    nameMyanmar: 'ထောက်ပံ့စက် ၅',
     planningStatus: 'partially-planned',
     scheduledPlans: {
       draft: 1,
@@ -161,7 +155,6 @@ const mockPlanningMachines: Machine[] = [
   {
     id: 'IM-006',
     name: 'Injection Machine 6',
-    nameMyanmar: 'ထောက်ပံ့စက် ၆',
     planningStatus: 'fully-planned',
     scheduledPlans: {
       draft: 2,
@@ -250,7 +243,7 @@ export function PlanningMachineOverviewDashboard({ onMachineSelect, onOpenInNewT
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Planning Dashboard</h1>
-          <p className="text-slate-600 mt-1">စက်ပစ္စည်းများ အစီအစဥ်ခြုံငုံကြည့်ရှုရန်</p>
+          <p className="text-slate-600 mt-1">Machine planning overview and capacity utilization</p>
         </div>
         
         {/* Controls */}
@@ -346,7 +339,6 @@ export function PlanningMachineOverviewDashboard({ onMachineSelect, onOpenInNewT
                     }`}></div>
                     <h3 className="font-bold text-lg text-slate-900">{machine.name}</h3>
                   </div>
-                  <p className="text-sm text-slate-600">{machine.nameMyanmar}</p>
                   <Badge className={`text-xs ${
                     machine.planningStatus === 'fully-planned' ? 'bg-green-500 text-white' :
                     machine.planningStatus === 'partially-planned' ? 'bg-yellow-500 text-white' :

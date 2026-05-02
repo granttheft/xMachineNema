@@ -1,0 +1,504 @@
+@page "/planning/dashboard"
+@rendermode InteractiveServer
+@using System.Globalization
+@using XMachine.Web.Services
+@inject NavigationManager Nav
+@inject XMachineApiClient Api
+@inject ITranslationService T
+
+<PageTitle>@T["page.planning.dashboard.title"]</PageTitle>
+
+<div class="p-6 bg-slate-50 min-h-screen space-y-6">
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">@_error</div>
+    }
+
+    <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold text-slate-900">@T["page.planning.dashboard.title"]</h1>
+            <p class="mt-1 text-slate-600">@T["page.planning.dashboard.subtitle"]</p>
+        </div>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button"
+                        class="rounded-md border px-3 py-1.5 text-sm font-medium @(FilterButtonClass("all"))"
+                        @onclick="@(() => SetFilter("all"))">
+                    All (@_machines.Count)
+                </button>
+                <button type="button"
+                        class="rounded-md border px-3 py-1.5 text-sm font-medium text-green-800 @(FilterButtonClass("fully-planned"))"
+                        @onclick="@(() => SetFilter("fully-planned"))">
+                    Fully Planned (@StatusCount("fully-planned"))
+                </button>
+                <button type="button"
+                        class="rounded-md border px-3 py-1.5 text-sm font-medium text-yellow-800 @(FilterButtonClass("partially-planned"))"
+                        @onclick="@(() => SetFilter("partially-planned"))">
+                    Partial (@StatusCount("partially-planned"))
+                </button>
+                <button type="button"
+                        class="rounded-md border px-3 py-1.5 text-sm font-medium text-red-800 @(FilterButtonClass("unplanned"))"
+                        @onclick="@(() => SetFilter("unplanned"))">
+                    Unplanned (@StatusCount("unplanned"))
+                </button>
+                <button type="button"
+                        class="rounded-md border px-3 py-1.5 text-sm font-medium text-orange-800 @(FilterButtonClass("overbooked"))"
+                        @onclick="@(() => SetFilter("overbooked"))">
+                    Overbooked (@StatusCount("overbooked"))
+                </button>
+            </div>
+            <div class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
+                <button type="button"
+                        class="rounded-md px-3 py-1.5 text-sm font-medium @(_viewMode == "grid" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50")"
+                        @onclick="@(() => { _viewMode = "grid"; StateHasChanged(); })">
+                    Grid
+                </button>
+                <button type="button"
+                        class="rounded-md px-3 py-1.5 text-sm font-medium @(_viewMode == "list" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50")"
+                        @onclick="@(() => { _viewMode = "list"; StateHasChanged(); })">
+                    List
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+            @for (var i = 0; i < 5; i++)
+            {
+                <div class="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                    <div class="h-4 w-24 rounded bg-slate-200"></div>
+                    <div class="mt-3 h-8 w-16 rounded bg-slate-200"></div>
+                </div>
+            }
+        </div>
+        <div class="@GridClass">
+            @for (var i = 0; i < 8; i++)
+            {
+                    <div class="rounded-xl border-2 border-slate-200 bg-white p-4 animate-pulse space-y-3">
+                    <div class="h-6 max-w-[200px] rounded bg-slate-200"></div>
+                    <div class="h-3 w-full rounded-full bg-slate-100"></div>
+                    <div class="h-16 rounded bg-slate-100"></div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        @if (_summary is not null)
+        {
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Plans</div>
+                    <div class="mt-1 text-2xl font-bold text-slate-900">@_summary.TotalPlans</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Draft</div>
+                    <div class="mt-1 text-2xl font-bold text-slate-900">@_summary.DraftPlans</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Approved</div>
+                    <div class="mt-1 text-2xl font-bold text-slate-900">@_summary.ApprovedPlans</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">In Progress</div>
+                    <div class="mt-1 text-2xl font-bold text-slate-900">@_summary.InProgressPlans</div>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:col-span-1 col-span-2">
+                    <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Slots This Week</div>
+                    <div class="mt-1 text-2xl font-bold text-slate-900">@_summary.TotalSlotsThisWeek</div>
+                </div>
+            </div>
+        }
+
+        <div class="@GridClass">
+            @foreach (var m in FilteredMachines)
+            {
+                <div class="@GetCardShellClass(_viewMode, m.PlanningStatus) cursor-pointer border-2 transition-all hover:shadow-lg"
+                     @onclick="@(() => NavigateToSchedule(m.Id))">
+                    <div class="@(_viewMode == "list" ? "flex w-full flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between" : "p-4")">
+                        <div class="min-w-0 flex-1 space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="h-3 w-3 shrink-0 rounded-full @GetStatusDotClass(m.PlanningStatus) @(m.PlanningStatus == "overbooked" ? "animate-pulse" : "")"></span>
+                                        <h3 class="truncate font-bold text-lg text-slate-900">@m.Name</h3>
+                                    </div>
+                                    <p class="text-xs text-slate-500">@m.Code</p>
+                                    <span class="mt-1 inline-flex rounded-md px-2 py-0.5 text-xs font-semibold @GetStatusBadgeClass(m.PlanningStatus)">@GetStatusLabel(m.PlanningStatus)</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-semibold text-slate-900">@m.TotalPlans total plans</div>
+                                <div class="text-sm text-slate-600">@m.PlannedHours.ToString("F1", CultureInfo.InvariantCulture)h scheduled</div>
+                                @if (!string.IsNullOrEmpty(m.NextAvailableSlot))
+                                {
+                                    <div class="text-xs text-slate-500">Next: @m.NextAvailableSlot</div>
+                                }
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-600">Utilization</span>
+                                    <span class="@GetUtilizationTextClass(m.UtilizationPct) font-semibold">@m.UtilizationPct.ToString("F0", CultureInfo.InvariantCulture)%</span>
+                                </div>
+                                <div class="h-3 rounded-full bg-slate-200">
+                                    <div class="h-3 rounded-full @GetUtilizationBarClass(m.UtilizationPct)"
+                                         style="width:@(Math.Min(m.UtilizationPct, 100).ToString("F0", CultureInfo.InvariantCulture))%"></div>
+                                </div>
+                                @if (m.UtilizationPct > 100)
+                                {
+                                    <div class="text-right text-xs font-bold text-orange-600">
+                                        Overbooked by @((m.UtilizationPct - 100).ToString("F0", CultureInfo.InvariantCulture))%
+                                    </div>
+                                }
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-xs font-medium text-slate-700">Slot status</div>
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-blue-500"></span><span>Draft: @m.DraftSlots</span></div>
+                                    <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-yellow-500"></span><span>Approved: @m.ApprovedSlots</span></div>
+                                    <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-orange-500"></span><span>Running: @m.RunningSlots</span></div>
+                                    <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-green-500"></span><span>Done: @m.DoneSlots</span></div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 border-t border-slate-200/80 pt-3 text-center text-xs">
+                                <div>
+                                    <div class="font-bold text-blue-600">@m.PlannedHours.ToString("F1", CultureInfo.InvariantCulture)h</div>
+                                    <div class="text-slate-600">Planned Hours</div>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-purple-600">@m.TotalPlans</div>
+                                    <div class="text-slate-600">Total Plans</div>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-green-600">@m.SlotsThisWeek</div>
+                                    <div class="text-slate-600">Slots This Week</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!FilteredMachines.Any())
+        {
+            <div class="py-12 text-center">
+                <div class="mb-4 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-16 w-16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-8-5-8 5v12Z"/>
+                        <path d="M6 18V10"/>
+                        <path d="m10 18-2-8"/>
+                        <path d="m14 18 2-8"/>
+                        <path d="M18 18v-4"/>
+                    </svg>
+                </div>
+                <h3 class="mb-2 text-lg font-semibold text-slate-900">No machines match the filter</h3>
+                <p class="text-slate-600">Try changing the planning status filter above.</p>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private sealed record MachineViewModel(
+        string Id,
+        string Code,
+        string Name,
+        string PlanningStatus,
+        double UtilizationPct,
+        double PlannedHours,
+        int TotalPlans,
+        int DraftSlots,
+        int ApprovedSlots,
+        int RunningSlots,
+        int DoneSlots,
+        int SlotsThisWeek,
+        string? NextAvailableSlot);
+
+    private List<MachineViewModel> _machines = [];
+    private ApiPlanningSummary? _summary;
+    private string _filterStatus = "all";
+    private string _viewMode = "grid";
+    private bool _loading = true;
+    private string? _error;
+    private bool _initialized;
+
+    private IEnumerable<MachineViewModel> FilteredMachines =>
+        _filterStatus == "all"
+            ? _machines
+            : _machines.Where(m => m.PlanningStatus == _filterStatus);
+
+    private string GridClass => _viewMode == "grid"
+        ? "grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        : "grid grid-cols-1 gap-4";
+
+    private int StatusCount(string status) => _machines.Count(m => m.PlanningStatus == status);
+
+    private string FilterButtonClass(string key) =>
+        _filterStatus == key
+            ? "border-slate-900 bg-slate-900 text-white"
+            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50";
+
+    private void SetFilter(string key)
+    {
+        _filterStatus = key;
+        StateHasChanged();
+    }
+
+    private static string GetCardShellClass(string viewMode, string status)
+    {
+        var border = status switch
+        {
+            "fully-planned" => "border-green-200 bg-green-50",
+            "partially-planned" => "border-yellow-200 bg-yellow-50",
+            "unplanned" => "border-red-200 bg-red-50",
+            "overbooked" => "border-orange-200 bg-orange-50",
+            _ => "border-slate-200 bg-white",
+        };
+        var layout = viewMode == "list" ? "rounded-xl" : "rounded-xl";
+        return $"{layout} {border}";
+    }
+
+    private static string GetStatusDotClass(string status) => status switch
+    {
+        "fully-planned" => "bg-green-500",
+        "partially-planned" => "bg-yellow-500",
+        "unplanned" => "bg-red-500",
+        "overbooked" => "bg-orange-500",
+        _ => "bg-slate-400",
+    };
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        "fully-planned" => "bg-green-600 text-white",
+        "partially-planned" => "bg-yellow-600 text-white",
+        "unplanned" => "bg-red-600 text-white",
+        "overbooked" => "bg-orange-600 text-white",
+        _ => "bg-slate-500 text-white",
+    };
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        "fully-planned" => "FULLY PLANNED",
+        "partially-planned" => "PARTIAL PLAN",
+        "unplanned" => "NO PLANS",
+        "overbooked" => "OVERBOOKED",
+        _ => status.ToUpperInvariant(),
+    };
+
+    private static string GetUtilizationBarClass(double pct)
+    {
+        if (pct > 100) return "bg-orange-500";
+        if (pct >= 80) return "bg-green-500";
+        if (pct >= 50) return "bg-yellow-500";
+        return "bg-red-500";
+    }
+
+    private static string GetUtilizationTextClass(double pct)
+    {
+        if (pct > 100) return "text-orange-600";
+        if (pct >= 80) return "text-green-600";
+        if (pct >= 50) return "text-yellow-600";
+        return "text-red-600";
+    }
+
+    private void NavigateToSchedule(string machineId) =>
+        Nav.NavigateTo($"/planning/schedule?machineId={Uri.EscapeDataString(machineId)}");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized)
+            return;
+
+        _initialized = true;
+        await T.EnsureInitializedAsync();
+        await InvokeAsync(StateHasChanged);
+
+        var summaryRes = await Api.GetPlanningSummaryAsync();
+        if (summaryRes.Error is not null)
+            _error = summaryRes.Error;
+        else
+            _summary = summaryRes.Data;
+        await InvokeAsync(StateHasChanged);
+
+        var machinesRes = await Api.GetProductionMachinesAsync();
+        var slotsRes = await Api.GetPlanningSlotsAsync();
+        if (machinesRes.Error is not null)
+            _error = machinesRes.Error;
+        else if (slotsRes.Error is not null)
+            _error = slotsRes.Error;
+        else
+            _machines = BuildMachineViewModels(machinesRes.Data ?? [], slotsRes.Data ?? []);
+
+        _loading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static List<MachineViewModel> BuildMachineViewModels(
+        List<ApiMachineWithJob> apiMachines,
+        List<ApiPlanSlot> allSlots)
+    {
+        var weekStart = StartOfWeekMondayUtc(DateTime.UtcNow);
+        var weekEnd = weekStart.AddDays(7);
+        var now = DateTimeOffset.UtcNow;
+
+        if (apiMachines.Count == 0)
+            return BuildFallbackOnlyMachines();
+
+        if (apiMachines.Count > 6)
+        {
+            return apiMachines
+                .Select(m => BuildOneMachine(m, allSlots, weekStart, weekEnd, now))
+                .ToList();
+        }
+
+        var result = apiMachines
+            .Select(m => BuildOneMachine(m, allSlots, weekStart, weekEnd, now))
+            .ToList();
+
+        if (result.Count >= 6)
+            return result;
+
+        for (var i = result.Count; i < 6; i++)
+        {
+            var mock = FallbackMocks[i];
+            result.Add(new MachineViewModel(
+                MockMachineGuids[i].ToString(),
+                mock.Code,
+                mock.Name,
+                mock.PlanningStatus,
+                mock.UtilizationPct,
+                mock.PlannedHours,
+                mock.TotalPlans,
+                mock.Draft,
+                mock.Approved,
+                mock.Running,
+                mock.Done,
+                mock.SlotsThisWeek,
+                mock.Next));
+        }
+
+        return result;
+    }
+
+    private static List<MachineViewModel> BuildFallbackOnlyMachines() =>
+        Enumerable.Range(0, 6).Select(i =>
+        {
+            var mock = FallbackMocks[i];
+            return new MachineViewModel(
+                MockMachineGuids[i].ToString(),
+                mock.Code,
+                mock.Name,
+                mock.PlanningStatus,
+                mock.UtilizationPct,
+                mock.PlannedHours,
+                mock.TotalPlans,
+                mock.Draft,
+                mock.Approved,
+                mock.Running,
+                mock.Done,
+                mock.SlotsThisWeek,
+                mock.Next);
+        }).ToList();
+
+    private static MachineViewModel BuildOneMachine(
+        ApiMachineWithJob machine,
+        List<ApiPlanSlot> allSlots,
+        DateTimeOffset weekStart,
+        DateTimeOffset weekEnd,
+        DateTimeOffset now)
+    {
+        var mid = machine.Id;
+        var weekSlots = allSlots
+            .Where(s => s.MachineId == mid && s.PlannedStartAt >= weekStart && s.PlannedStartAt < weekEnd)
+            .ToList();
+        var totalSlotHours = weekSlots.Sum(s => Math.Max(0, (s.PlannedEndAt - s.PlannedStartAt).TotalHours));
+        var utilizationPct = totalSlotHours / 40.0 * 100.0;
+        var planningStatus = ClassifyPlanningStatus(utilizationPct);
+
+        var draft = weekSlots.Count(s => SlotEquals(s, "Scheduled"));
+        var approved = weekSlots.Count(s => SlotEquals(s, "Skipped"));
+        var running = weekSlots.Count(s => SlotEquals(s, "Running"));
+        var done = weekSlots.Count(s => SlotEquals(s, "Done") || SlotEquals(s, "Cancelled"));
+
+        var totalPlans = allSlots.Where(s => s.MachineId == mid).Select(s => s.ProductionPlanId).Distinct().Count();
+        var nextSlot = allSlots
+            .Where(s => s.MachineId == mid && s.PlannedStartAt > now)
+            .OrderBy(s => s.PlannedStartAt)
+            .FirstOrDefault();
+        var nextLabel = nextSlot is null
+            ? null
+            : nextSlot.PlannedStartAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) + " UTC";
+
+        return new MachineViewModel(
+            machine.Id.ToString(),
+            machine.Code,
+            machine.Name,
+            planningStatus,
+            utilizationPct,
+            totalSlotHours,
+            totalPlans,
+            draft,
+            approved,
+            running,
+            done,
+            weekSlots.Count,
+            nextLabel);
+    }
+
+    private static readonly Guid[] MockMachineGuids =
+    [
+        Guid.Parse("f1000001-0000-4000-8000-000000000001"),
+        Guid.Parse("f1000002-0000-4000-8000-000000000002"),
+        Guid.Parse("f1000003-0000-4000-8000-000000000003"),
+        Guid.Parse("f1000004-0000-4000-8000-000000000004"),
+        Guid.Parse("f1000005-0000-4000-8000-000000000005"),
+        Guid.Parse("f1000006-0000-4000-8000-000000000006"),
+    ];
+
+    private sealed record FallbackMock(
+        string Code,
+        string Name,
+        string PlanningStatus,
+        double UtilizationPct,
+        double PlannedHours,
+        int TotalPlans,
+        int Draft,
+        int Approved,
+        int Running,
+        int Done,
+        int SlotsThisWeek,
+        string? Next);
+
+    private static readonly FallbackMock[] FallbackMocks =
+    [
+        new("IM-001", "Injection Machine 1", "fully-planned", 85, 20.4, 12, 2, 2, 1, 4, 4, "14:00"),
+        new("IM-002", "Injection Machine 2", "partially-planned", 45, 10.8, 6, 1, 1, 0, 2, 3, "09:00"),
+        new("IM-003", "Injection Machine 3", "overbooked", 110, 26.4, 15, 3, 3, 2, 3, 8, "Tomorrow 08:00"),
+        new("IM-004", "Injection Machine 4", "unplanned", 0, 0, 1, 0, 0, 0, 1, 0, "08:00"),
+        new("IM-005", "Injection Machine 5", "partially-planned", 65, 15.6, 7, 1, 2, 1, 2, 5, null),
+        new("IM-006", "Injection Machine 6", "fully-planned", 90, 21.6, 13, 2, 3, 1, 5, 6, "16:30"),
+    ];
+
+    private static bool SlotEquals(ApiPlanSlot s, string status) =>
+        string.Equals(s.SlotStatus, status, StringComparison.OrdinalIgnoreCase);
+
+    private static string ClassifyPlanningStatus(double utilizationPct)
+    {
+        if (utilizationPct <= 0) return "unplanned";
+        if (utilizationPct >= 100) return "overbooked";
+        if (utilizationPct >= 70) return "fully-planned";
+        return "partially-planned";
+    }
+
+    private static DateTimeOffset StartOfWeekMondayUtc(DateTime utcNow)
+    {
+        var date = utcNow.Date;
+        var day = utcNow.DayOfWeek == DayOfWeek.Sunday ? 7 : (int)utcNow.DayOfWeek;
+        var daysSinceMonday = day - (int)DayOfWeek.Monday;
+        var monday = date.AddDays(-daysSinceMonday);
+        return new DateTimeOffset(monday, TimeSpan.Zero);
+    }
+}

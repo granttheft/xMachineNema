@@ -58,6 +58,12 @@
             @NavItem("/monitoring/live", MonitorSvg, T["nav.live_monitoring"])
             @NavItem("/monitoring/machines", LayoutGridNavSvg, T["nav.machine_overview"])
 
+            @SectionHeader(T["nav.section.planning"].ToUpper())
+            @NavItem("/planning/dashboard", PlanningDashboardNavSvg, T["nav.planning_dashboard"], NavLinkMatch.All)
+            @NavItem("/planning/schedule", PlanningScheduleNavSvg, T["nav.planning_schedule"], NavLinkMatch.All)
+            @NavItem("/planning/create", PlanningCreateNavSvg, T["nav.planning_create"], NavLinkMatch.All)
+            @NavItem("/planning/reports", PlanningReportsNavSvg, T["nav.planning_reports"], NavLinkMatch.All)
+
             @SectionHeader(T["nav.section.production"].ToUpper())
             @NavItem("/production", ProductionOverviewNavSvg, T["nav.module_overview"], NavLinkMatch.All)
             @NavItem("/production/control", ProductionControlNavSvg, T["nav.control"], NavLinkMatch.All)
@@ -195,6 +201,14 @@
     private const string MonitorSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>""";
 
     private const string LayoutGridNavSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>""";
+
+    private const string PlanningDashboardNavSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>""";
+
+    private const string PlanningScheduleNavSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>""";
+
+    private const string PlanningCreateNavSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>""";
+
+    private const string PlanningReportsNavSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>""";
 
     private const string ProductionOverviewNavSvg = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>""";
 
